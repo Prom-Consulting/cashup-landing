@@ -1,26 +1,116 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --magenta: #db3c8a;
+  /* Deeper magenta for buttons, small text and filled areas (5:1 on chalk) */
+  --magenta-ink: #c2307a;
+  --forest: #00522d;
+  --blush: #fce5df;
+  --chalk: #fff8f6;
+  --bubblegum: #f29ebd;
+  --lilac: #d1cfe4;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-magenta: var(--magenta);
+  --color-magenta-ink: var(--magenta-ink);
+  --color-forest: var(--forest);
+  --color-blush: var(--blush);
+  --color-chalk: var(--chalk);
+  --color-bubblegum: var(--bubblegum);
+  --color-lilac: var(--lilac);
+  --font-display: var(--font-sofia-condensed);
+  --font-sans: var(--font-onest);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--chalk);
+  color: var(--forest);
+  font-family: var(--font-onest), system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--magenta);
+  color: var(--chalk);
+}
+
+:focus-visible {
+  outline: 3px solid var(--magenta);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Tight display leading, as in the design system (0.7–0.8) */
+.display {
+  font-family: var(--font-sofia-condensed), sans-serif;
+  font-weight: 900;
+  line-height: 0.8;
+  letter-spacing: -0.01em;
+}
+
+/* Hero content waits for the GSAP intro (see page-motion.tsx). The class is set by an inline
+   script in layout.tsx and removed by the intro or by a 4s failsafe, so content never stays hidden. */
+.motion-pending [data-hero-item] {
+  visibility: hidden;
+}
+
+/* Calculator slider on the forest panel */
+.calc-range {
+  appearance: none;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--magenta) var(--fill, 0%),
+    rgb(255 248 246 / 0.18) var(--fill, 0%)
+  );
+  cursor: pointer;
+}
+.calc-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--chalk);
+  border: 6px solid var(--magenta);
+  transition: scale 150ms;
+}
+.calc-range::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--chalk);
+  border: 6px solid var(--magenta);
+}
+.calc-range:active::-webkit-slider-thumb {
+  scale: 1.15;
+}
+/* Chrome treats a clicked range as focus-visible, so the ring lives on the thumb */
+.calc-range:focus-visible {
+  outline: none;
+}
+.calc-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 5px rgb(242 158 189 / 0.6);
+}
+.calc-range:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 5px rgb(242 158 189 / 0.6);
+}
+
+/* Torn-paper bottom edge for the receipt */
+.receipt {
+  --tooth: 14px;
+  mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) bottom / var(--tooth)
+      calc(var(--tooth) / 2) repeat-x,
+    linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth) / 2 + 1px) no-repeat;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
