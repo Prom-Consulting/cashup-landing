@@ -168,3 +168,93 @@ export function Spinner() {
     </svg>
   );
 }
+
+/** Свой чекбокс: системный спрятан, видимая коробочка рисуется сама. */
+export function Checkbox({
+  checked,
+  onChange,
+  children,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="group flex cursor-pointer items-center gap-3 font-medium select-none">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden="true"
+        className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border-2 border-smoke bg-paper transition-colors group-hover:border-graphite/40 peer-checked:border-flame peer-checked:bg-flame peer-checked:[&>svg]:scale-100 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-flame"
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4 scale-0 text-graphite transition-transform">
+          <path
+            d="m5 12.5 4.5 4.5L19 7.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+      {children}
+    </label>
+  );
+}
+
+/** Поле поиска: иконка, скруглённая рамка и крестик для очистки. */
+export function SearchInput({
+  value,
+  onValueChange,
+  label,
+  placeholder,
+  className = "",
+}: {
+  value: string;
+  onValueChange: (value: string) => void;
+  label: string;
+  placeholder?: string;
+  className?: string;
+}) {
+  const id = useId();
+  return (
+    <div className={`relative ${className}`}>
+      <label htmlFor={id} className="sr-only">
+        {label}
+      </label>
+      <svg
+        viewBox="0 0 24 24"
+        className="pointer-events-none absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 opacity-55"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
+        <path d="m16 16 4.5 4.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+      <input
+        id={id}
+        type="search"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onValueChange(e.target.value)}
+        className="w-full rounded-full border-2 border-smoke bg-paper py-2.5 pr-11 pl-11 transition-colors hover:border-graphite/40 focus-visible:border-flame focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
+      />
+      {value && (
+        <button
+          type="button"
+          onClick={() => onValueChange("")}
+          aria-label="Очистить поиск"
+          className="absolute top-1/2 right-3 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full transition-colors hover:bg-cream"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}

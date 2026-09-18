@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { categories, categoryOne, partners, type PartnerCategory } from "../_data/partners";
 import { PartnerMap } from "../_components/partner-map";
+import { Button, Checkbox, SearchInput } from "../_components/ui/inputs";
 
 type Filter = PartnerCategory | "all";
 
@@ -65,25 +66,16 @@ export function PartnersView() {
           </div>
 
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <label className="flex cursor-pointer items-center gap-3 font-medium">
-              <input
-                type="checkbox"
-                checked={octopayOnly}
-                onChange={(e) => setOctopayOnly(e.target.checked)}
-                className="h-5 w-5 accent-[var(--flame-ink)]"
-              />
+            <Checkbox checked={octopayOnly} onChange={setOctopayOnly}>
               Только с OctōPAY
-            </label>
-            <label className="w-full sm:w-auto sm:flex-1 lg:flex-none">
-              <span className="sr-only">Поиск по названию или адресу</span>
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Название или улица"
-                className="w-full rounded-full border-2 border-cream px-5 py-2.5 focus-visible:border-flame focus-visible:outline-none lg:w-64"
-              />
-            </label>
+            </Checkbox>
+            <SearchInput
+              value={query}
+              onValueChange={setQuery}
+              label="Поиск по названию или адресу"
+              placeholder="Название или улица"
+              className="w-full sm:flex-1 lg:w-64 lg:flex-none"
+            />
           </div>
         </div>
       </div>
@@ -128,17 +120,17 @@ export function PartnersView() {
             <li className="rounded-[24px] border-2 border-dashed border-cream p-8 text-center">
               <p className="text-xl font-bold">Здесь пока никого нет</p>
               <p className="mt-2 opacity-80">Снимите фильтры или поищите по другой улице.</p>
-              <button
+              <Button
                 type="button"
+                className="mt-5"
                 onClick={() => {
                   setFilter("all");
                   setOctopayOnly(false);
                   setQuery("");
                 }}
-                className="mt-5 rounded-[10px] bg-flame-ink px-6 py-3 font-bold text-paper transition-colors hover:bg-graphite"
               >
                 Показать всех
-              </button>
+              </Button>
             </li>
           )}
         </ol>
