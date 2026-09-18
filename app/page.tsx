@@ -147,13 +147,13 @@ export default function Home() {
           <div className="mx-auto max-w-[1440px] px-5 pt-8 pb-16 sm:px-10 sm:pb-20 xl:pb-28">
             <div data-rise className="grid gap-6 md:grid-cols-2">
               <div className="rounded-[28px] bg-graphite p-8 text-paper sm:p-10">
-                <p className="display text-6xl">Продлили</p>
+                <p className="display text-[clamp(2.25rem,9vw,3.75rem)]">Продлили</p>
                 <p className="mt-4 max-w-[40ch] text-lg leading-relaxed">
                   С первого дня нового периода на карте снова 100 000 сом бонусами. Всё, что вы потратили, доначислено.
                 </p>
               </div>
               <div className="rounded-[28px] border-2 border-graphite p-8 sm:p-10">
-                <p className="display text-6xl">Не продлили</p>
+                <p className="display text-[clamp(2.25rem,9vw,3.75rem)]">Не продлили</p>
                 <p className="mt-4 max-w-[40ch] text-lg leading-relaxed">
                   Оставшиеся бонусы сгорают, платить ими нельзя. Оплатите подписку — и баланс снова станет 100 000.
                 </p>
@@ -200,11 +200,11 @@ export default function Home() {
             </div>
             <ul data-categories>
               {categories.map(({ label, Icon }) => (
-                <li key={label} data-category className="group flex items-center gap-5 border-b-2 border-cream py-3">
-                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-cream transition-transform duration-300 group-hover:-rotate-12 sm:h-16 sm:w-16">
-                    <Icon className="h-9 w-9 sm:h-10 sm:w-10" />
+                <li key={label} data-category className="group flex items-center gap-4 border-b-2 border-cream py-3 sm:gap-5">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-cream transition-transform duration-300 group-hover:-rotate-12 sm:h-16 sm:w-16">
+                    <Icon className="h-7 w-7 sm:h-10 sm:w-10" />
                   </span>
-                  <span className="display text-[clamp(1.57rem,3.47vw,2.59rem)] text-graphite">{label}</span>
+                  <span className="display min-w-0 text-[clamp(1.25rem,3.47vw,2.59rem)] text-graphite">{label}</span>
                 </li>
               ))}
             </ul>
@@ -238,7 +238,7 @@ export default function Home() {
               {/* Client subscription */}
               <div className="flex flex-col">
                 <h3 className="text-xl font-bold">Клиенту: карта Loal</h3>
-                <p data-price className="display mt-4 text-[clamp(4.17rem,11.11vw,8.62rem)] whitespace-nowrap">
+                <p data-price className="display mt-4 text-[clamp(3rem,11.11vw,8.62rem)] whitespace-nowrap">
                   5–10 $
                 </p>
                 <p className="display text-[clamp(1.57rem,2.78vw,2.42rem)]">в месяц</p>
@@ -261,7 +261,7 @@ export default function Home() {
               {/* Partner subscription */}
               <div className="flex flex-col rounded-[32px] bg-paper p-8 text-graphite sm:p-10">
                 <h3 className="text-xl font-bold">Партнёру: только лояльность</h3>
-                <p className="display mt-4 text-[clamp(3.12rem,6.25vw,5.17rem)] whitespace-nowrap text-flame">30–50 $</p>
+                <p className="display mt-4 text-[clamp(2.25rem,6.25vw,5.17rem)] whitespace-nowrap text-flame">30–50 $</p>
                 <p className="display text-[clamp(1.39rem,2.36vw,2.07rem)]">в месяц</p>
                 <ul className="mt-6 flex flex-col gap-3">
                   {partnerIncluded.map((item) => (

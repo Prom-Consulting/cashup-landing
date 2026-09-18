@@ -90,7 +90,7 @@ export function BonusCalculator() {
           <label htmlFor={amountId} className="text-lg font-medium">
             Сумма покупки
           </label>
-          <p className="display mt-3 text-[clamp(2.78rem,6.25vw,4.83rem)] whitespace-nowrap tabular-nums">
+          <p className="display mt-3 text-[clamp(2.1rem,6.25vw,4.83rem)] whitespace-nowrap tabular-nums">
             <span data-out-amount>{initial.amount}</span>
             <span className="text-amber"> сом</span>
           </p>
@@ -160,7 +160,7 @@ export function BonusCalculator() {
             </dl>
 
             <p className="mt-5 font-medium">К оплате деньгами</p>
-            <p className="display mt-1 text-[clamp(2.43rem,4.86vw,3.79rem)] whitespace-nowrap tabular-nums">
+            <p className="display mt-1 text-[clamp(1.9rem,4.86vw,3.79rem)] whitespace-nowrap tabular-nums">
               <span data-out-cash>{initial.cash}</span> сом
             </p>
 

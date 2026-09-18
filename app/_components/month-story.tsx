@@ -270,9 +270,9 @@ export function MonthStory() {
                   <p className="font-medium">Шаг {i + 1} из 4</p>
                   <h3 className="display mt-3 text-[clamp(2.26rem,4.51vw,4.48rem)] text-flame">{step.title}</h3>
                   <p className="mt-6 max-w-[40ch] text-lg leading-relaxed sm:text-xl">{step.text}</p>
-                  <p className="mt-8 inline-flex items-baseline gap-3 rounded-full bg-paper px-6 py-3">
+                  <p className="mt-8 inline-flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-3xl bg-paper px-5 py-3 sm:rounded-full sm:px-6">
                     <span className="font-medium">Бонусов на карте</span>
-                    <span className="display text-4xl whitespace-nowrap tabular-nums">
+                    <span className="display text-[clamp(1.75rem,6vw,2.5rem)] whitespace-nowrap tabular-nums">
                       <span data-slide-balance>{format(step.balance)}</span> сом
                     </span>
                   </p>

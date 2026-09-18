@@ -52,12 +52,12 @@ export function HeroVisual() {
         </div>
         <p className="mt-5 text-xs opacity-80">Бонусы на карте, сом</p>
         <div className="mt-1 flex items-end justify-between gap-3">
-          <p className="display text-[2.6rem] whitespace-nowrap text-amber sm:text-[3.6rem]">
+          <p className="display text-[clamp(1.6rem,8vw,3.6rem)] whitespace-nowrap text-amber">
             <span data-balance className="tabular-nums">
               100 000
             </span>
           </p>
-          <svg viewBox="0 0 9 9" className="mb-1 h-14 w-14 shrink-0 rounded-md bg-paper p-1" aria-hidden="true">
+          <svg viewBox="0 0 9 9" className="mb-1 h-10 w-10 shrink-0 rounded-md bg-paper p-1 sm:h-14 sm:w-14" aria-hidden="true">
             <QrPattern />
           </svg>
         </div>

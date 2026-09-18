@@ -157,7 +157,7 @@ export default function BecomePartnerPage() {
               {models(PARTNER_MAIL).map((m) => (
                 <article
                   key={m.key}
-                  className={`relative flex flex-col rounded-[32px] p-8 sm:p-10 ${
+                  className={`relative flex min-w-0 flex-col rounded-[32px] p-6 sm:p-10 ${
                     m.featured ? "bg-flame-ink text-paper xl:-my-4 xl:py-14" : "bg-paper text-graphite"
                   }`}
                 >
@@ -168,7 +168,7 @@ export default function BecomePartnerPage() {
                   )}
                   <h3 className="display text-[clamp(1.57rem,2.36vw,2.07rem)]">{m.title}</h3>
                   <p
-                    className={`display mt-6 text-[clamp(2.78rem,4.17vw,4.14rem)] whitespace-nowrap ${
+                    className={`display mt-6 text-[clamp(2.25rem,4.17vw,4.14rem)] whitespace-nowrap ${
                       m.featured ? "text-paper" : "text-flame"
                     }`}
                   >
