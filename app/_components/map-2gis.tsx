@@ -20,11 +20,13 @@ type MarkerInstance = { destroy: () => void; getContent: () => HTMLElement };
 // Демо-ключ 2GIS MapGL. Ключ браузерный: он всё равно виден в коде страницы,
 // защита делается ограничением по домену в Platform Manager.
 // Боевой ключ можно подставить через NEXT_PUBLIC_2GIS_KEY в .env.local.
-const DEMO_KEY = "31a80936-96f1-4fa3-97ae-33ced1869595";
+const DEMO_KEY = "4b7f266b-a9ef-4839-85b5-ff6937ec5afc";
 const KEY = process.env.NEXT_PUBLIC_2GIS_KEY || DEMO_KEY;
 const STYLE = process.env.NEXT_PUBLIC_2GIS_STYLE;
 
-export const has2gisKey = Boolean(KEY);
+// 2GIS is opt-in: the key must also list the site domain in Platform Manager, otherwise MapGL
+// renders a "key is invalid" watermark over half-empty tiles. Set NEXT_PUBLIC_MAP=2gis to switch.
+export const use2gisMap = process.env.NEXT_PUBLIC_MAP === "2gis" && Boolean(KEY);
 
 const pinHtml = (p: Partner, active: boolean) => `
   <span class="map-pin ${active ? "map-pin--active" : p.octopay ? "map-pin--octopay" : "map-pin--plain"}">

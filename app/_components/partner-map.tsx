@@ -2,11 +2,11 @@
 
 import { useCallback, useState } from "react";
 import type { Partner } from "../_data/partners";
-import { CityMap } from "./city-map";
-import { Map2gis, has2gisKey } from "./map-2gis";
+import { Map2gis, use2gisMap } from "./map-2gis";
+import { OsmMap } from "./osm-map";
 
-// Map frame with the brand legend. The map itself is the stylised city plan until
-// a 2GIS key is configured (see map-2gis.tsx).
+// Map frame with the brand legend. 2GIS renders when its key is active; until then
+// the OpenStreetMap map stands in (see osm-map.tsx).
 export function PartnerMap({
   partners,
   activeId,
@@ -19,7 +19,7 @@ export function PartnerMap({
   const active = partners.find((p) => p.id === activeId) ?? null;
   const [mapFailed, setMapFailed] = useState(false);
   const onFail = useCallback(() => setMapFailed(true), []);
-  const use2gis = has2gisKey && !mapFailed;
+  const use2gis = use2gisMap && !mapFailed;
 
   return (
     <div className="overflow-hidden rounded-[32px] border-2 border-forest bg-chalk">
@@ -27,7 +27,7 @@ export function PartnerMap({
         {use2gis ? (
           <Map2gis partners={partners} activeId={activeId} onSelect={onSelect} onFail={onFail} />
         ) : (
-          <CityMap partners={partners} activeId={activeId} onSelect={onSelect} />
+          <OsmMap partners={partners} activeId={activeId} onSelect={onSelect} />
         )}
 
         {active && (

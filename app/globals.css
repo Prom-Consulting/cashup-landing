@@ -149,3 +149,12 @@ body {
   color: var(--chalk);
   transform: scale(1.08);
 }
+
+/* OpenStreetMap tiles nudged toward the brand palette (temporary map, see osm-map.tsx) */
+.map-osm .maplibregl-canvas {
+  filter: grayscale(0.6) sepia(0.22) hue-rotate(300deg) saturate(0.85) brightness(1.06) contrast(0.92);
+}
+.map-osm .maplibregl-ctrl-attrib {
+  background: rgb(255 248 246 / 0.85);
+  font-family: var(--font-onest), sans-serif;
+}
