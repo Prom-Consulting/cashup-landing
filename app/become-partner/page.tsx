@@ -74,7 +74,7 @@ export default function BecomePartnerPage() {
       <SiteHeader cta={{ label: "Оставить заявку", href: "#form" }} />
 
       <main className="flex-1 overflow-x-clip">
-        <section className="mx-auto grid max-w-[1440px] items-center gap-14 px-5 pt-6 pb-20 sm:px-10 lg:grid-cols-[1.15fr_1fr] lg:pt-10 lg:pb-28">
+        <section className="mx-auto grid max-w-[1440px] items-center gap-14 px-5 pt-6 pb-20 sm:px-10 xl:grid-cols-[1.15fr_1fr] xl:pt-10 xl:pb-28">
           <div>
             <p className="text-lg font-medium">Для бизнеса в Бишкеке</p>
             <h1 className="display mt-4 text-[clamp(2.43rem,5.9vw,5.17rem)] text-flame">Станьте партнёром Loal</h1>
@@ -122,7 +122,7 @@ export default function BecomePartnerPage() {
         </section>
 
         <section className="bg-cream/50">
-          <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-10 lg:py-28">
+          <div className="mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-24">
             <h2 className="display max-w-[16ch] text-[clamp(2.08rem,4.86vw,4.14rem)] text-flame">Что это даёт заведению</h2>
             <div className="mt-12 grid gap-6 md:grid-cols-2">
               {gains.map((g) => (
@@ -135,7 +135,7 @@ export default function BecomePartnerPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-[1440px] px-5 py-20 sm:px-10 lg:py-28">
+        <section className="mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-24">
           <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)] text-flame">Как подключиться</h2>
           <ol className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {steps.map((s, i) => (
@@ -151,14 +151,14 @@ export default function BecomePartnerPage() {
         </section>
 
         <section className="bg-graphite text-paper">
-          <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-10 lg:py-28">
+          <div className="mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-24">
             <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)]">Выберите модель</h2>
-            <div className="mt-12 grid gap-5 lg:grid-cols-3 lg:items-stretch">
+            <div className="mt-12 grid gap-5 xl:grid-cols-3 xl:items-stretch">
               {models(PARTNER_MAIL).map((m) => (
                 <article
                   key={m.key}
                   className={`relative flex flex-col rounded-[32px] p-8 sm:p-10 ${
-                    m.featured ? "bg-flame-ink text-paper lg:-my-4 lg:py-14" : "bg-paper text-graphite"
+                    m.featured ? "bg-flame-ink text-paper xl:-my-4 xl:py-14" : "bg-paper text-graphite"
                   }`}
                 >
                   {m.featured && (
@@ -237,7 +237,7 @@ export default function BecomePartnerPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-[1440px] px-5 pb-24 sm:px-10 lg:pb-32">
+        <section className="mx-auto max-w-[1440px] px-5 pb-16 sm:px-10 sm:pb-20 xl:pb-28">
           <div className="grid gap-10 lg:grid-cols-[1fr_1.6fr]">
             <h2 className="display text-[clamp(1.92rem,4.17vw,3.45rem)] text-flame">Вопросы</h2>
             <dl>

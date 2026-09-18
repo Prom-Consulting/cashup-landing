@@ -70,7 +70,7 @@ export function MonthStory() {
       });
 
       // Desktop: pinned stage, art and text swap sides on every step.
-      mm.add("(min-width: 1024px) and (prefers-reduced-motion: no-preference)", () => {
+      mm.add("(min-width: 1280px) and (prefers-reduced-motion: no-preference)", () => {
         const stage = q("[data-stage]")[0];
         const slides = q<HTMLElement>("[data-slide]");
         const blobSvg = q("[data-blob-svg]")[0];
@@ -213,7 +213,7 @@ export function MonthStory() {
       });
 
       // Mobile and tablet: each scene assembles as it scrolls in.
-      mm.add("(max-width: 1023px) and (prefers-reduced-motion: no-preference)", () => {
+      mm.add("(max-width: 1279px) and (prefers-reduced-motion: no-preference)", () => {
         q<HTMLElement>("[data-slide]").forEach((slide) => {
           const tl = gsap
             .timeline({ scrollTrigger: { trigger: slide, start: "top 75%", once: true } })
@@ -251,11 +251,11 @@ export function MonthStory() {
               <li
                 key={step.title}
                 data-slide
-                className={`mx-auto flex max-w-[1440px] flex-col gap-6 px-5 py-10 sm:px-10 lg:items-center lg:justify-between lg:gap-16 lg:py-14 group-data-[pinned=true]:absolute group-data-[pinned=true]:inset-0 group-data-[pinned=true]:py-0 group-data-[pinned=true]:pb-28 ${
-                  i % 2 ? "lg:flex-row-reverse" : "lg:flex-row"
+                className={`mx-auto flex max-w-[1440px] flex-col gap-6 px-5 py-10 sm:px-10 xl:items-center xl:justify-between xl:gap-16 xl:py-14 group-data-[pinned=true]:absolute group-data-[pinned=true]:inset-0 group-data-[pinned=true]:py-0 group-data-[pinned=true]:pb-28 ${
+                  i % 2 ? "xl:flex-row-reverse" : "xl:flex-row"
                 }`}
               >
-                <div data-slide-art className="relative mx-auto w-full max-w-[560px] lg:mx-0 lg:w-[44%]">
+                <div data-slide-art className="relative mx-auto w-full max-w-[560px] xl:mx-0 xl:w-[44%]">
                   <svg
                     viewBox="0 0 600 600"
                     aria-hidden="true"
@@ -266,7 +266,7 @@ export function MonthStory() {
                   <Scene className="relative h-auto w-full" />
                 </div>
 
-                <div data-slide-text className="lg:w-[44%]">
+                <div data-slide-text className="xl:w-[44%]">
                   <p className="font-medium">Шаг {i + 1} из 4</p>
                   <h3 className="display mt-3 text-[clamp(2.26rem,4.51vw,4.48rem)] text-flame">{step.title}</h3>
                   <p className="mt-6 max-w-[40ch] text-lg leading-relaxed sm:text-xl">{step.text}</p>

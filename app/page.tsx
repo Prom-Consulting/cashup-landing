@@ -107,7 +107,7 @@ export default function Home() {
 
       <main id="top" className="flex-1 overflow-x-clip">
         {/* Hero */}
-        <section className="mx-auto grid max-w-[1440px] items-center gap-20 px-5 pt-8 pb-28 sm:px-10 lg:grid-cols-[1.2fr_1fr] lg:gap-12 lg:pt-6 lg:pb-36">
+        <section className="mx-auto grid max-w-[1440px] items-center gap-20 px-5 pt-8 pb-28 sm:px-10 xl:grid-cols-[1.2fr_1fr] xl:gap-12 xl:pt-6 xl:pb-36">
           <div>
             <h1 className="display text-flame" data-hero-item>
               <span data-hero-number className="block text-[clamp(4.51rem,13.89vw,11.04rem)] whitespace-nowrap">
@@ -136,7 +136,7 @@ export default function Home() {
 
         {/* Monthly cycle */}
         <section id="how" className="scroll-mt-6 bg-cream/50">
-          <div className="mx-auto max-w-[1440px] px-5 pt-24 sm:px-10 lg:pt-32">
+          <div className="mx-auto max-w-[1440px] px-5 pt-16 sm:px-10 sm:pt-20 xl:pt-28">
             <h2 data-split className="display max-w-[14ch] text-[clamp(2.43rem,6.25vw,5.52rem)] text-flame">
               Один месяц <span className="whitespace-nowrap">с Loal</span>
             </h2>
@@ -144,7 +144,7 @@ export default function Home() {
 
           <MonthStory />
 
-          <div className="mx-auto max-w-[1440px] px-5 pt-8 pb-24 sm:px-10 lg:pb-32">
+          <div className="mx-auto max-w-[1440px] px-5 pt-8 pb-16 sm:px-10 sm:pb-20 xl:pb-28">
             <div data-rise className="grid gap-6 md:grid-cols-2">
               <div className="rounded-[28px] bg-graphite p-8 text-paper sm:p-10">
                 <p className="display text-6xl">Продлили</p>
@@ -163,7 +163,7 @@ export default function Home() {
         </section>
 
         {/* Calculator */}
-        <section className="mx-auto max-w-[1440px] px-5 py-24 sm:px-10 lg:py-32">
+        <section className="mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-28">
           <div className="grid items-end gap-6 lg:grid-cols-[1.3fr_1fr]">
             <h2 data-split className="display text-[clamp(2.43rem,6.25vw,5.52rem)] text-flame">
               Сколько закроют бонусы
@@ -178,7 +178,7 @@ export default function Home() {
         </section>
 
         {/* Where to spend */}
-        <section id="where" className="scroll-mt-6 mx-auto max-w-[1440px] px-5 pb-24 sm:px-10 lg:pb-32">
+        <section id="where" className="scroll-mt-6 mx-auto max-w-[1440px] px-5 pb-16 sm:px-10 sm:pb-20 xl:pb-28">
           <div className="grid items-center gap-12 lg:grid-cols-[1fr_1.3fr]">
             <div>
               <h2 data-split className="display text-[clamp(2.43rem,6.25vw,5.52rem)] text-flame">
@@ -222,7 +222,7 @@ export default function Home() {
           >
             <Coin className="h-auto w-full" />
           </div>
-          <div className="relative mx-auto max-w-[1440px] px-5 py-24 sm:px-10 lg:py-32">
+          <div className="relative mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-28">
             <h2 data-split className="display text-[clamp(2.43rem,6.25vw,5.52rem)]">
               Тарифы
             </h2>
@@ -293,7 +293,7 @@ export default function Home() {
         <BusinessSection partnerUrl={PARTNER_MAIL} />
 
         {/* FAQ */}
-        <section id="faq" className="scroll-mt-6 mx-auto max-w-[1440px] px-5 py-24 sm:px-10 lg:py-32">
+        <section id="faq" className="scroll-mt-6 mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-28">
           <div className="grid gap-10 lg:grid-cols-[1fr_1.6fr]">
             <h2 data-split className="display text-[clamp(2.43rem,6.25vw,5.52rem)] text-flame">
               Вопросы

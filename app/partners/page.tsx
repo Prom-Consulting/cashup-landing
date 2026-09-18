@@ -39,7 +39,7 @@ export default function PartnersPage() {
 
         <PartnersView />
 
-        <section className="mx-auto max-w-[1440px] px-5 pb-24 sm:px-10 lg:pb-32">
+        <section className="mx-auto max-w-[1440px] px-5 pb-16 sm:px-10 sm:pb-20 xl:pb-28">
           <div className="grid gap-6 rounded-[32px] bg-graphite p-8 text-paper sm:p-12 lg:grid-cols-[1.4fr_1fr] lg:items-center">
             <div>
               <h2 className="display text-[clamp(1.74rem,3.47vw,3.1rem)]">Вашего заведения тут нет?</h2>

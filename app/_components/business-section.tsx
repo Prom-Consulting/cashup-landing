@@ -30,8 +30,8 @@ function Check({ className }: { className: string }) {
 export function BusinessSection({ partnerUrl }: { partnerUrl: string }) {
   return (
     <section id="business" className="relative scroll-mt-6 overflow-hidden bg-graphite text-paper">
-      <div className="mx-auto max-w-[1440px] px-5 py-24 sm:px-10 lg:py-32">
-        <div className="grid items-center gap-16 lg:grid-cols-[1.15fr_1fr]">
+      <div className="mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-28">
+        <div className="grid items-center gap-16 xl:grid-cols-[1.15fr_1fr]">
           <div>
             <p className="text-lg font-medium text-amber">Для бизнеса</p>
             <h2 data-split className="display mt-4 text-[clamp(2.43rem,5.9vw,5.52rem)] text-paper">
@@ -91,13 +91,13 @@ export function BusinessSection({ partnerUrl }: { partnerUrl: string }) {
         </div>
 
         <h3 className="display mt-32 text-[clamp(1.92rem,3.47vw,3.1rem)]">Три способа подключиться</h3>
-        <div data-models className="mt-10 grid gap-5 lg:grid-cols-3 lg:items-stretch">
+        <div data-models className="mt-10 grid gap-5 xl:grid-cols-3 xl:items-stretch">
           {models(partnerUrl).map((m) => (
             <article
               key={m.key}
               data-model
               className={`relative flex flex-col rounded-[32px] p-8 sm:p-10 ${
-                m.featured ? "bg-flame-ink text-paper lg:-my-4 lg:py-14" : "bg-paper text-graphite"
+                m.featured ? "bg-flame-ink text-paper xl:-my-4 xl:py-14" : "bg-paper text-graphite"
               }`}
             >
               {m.featured && (
