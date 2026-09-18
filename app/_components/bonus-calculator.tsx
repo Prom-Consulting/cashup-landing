@@ -117,7 +117,7 @@ export function BonusCalculator() {
             {PERCENTS.map((p) => (
               <label
                 key={p}
-                className="display grid h-20 cursor-pointer place-items-center rounded-2xl border-2 border-paper/25 text-4xl transition-[background-color,border-color,scale] duration-200 hover:border-amber active:scale-95 has-[:checked]:border-flame has-[:checked]:bg-flame-ink has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-amber sm:h-24 sm:text-5xl"
+                className="display grid h-14 cursor-pointer place-items-center rounded-xl border-2 border-paper/25 text-2xl sm:h-20 sm:rounded-2xl sm:text-4xl transition-[background-color,border-color,scale] duration-200 hover:border-amber active:scale-95 has-[:checked]:border-flame has-[:checked]:bg-flame-ink has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-amber xl:h-24 xl:text-5xl"
               >
                 <input
                   type="radio"
@@ -208,7 +208,7 @@ export function BonusCalculator() {
             data-stamp
             aria-hidden="true"
             style={{ transform: "rotate(-12deg)" }}
-            className="absolute -top-12 -right-8 grid h-28 w-28 place-items-center rounded-full border-4 border-flame bg-paper text-center text-flame-ink"
+            className="absolute -top-10 -right-2 grid h-24 w-24 sm:-top-12 sm:-right-8 sm:h-28 sm:w-28 place-items-center rounded-full border-4 border-flame bg-paper text-center text-flame-ink"
           >
             <span className="display text-3xl leading-none">
               −<span data-out-bonus>{initial.bonuses}</span>

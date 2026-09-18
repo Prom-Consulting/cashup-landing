@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Jost } from "next/font/google";
 import "./globals.css";
+import { SmoothScroll } from "./_components/smooth-scroll";
 
 // Ближайший бесплатный аналог Samsung Sharp Sans и Gilroy из брендбука:
 // геометрический гротеск с одноэтажной «a», как в логотипе Loal.
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: MOTION_PENDING_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col">
+        <SmoothScroll />
         {children}
       </body>
     </html>

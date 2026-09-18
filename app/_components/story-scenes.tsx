@@ -138,11 +138,11 @@ export function WalletScene({ className = "" }: { className?: string }) {
         <text x="108" y="262" fill={CHALK} fontSize="11" opacity="0.8" style={BODY}>
           Баланс бонусов
         </text>
-        <text x="106" y="340" fill={GUM} fontSize="65" style={DISPLAY}>
+        <text x="106" y="344" fill={GUM} fontSize="48" style={DISPLAY}>
           100 000
         </text>
-        <rect x="350" y="296" width="62" height="62" rx="8" fill={CHALK} />
-        <QrPattern x={355} y={301} size={52} />
+        <rect x="352" y="300" width="56" height="56" rx="8" fill={CHALK} />
+        <QrPattern x={356} y={304} size={48} />
       </g>
 
       <g data-pop data-float>

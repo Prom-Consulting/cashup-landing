@@ -196,7 +196,15 @@ export function MonthStory() {
             start: "top top",
             end: () => `+=${window.innerHeight * 4}`,
             pin: true,
-            scrub: 0.6,
+            scrub: 1,
+            // Мягкий магнит: доводит до ближайшего шага, но не выдёргивает из-под пальца.
+            snap: {
+              snapTo: "labels",
+              duration: { min: 0.25, max: 0.6 },
+              delay: 0.12,
+              ease: "power2.inOut",
+              inertia: false,
+            },
           },
         });
 
