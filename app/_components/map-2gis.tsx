@@ -17,7 +17,11 @@ type MapInstance = {
 };
 type MarkerInstance = { destroy: () => void; getContent: () => HTMLElement };
 
-const KEY = process.env.NEXT_PUBLIC_2GIS_KEY;
+// Демо-ключ 2GIS MapGL. Ключ браузерный: он всё равно виден в коде страницы,
+// защита делается ограничением по домену в Platform Manager.
+// Боевой ключ можно подставить через NEXT_PUBLIC_2GIS_KEY в .env.local.
+const DEMO_KEY = "31a80936-96f1-4fa3-97ae-33ced1869595";
+const KEY = process.env.NEXT_PUBLIC_2GIS_KEY || DEMO_KEY;
 const STYLE = process.env.NEXT_PUBLIC_2GIS_STYLE;
 
 export const has2gisKey = Boolean(KEY);
