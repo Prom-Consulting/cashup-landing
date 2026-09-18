@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { categories, categoryOne, partners, type PartnerCategory } from "../_data/partners";
 import { PartnerMap } from "../_components/partner-map";
 
@@ -11,6 +11,20 @@ export function PartnersView() {
   const [octopayOnly, setOctopayOnly] = useState(false);
   const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+
+  // Hover highlighting is for mice only: on touch it would fight with tapping.
+  const hoverable = () => window.matchMedia("(hover: hover)").matches;
+
+  // On phones the map sits under the list, so picking a place scrolls to it.
+  const selectAndShow = useCallback((id: string) => {
+    setActiveId(id);
+    if (window.matchMedia("(min-width: 1024px)").matches) return;
+    mapRef.current?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "center",
+    });
+  }, []);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -35,7 +49,11 @@ export function PartnersView() {
     <>
       <div className="mx-auto max-w-[1440px] px-5 sm:px-10">
         <div className="flex flex-col gap-5 border-y-2 border-blush py-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Категории партнёров">
+          <div
+            className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 sm:-mx-10 sm:px-10 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0 lg:pb-0"
+            role="group"
+            aria-label="Категории партнёров"
+          >
             <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
               Все ({partners.length})
             </FilterChip>
@@ -46,7 +64,7 @@ export function PartnersView() {
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <label className="flex cursor-pointer items-center gap-3 font-medium">
               <input
                 type="checkbox"
@@ -56,7 +74,7 @@ export function PartnersView() {
               />
               Только с OctōPAY
             </label>
-            <label className="flex-1 lg:flex-none">
+            <label className="w-full sm:w-auto sm:flex-1 lg:flex-none">
               <span className="sr-only">Поиск по названию или адресу</span>
               <input
                 type="search"
@@ -76,10 +94,10 @@ export function PartnersView() {
             <li key={p.id}>
               <button
                 type="button"
-                onMouseEnter={() => setActiveId(p.id)}
-                onMouseLeave={() => setActiveId((id) => (id === p.id ? null : id))}
-                onFocus={() => setActiveId(p.id)}
-                onClick={() => setActiveId(p.id)}
+                onMouseEnter={() => hoverable() && setActiveId(p.id)}
+                onMouseLeave={() => hoverable() && setActiveId((id) => (id === p.id ? null : id))}
+                onFocus={() => hoverable() && setActiveId(p.id)}
+                onClick={() => selectAndShow(p.id)}
                 className={`flex w-full items-start gap-5 rounded-[24px] border-2 p-5 text-left transition-colors sm:p-6 ${
                   activeId === p.id ? "border-magenta bg-blush/50" : "border-blush hover:border-bubblegum"
                 }`}
@@ -125,7 +143,7 @@ export function PartnersView() {
           )}
         </ol>
 
-        <div className="lg:sticky lg:top-6">
+        <div id="partner-map" ref={mapRef} className="scroll-mt-4 lg:sticky lg:top-6">
           <PartnerMap partners={visible} activeId={activeId} onSelect={setActiveId} />
         </div>
       </div>
@@ -147,7 +165,7 @@ function FilterChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full border-2 px-4 py-2 text-sm font-medium transition-colors ${
+      className={`shrink-0 rounded-full border-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
         active ? "border-forest bg-forest text-chalk" : "border-blush hover:border-bubblegum"
       }`}
     >

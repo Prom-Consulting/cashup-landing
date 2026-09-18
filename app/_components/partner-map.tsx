@@ -31,7 +31,7 @@ export function PartnerMap({
         )}
 
         {active && (
-          <div className="pointer-events-none absolute top-4 right-4 left-4 rounded-2xl bg-forest p-4 text-chalk sm:top-auto sm:bottom-4 sm:left-auto sm:w-72">
+          <div className="pointer-events-none absolute top-4 right-[4.5rem] left-4 rounded-2xl bg-forest p-4 text-chalk sm:top-auto sm:right-auto sm:bottom-4 sm:w-72">
             <p className="flex items-center gap-2 text-lg font-bold">
               {active.name}
               {active.octopay && (

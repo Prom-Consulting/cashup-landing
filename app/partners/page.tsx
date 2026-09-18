@@ -29,7 +29,7 @@ export default function PartnersPage() {
                 Наведите на заведение — увидите его на карте.
               </p>
             </div>
-            <dl className="grid grid-cols-3 gap-4 lg:pb-3">
+            <dl className="grid grid-cols-3 gap-3 sm:gap-4 lg:pb-3">
               <Stat value={partners.length} label="партнёров" />
               <Stat value={`${maxPercent}%`} label="максимум бонусами" />
               <Stat value={octopayCount} label="списывают автоматически" />
@@ -72,11 +72,11 @@ export default function PartnersPage() {
 
 function Stat({ value, label }: { value: string | number; label: string }) {
   return (
-    <div className="rounded-[20px] bg-blush/60 p-4">
+    <div className="rounded-[20px] bg-blush/60 p-3 sm:p-4">
       <dt className="sr-only">{label}</dt>
       <dd>
         <span className="display block text-[clamp(2.25rem,4vw,3.5rem)] text-forest">{value}</span>
-        <span className="mt-1 block text-sm font-medium">{label}</span>
+        <span className="mt-1 block text-xs font-medium sm:text-sm">{label}</span>
       </dd>
     </div>
   );
