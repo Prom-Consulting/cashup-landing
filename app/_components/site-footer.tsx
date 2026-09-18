@@ -1,16 +1,14 @@
+import Link from "next/link";
 import { Logo } from "./logo";
 
 const product = [
-  { label: "Как это работает", href: "#how" },
-  { label: "Подписка", href: "#price" },
-  { label: "Где тратить", href: "#where" },
-  { label: "Для бизнеса", href: "#business" },
+  { label: "Как это работает", href: "/#how" },
+  { label: "Тарифы", href: "/#price" },
+  { label: "Партнёры на карте", href: "/partners" },
+  { label: "Стать партнёром", href: "/become-partner" },
 ];
 
-const ecosystem = [
-  { label: "OctōPAY", note: "платежи по QR" },
-  { label: "Loal", note: "программа лояльности" },
-];
+const ecosystem = [{ label: "OctōPAY", note: "платежи по QR" }];
 
 export function SiteFooter() {
   return (
@@ -20,7 +18,7 @@ export function SiteFooter() {
           <Logo />
           <p className="mt-6 leading-relaxed">
             Подписка на бонусы в Кыргызстане. 100 000 сом бонусами на карте в
-            Wallet каждый оплаченный месяц — платите ими у партнёров.
+            Apple Wallet каждый оплаченный месяц — платите ими у партнёров.
           </p>
           <p className="mt-4 text-sm opacity-70">Проект Prom.Consulting</p>
         </div>
@@ -32,9 +30,9 @@ export function SiteFooter() {
           <ul className="mt-5 flex flex-col gap-3">
             {product.map((item) => (
               <li key={item.href}>
-                <a href={item.href} className="underline-offset-4 hover:text-magenta-ink hover:underline">
+                <Link href={item.href} className="underline-offset-4 hover:text-magenta-ink hover:underline">
                   {item.label}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
@@ -77,7 +75,7 @@ export function SiteFooter() {
 
       <div className="mx-auto max-w-[1440px] px-5 sm:px-10">
         <div className="flex flex-col gap-2 border-t border-bubblegum py-6 text-sm sm:flex-row sm:justify-between">
-          <p className="opacity-70">© 2026 CashUp. Все права защищены.</p>
+          <p className="opacity-70">© 2026 Loal. Все права защищены.</p>
           <p>
             <span className="opacity-70">Powered by </span>
             <a href="https://promconsulting.org" className="text-magenta-ink underline-offset-4 hover:underline">

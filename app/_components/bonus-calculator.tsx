@@ -142,7 +142,7 @@ export function BonusCalculator() {
         <div className="relative mx-auto max-w-[420px] rotate-[1.5deg]">
           <div className="receipt bg-chalk px-7 pt-8 pb-12 text-forest">
             <p className="display text-4xl">Чек</p>
-            <p className="mt-1 text-sm opacity-70">Кофейня, партнёр CashUp</p>
+            <p className="mt-1 text-sm opacity-70">Кофейня, партнёр Loal</p>
 
             <dl aria-live="polite" className="mt-6 flex flex-col gap-3 border-b-2 border-dashed border-lilac pb-5">
               <div className="flex justify-between gap-4">

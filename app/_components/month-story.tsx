@@ -20,7 +20,7 @@ const steps = [
   {
     short: "100 000 сом",
     title: "Получаете 100 000 сом бонусами",
-    text: "Карта CashUp добавляется в Apple Wallet или Google Wallet по ссылке или QR. Баланс уже на ней.",
+    text: "Карта Loal добавляется в Apple Wallet по ссылке или QR-коду. Баланс уже на ней.",
     balance: 100_000,
   },
   {
@@ -83,14 +83,22 @@ export function MonthStory() {
         // Absolute slides and the stepper only exist while the stage is pinned.
         stage.setAttribute("data-pinned", "true");
 
-        gsap.set(slides.slice(1), { autoAlpha: 0 });
+        const arts = slides.map((sl) => sl.querySelector("[data-slide-art]")!);
+        const texts = slides.map((sl) => sl.querySelector("[data-slide-text]")!);
+        const blobLeft = (i: number) => (i % 2 ? "50%" : "4%");
+        const white = "#fff8f6";
+        const ink = "#00522d";
+
+        // Start from a clean, explicit state: a previous mobile context may have left inline styles.
+        gsap.set([...arts, ...texts], { clearProps: "all" });
+        gsap.set(slides, { autoAlpha: (i) => (i === 0 ? 1 : 0) });
+        gsap.set(blob, { attr: { d: blobPaths[0] }, fill: blobColors[0] });
+        gsap.set(blobSvg, { left: blobLeft(0), rotate: 0 });
         gsap.set(line, { scaleX: 0 });
-        gsap.set(fills, { scale: 0 });
-        gsap.set(fills[0], { scale: 1 });
-        gsap.set(nums[0], { color: "#fff8f6" });
-        gsap.set(rings, { autoAlpha: 0 });
-        gsap.set(rings[0], { autoAlpha: 1 });
-        gsap.set(labels.slice(1), { opacity: 0.45 });
+        gsap.set(fills, { scale: (i) => (i === 0 ? 1 : 0) });
+        gsap.set(nums, { color: (i) => (i === 0 ? white : ink) });
+        gsap.set(rings, { autoAlpha: (i) => (i === 0 ? 1 : 0) });
+        gsap.set(labels, { opacity: (i) => (i === 0 ? 1 : 0.45) });
         gsap.to(q("[data-rail-pulse]"), {
           scale: 1.5,
           opacity: 0,
@@ -99,79 +107,68 @@ export function MonthStory() {
           ease: "power2.out",
         });
 
+        // Every tween states both ends, so the scene is identical however often ScrollTrigger refreshes.
         const transition = (i: number) => {
           const prev = slides[i - 1];
           const next = slides[i];
-          const toRight = i % 2 === 1; // odd steps put the art on the right
-          const dir = toRight ? 1 : -1;
-          const nextArt = next.querySelector("[data-slide-art]");
-          const nextText = next.querySelector("[data-slide-text]");
+          const dir = i % 2 === 1 ? 1 : -1; // odd steps put the art on the right
           const chip = next.querySelector("[data-slide-balance]");
           const counter = { v: steps[i - 1].balance };
+          const lazy = { immediateRender: false };
 
           const tl = gsap.timeline();
-          fromIf(
-            tl,
-            next.querySelectorAll("[data-draw]"),
-            { drawSVG: "0%", duration: 0.7, ease: "power1.inOut" },
-            0.85,
-          );
-          return tl
-            .to(
-              prev.querySelector("[data-slide-art]"),
-              {
-                xPercent: dir * 70,
-                scale: 0.6,
-                rotate: dir * 14,
-                autoAlpha: 0,
-                duration: 0.7,
-                ease: "power2.in",
-              },
-              0,
-            )
-            .to(
-              prev.querySelector("[data-slide-text]"),
-              {
-                xPercent: -dir * 40,
-                autoAlpha: 0,
-                duration: 0.5,
-                ease: "power2.in",
-              },
-              0,
-            )
-            .to(blob, { morphSVG: blobPaths[i], fill: blobColors[i], duration: 1.2, ease: "power2.inOut" }, 0)
-            .to(blobSvg, { left: toRight ? "50%" : "4%", rotate: i * 40, duration: 1.2, ease: "power2.inOut" }, 0)
-            .to(line, { scaleX: i / (steps.length - 1), duration: 1, ease: "power1.inOut" }, 0)
-            .to(rings[i - 1], { autoAlpha: 0, duration: 0.2 }, 0.2)
-            .to(fills[i], { scale: 1, duration: 0.5, ease: "back.out(2.5)" }, 0.9)
-            .to(nums[i], { color: "#fff8f6", duration: 0.2 }, 0.95)
-            .to(rings[i], { autoAlpha: 1, duration: 0.3 }, 1.1)
-            .to(labels[i], { opacity: 1, duration: 0.3 }, 0.9)
-            .set(next, { autoAlpha: 1 }, 0.55)
-            .set(prev, { autoAlpha: 0 }, 0.75)
+          // Outgoing art and text fade in their own columns; incoming ones appear in theirs.
+          // Nothing crosses the page, so a paused scroll never shows art over text.
+          tl.fromTo(
+            arts[i - 1],
+            { y: 0, scale: 1, rotate: 0, autoAlpha: 1 },
+            { y: -30, scale: 0.9, rotate: dir * 5, autoAlpha: 0, duration: 0.42, ease: "power1.in", ...lazy },
+            0,
+          )
             .fromTo(
-              nextArt,
-              { xPercent: -dir * 70, scale: 0.6, rotate: -dir * 14, autoAlpha: 0 },
-              { xPercent: 0, scale: 1, rotate: 0, autoAlpha: 1, duration: 0.8, ease: "power3.out" },
-              0.55,
+              texts[i - 1],
+              { y: 0, autoAlpha: 1 },
+              { y: -24, autoAlpha: 0, duration: 0.32, ease: "power1.in", ...lazy },
+              0,
             )
-            .from(
+            .fromTo(
+              blob,
+              { morphSVG: blobPaths[i - 1], fill: blobColors[i - 1] },
+              { morphSVG: blobPaths[i], fill: blobColors[i], duration: 0.9, ease: "power2.inOut", ...lazy },
+              0,
+            )
+            .fromTo(
+              blobSvg,
+              { left: blobLeft(i - 1), rotate: (i - 1) * 40 },
+              { left: blobLeft(i), rotate: i * 40, duration: 0.9, ease: "power2.inOut", ...lazy },
+              0,
+            )
+            .fromTo(
+              line,
+              { scaleX: (i - 1) / (steps.length - 1) },
+              { scaleX: i / (steps.length - 1), duration: 0.8, ease: "power1.inOut", ...lazy },
+              0,
+            )
+            .fromTo(rings[i - 1], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.2, ...lazy }, 0.1)
+            .fromTo(prev, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.01, ...lazy }, 0.44)
+            .fromTo(next, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.01, ...lazy }, 0.33)
+            .fromTo(
+              arts[i],
+              { y: 50, scale: 0.85, rotate: -dir * 6, autoAlpha: 0 },
+              { y: 0, scale: 1, rotate: 0, autoAlpha: 1, duration: 0.6, ease: "power2.out" },
+              0.34,
+            )
+            .fromTo(texts[i], { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.5, ease: "power2.out" }, 0.44)
+            .fromTo(
               next.querySelectorAll("[data-pop]"),
-              {
-                scale: 0,
-                transformOrigin: "50% 50%",
-                stagger: 0.05,
-                duration: 0.45,
-                ease: "back.out(2.4)",
-              },
-              0.75,
+              { scale: 0, transformOrigin: "50% 50%" },
+              { scale: 1, stagger: 0.04, duration: 0.4, ease: "back.out(2.4)" },
+              0.45,
             )
-            .fromTo(
-              nextText,
-              { xPercent: dir * 40, autoAlpha: 0 },
-              { xPercent: 0, autoAlpha: 1, duration: 0.7, ease: "power3.out" },
-              0.65,
-            )
+            .fromTo(fills[i], { scale: 0 }, { scale: 1, duration: 0.4, ease: "back.out(2.5)", ...lazy }, 0.6)
+            .fromTo(labels[i], { opacity: 0.45 }, { opacity: 1, duration: 0.3, ...lazy }, 0.6)
+            .fromTo(nums[i], { color: ink }, { color: white, duration: 0.2, ...lazy }, 0.65)
+            .fromTo(rings[i], { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3, ...lazy }, 0.75)
             .fromTo(
               counter,
               { v: steps[i - 1].balance },
@@ -183,8 +180,13 @@ export function MonthStory() {
                   if (chip) chip.textContent = format(Math.round(counter.v / 100) * 100);
                 },
               },
-              0.8,
+              0.5,
             );
+          const draws = next.querySelectorAll("[data-draw]");
+          if (draws.length) {
+            tl.fromTo(draws, { drawSVG: "0%" }, { drawSVG: "100%", duration: 0.6, ease: "power1.inOut" }, 0.45);
+          }
+          return tl;
         };
 
         const master = gsap.timeline({
@@ -194,17 +196,19 @@ export function MonthStory() {
             end: () => `+=${window.innerHeight * 4}`,
             pin: true,
             scrub: 0.6,
-            invalidateOnRefresh: true,
           },
         });
 
-        master.addLabel("step0", 0.2);
+        master.addLabel("step0", 0);
         for (let i = 1; i < steps.length; i++) {
-          master.add(transition(i), ">+0.6").addLabel(`step${i}`);
+          master.add(transition(i), ">+1").addLabel(`step${i}`);
         }
-        master.to({}, { duration: 0.6 });
+        master.to({}, { duration: 1 });
 
-        return () => stage.removeAttribute("data-pinned");
+        return () => {
+          stage.removeAttribute("data-pinned");
+          gsap.set([...arts, ...texts], { clearProps: "all" });
+        };
       });
 
       // Mobile and tablet: each scene assembles as it scrolls in.

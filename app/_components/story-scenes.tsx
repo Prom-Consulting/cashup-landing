@@ -83,7 +83,7 @@ export function SubscribeScene({ className = "" }: { className?: string }) {
           440<tspan fontSize="30"> сом</tspan>
         </text>
         <text x="260" y="196" textAnchor="middle" fill={INK} fontSize="13" style={BODY}>
-          Подписка CashUp
+          Подписка Loal
         </text>
         <rect x="211" y="212" width="98" height="98" rx="10" fill={BLUSH} />
         <QrPattern x={220} y={221} size={80} />
@@ -130,7 +130,7 @@ export function WalletScene({ className = "" }: { className?: string }) {
       <g data-pop>
         <rect x="80" y="170" width="350" height="220" rx="26" fill={INK} />
         <text x="108" y="214" fill={CHALK} fontSize="34" style={DISPLAY}>
-          CashUp
+          Loal
         </text>
         <text x="404" y="210" textAnchor="end" fill={CHALK} fontSize="13" opacity="0.8" style={BODY}>
           до 1 октября
@@ -169,7 +169,7 @@ export function PayScene({ className = "" }: { className?: string }) {
         <rect x="90" y="140" width="124" height="230" rx="22" fill={INK} />
         <rect x="100" y="160" width="104" height="190" rx="14" fill={CHALK} />
         <text x="152" y="192" textAnchor="middle" fill={INK} fontSize="20" style={DISPLAY}>
-          CashUp
+          Loal
         </text>
         <rect x="112" y="206" width="80" height="80" rx="6" fill={BLUSH} />
         <QrPattern x={118} y={212} size={68} />
@@ -268,7 +268,7 @@ export function RefillScene({ className = "" }: { className?: string }) {
       <g data-pop>
         <rect x="300" y="200" width="160" height="104" rx="16" fill={INK} />
         <text x="318" y="230" fill={CHALK} fontSize="18" style={DISPLAY}>
-          CashUp
+          Loal
         </text>
         <text x="316" y="284" fill={GUM} fontSize="46" style={DISPLAY}>
           100 000

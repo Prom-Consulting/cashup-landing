@@ -114,3 +114,38 @@ body {
     scroll-behavior: auto;
   }
 }
+
+/* Branded pins for the 2GIS map (HtmlMarker content lives outside React) */
+.map-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 8px;
+  border: 2px solid var(--magenta);
+  border-radius: 999px 999px 999px 6px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 150ms,
+    background-color 150ms;
+}
+.map-pin:hover {
+  transform: scale(1.08);
+}
+.map-pin--octopay {
+  background: var(--magenta-ink);
+  color: var(--chalk);
+}
+.map-pin--plain {
+  background: var(--chalk);
+  color: var(--magenta-ink);
+  border-color: var(--magenta-ink);
+}
+.map-pin--active {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: var(--chalk);
+  transform: scale(1.08);
+}

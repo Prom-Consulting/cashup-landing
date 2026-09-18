@@ -2,7 +2,7 @@ import Image from "next/image";
 import heroPhoto from "@/public/images/hero-qr-payment.jpg";
 import { Coin, QrPattern } from "./illustrations";
 
-// Real QR payment photo with the CashUp card and a payment notice layered over it.
+// Real QR payment photo with the Loal card and a payment notice layered over it.
 export function HeroVisual() {
   return (
     <div data-hero-visual data-hero-item className="relative mx-auto w-full max-w-[540px] lg:mx-0 lg:justify-self-end">
@@ -47,7 +47,7 @@ export function HeroVisual() {
         className="absolute -bottom-10 -left-4 w-[min(300px,74%)] -rotate-6 rounded-3xl bg-forest p-5 text-chalk sm:-left-12"
       >
         <div className="flex items-center justify-between">
-          <span className="display text-2xl leading-none">CashUp</span>
+          <span className="display text-2xl leading-none">Loal</span>
           <span className="text-xs opacity-80">до 1 октября</span>
         </div>
         <p className="mt-5 text-xs opacity-80">Бонусы на карте, сом</p>

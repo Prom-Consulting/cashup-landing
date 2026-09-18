@@ -13,7 +13,7 @@ export function Logo({ className = "" }: { className?: string }) {
           strokeLinejoin="round"
         />
       </svg>
-      <span className="display text-[1.9rem] leading-none text-forest">CashUp</span>
+      <span className="display text-[1.9rem] leading-none text-forest">Loal</span>
     </span>
   );
 }

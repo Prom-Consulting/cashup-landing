@@ -1,60 +1,7 @@
 import Image from "next/image";
 import partnerPhoto from "@/public/images/partner-barista.jpg";
+import { models } from "../_data/models";
 import { Coin } from "./illustrations";
-
-type Model = {
-  key: string;
-  title: string;
-  price: string;
-  priceNote: string;
-  points: string[];
-  featured?: boolean;
-  cta: { label: string; href: string };
-};
-
-function models(partnerUrl: string): Model[] {
-  return [
-    {
-      key: "loyalty",
-      title: "Только лояльность",
-      price: "30–50 $",
-      priceNote: "в месяц, оплата через OctōPAY",
-      points: [
-        "Место в каталоге CashUp и кабинет партнёра",
-        "Сами задаёте максимальный % оплаты бонусами на месяц",
-        "Приём бонусов по QR-коду карты",
-        "Продление подписки в кабинете",
-      ],
-      cta: { label: "Подключить лояльность", href: partnerUrl },
-    },
-    {
-      key: "bundle",
-      title: "OctōPAY + лояльность",
-      price: "0 $",
-      priceNote: "абонентской платы за лояльность",
-      points: [
-        "Приём QR-платежей через OctōPAY",
-        "Бонусы списываются и начисляются сами при оплате",
-        "Метка «Больше бонусов» в каталоге",
-        "Платите только комиссию с оборота",
-      ],
-      featured: true,
-      cta: { label: "Подключить пакет", href: partnerUrl },
-    },
-    {
-      key: "octopay",
-      title: "Только OctōPAY",
-      price: "%",
-      priceNote: "комиссия с оборота",
-      points: [
-        "Приём QR-платежей в Кыргызстане",
-        "Деньги зачисляются на ваш счёт",
-        "Без участия в программе CashUp",
-      ],
-      cta: { label: "Узнать об OctōPAY", href: "https://octopay.click" },
-    },
-  ];
-}
 
 const cabinet = [
   "Профиль, логотип и категория в каталоге",
@@ -91,7 +38,7 @@ export function BusinessSection({ partnerUrl }: { partnerUrl: string }) {
               Покупатели, <span className="whitespace-nowrap">у которых</span> есть чем платить
             </h2>
             <p className="mt-8 max-w-[48ch] text-lg leading-relaxed sm:text-xl">
-              У каждого подписчика CashUp в начале месяца 100 000 сом бонусами, и потратить их можно только у
+              У каждого подписчика Loal в начале месяца 100 000 сом бонусами, и потратить их можно только у
               партнёров. Вы решаете, какую часть чека они закроют бонусами.
             </p>
             <a
@@ -120,7 +67,7 @@ export function BusinessSection({ partnerUrl }: { partnerUrl: string }) {
               data-biz-chip
               className="absolute top-8 -left-4 rotate-[-6deg] rounded-full bg-magenta-ink px-5 py-2.5 font-bold sm:-left-10"
             >
-              Партнёр CashUp
+              Партнёр Loal
             </div>
 
             <div

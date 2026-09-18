@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@2gis/mapgl':
+        specifier: ^1.78.0
+        version: 1.78.0
       '@gsap/react':
         specifier: ^2.1.2
         version: 2.1.2(gsap@3.15.0)(react@19.2.8)
@@ -44,6 +47,10 @@ importers:
         version: 5.9.3
 
 packages:
+
+  '@2gis/mapgl@1.78.0':
+    resolution: {integrity: sha512-PLyHeDZESsRZHwxIhIcM2NsrkbEZGWw1PBAMilaVR0HBZ6Xho1N37fi4Uzp8CQtgCXAH4IKmcTBqGfj02ZCaaA==}
+    engines: {node: '>=16.0.0'}
 
   '@alloc/quick-lru@5.3.0':
     resolution: {integrity: sha512-U4+70Pc5ZS9osnCBCE5Jha/ciHM+Yp+CNMNC/7HvYbNRk1Ldd+f7qO65W5qfhu/TCv+/ozljlXXe9Nj8419DMA==}
@@ -362,6 +369,9 @@ packages:
   '@tailwindcss/postcss@4.3.3':
     resolution: {integrity: sha512-JTSZZGQi1AyKirbLN3azmjVzef92tcX7h+iSqPdaeStyFpGpDlKvvpxeOE8njhbUanbRwr3z8DyzhICWnMtQeg==}
 
+  '@types/geojson@7946.0.16':
+    resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
   '@types/node@20.19.43':
     resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
 
@@ -577,6 +587,10 @@ packages:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
 snapshots:
+
+  '@2gis/mapgl@1.78.0':
+    dependencies:
+      '@types/geojson': 7946.0.16
 
   '@alloc/quick-lru@5.3.0': {}
 
@@ -814,6 +828,8 @@ snapshots:
       '@tailwindcss/oxide': 4.3.3
       postcss: 8.5.28
       tailwindcss: 4.3.3
+
+  '@types/geojson@7946.0.16': {}
 
   '@types/node@20.19.43':
     dependencies:

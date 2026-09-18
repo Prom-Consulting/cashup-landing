@@ -1,4 +1,18 @@
-# cashup-landing
+# Loal
+
+Лендинг Loal: подписка на бонусы, каталог партнёров и страница подключения бизнеса.
+
+## Карта партнёров
+
+`/partners` показывает партнёров на карте. Пока ключ 2GIS не задан, рисуется стилизованная схема
+города в фирменных цветах — на моковых данных из `app/_data/partners.ts`.
+
+Чтобы включить настоящую карту 2GIS, скопируйте `.env.example` в `.env.local` и заполните:
+
+- `NEXT_PUBLIC_2GIS_KEY` — ключ доступа из Platform Manager 2GIS (обязателен: без него карта не отдаёт тайлы);
+- `NEXT_PUBLIC_2GIS_STYLE` — id стиля из редактора стилей 2GIS, если нужны фирменные цвета карты.
+
+Логотип 2GIS остаётся на карте: по условиям лицензии его нельзя скрывать.
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 

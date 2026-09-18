@@ -3,21 +3,14 @@ import { BusinessSection } from "./_components/business-section";
 import { Faq } from "./_components/faq";
 import { HeroVisual } from "./_components/hero-visual";
 import { BagIcon, BeautyIcon, CarIcon, Coin, CoffeeIcon, HomeIcon, SportIcon } from "./_components/illustrations";
-import { Logo } from "./_components/logo";
 import { MonthStory } from "./_components/month-story";
 import { PageMotion } from "./_components/page-motion";
 import { SiteFooter } from "./_components/site-footer";
+import { SiteHeader } from "./_components/site-header";
 
 // TODO: point to the client cabinet once the system is live.
 const SUBSCRIBE_URL = "#price";
-const PARTNER_URL = "mailto:info@promconsult.pro?subject=Подключение%20к%20CashUp";
-
-const nav = [
-  { label: "Как работает", href: "#how" },
-  { label: "Где тратить", href: "#where" },
-  { label: "Бизнесу", href: "#business" },
-  { label: "Вопросы", href: "#faq" },
-];
+const PARTNER_URL = "mailto:info@promconsult.pro?subject=Подключение%20к%20Loal";
 
 const categories = [
   { label: "Кофейни и рестораны", Icon: CoffeeIcon },
@@ -30,14 +23,14 @@ const categories = [
 
 const included = [
   "100 000 сом бонусами в начале каждого оплаченного месяца",
-  "Карта CashUp в Apple Wallet или Google Wallet",
+  "Карта Loal в Apple Wallet",
   "Каталог партнёров с их процентами",
   "Кабинет: срок подписки, баланс, история трат, продление",
   "Напоминание перед концом периода",
 ];
 
 const partnerIncluded = [
-  "Место в каталоге CashUp и кабинет партнёра",
+  "Место в каталоге Loal и кабинет партнёра",
   "Свой % оплаты бонусами на каждый месяц",
   "Приём бонусов по QR-коду карты",
   "Без продления — скрытие из каталога до оплаты",
@@ -82,7 +75,7 @@ function PrimaryButton({ href, children }: { href: string; children: React.React
 }
 
 function Ribbon() {
-  const words = ["100 000 сом бонусами", "каждый месяц", "у партнёров", "в Apple и Google Wallet"];
+  const words = ["100 000 сом бонусами", "каждый месяц", "у партнёров", "в Apple Wallet"];
   const run = [...words, ...words];
   return (
     <div
@@ -110,28 +103,7 @@ export default function Home() {
   return (
     <>
       <PageMotion />
-      <header className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-6 px-5 py-6 sm:px-10">
-        <a href="#top" aria-label="CashUp, на главную">
-          <Logo />
-        </a>
-        <nav aria-label="Разделы" className="hidden md:block">
-          <ul className="flex gap-8 font-medium">
-            {nav.map((item) => (
-              <li key={item.href}>
-                <a href={item.href} className="underline-offset-4 hover:text-magenta-ink hover:underline">
-                  {item.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <a
-          href={SUBSCRIBE_URL}
-          className="rounded-full bg-magenta-ink px-5 py-2.5 text-sm font-bold text-chalk transition-colors hover:bg-forest"
-        >
-          Оформить подписку
-        </a>
-      </header>
+      <SiteHeader />
 
       <main id="top" className="flex-1 overflow-x-clip">
         {/* Hero */}
@@ -146,7 +118,7 @@ export default function Home() {
               </span>
             </h1>
             <p data-hero-item data-hero-fade className="mt-10 max-w-[44ch] text-lg leading-relaxed sm:text-xl">
-              Подписка CashUp за 5–10 $ в месяц — это карта в Wallet, которой можно платить у партнёров. В начале
+              Подписка Loal за 5–10 $ в месяц — это карта в Apple Wallet, которой можно платить у партнёров. В начале
               каждого оплаченного месяца баланс снова полный, сколько бы вы ни потратили.
             </p>
             <div data-hero-item data-hero-fade className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
@@ -166,7 +138,7 @@ export default function Home() {
         <section id="how" className="scroll-mt-6 bg-blush/50">
           <div className="mx-auto max-w-[1440px] px-5 pt-24 sm:px-10 lg:pt-32">
             <h2 data-split className="display max-w-[14ch] text-[clamp(3.5rem,9vw,8rem)] text-magenta">
-              Один месяц <span className="whitespace-nowrap">с CashUp</span>
+              Один месяц <span className="whitespace-nowrap">с Loal</span>
             </h2>
           </div>
 
@@ -252,13 +224,13 @@ export default function Home() {
               Тарифы
             </h2>
             <p className="mt-4 max-w-[52ch] text-lg">
-              Все подписки оплачиваются через OctōPAY на счёт CashUp и продлеваются в личном кабинете.
+              Все подписки оплачиваются через OctōPAY на счёт Loal и продлеваются в личном кабинете.
             </p>
 
             <div className="mt-14 grid gap-6 lg:grid-cols-[1.25fr_1fr] lg:gap-10">
               {/* Client subscription */}
               <div className="flex flex-col">
-                <h3 className="text-xl font-bold">Клиенту: карта CashUp</h3>
+                <h3 className="text-xl font-bold">Клиенту: карта Loal</h3>
                 <p data-price className="display mt-4 text-[clamp(6rem,16vw,12.5rem)] whitespace-nowrap">
                   5–10 $
                 </p>
