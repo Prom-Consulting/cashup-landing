@@ -48,7 +48,7 @@ export function PartnersView() {
   return (
     <>
       <div className="mx-auto max-w-[1440px] px-5 sm:px-10">
-        <div className="flex flex-col gap-5 border-y-2 border-blush py-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-5 border-y-2 border-cream py-6 lg:flex-row lg:items-center lg:justify-between">
           <div
             className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 sm:-mx-10 sm:px-10 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0 lg:pb-0"
             role="group"
@@ -70,7 +70,7 @@ export function PartnersView() {
                 type="checkbox"
                 checked={octopayOnly}
                 onChange={(e) => setOctopayOnly(e.target.checked)}
-                className="h-5 w-5 accent-[var(--magenta-ink)]"
+                className="h-5 w-5 accent-[var(--flame-ink)]"
               />
               Только с OctōPAY
             </label>
@@ -81,7 +81,7 @@ export function PartnersView() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Название или улица"
-                className="w-full rounded-full border-2 border-blush px-5 py-2.5 focus-visible:border-magenta focus-visible:outline-none lg:w-64"
+                className="w-full rounded-full border-2 border-cream px-5 py-2.5 focus-visible:border-flame focus-visible:outline-none lg:w-64"
               />
             </label>
           </div>
@@ -99,18 +99,18 @@ export function PartnersView() {
                 onFocus={() => hoverable() && setActiveId(p.id)}
                 onClick={() => selectAndShow(p.id)}
                 className={`flex w-full items-start gap-5 rounded-[24px] border-2 p-5 text-left transition-colors sm:p-6 ${
-                  activeId === p.id ? "border-magenta bg-blush/50" : "border-blush hover:border-bubblegum"
+                  activeId === p.id ? "border-flame bg-cream/50" : "border-cream hover:border-amber"
                 }`}
               >
                 <span className="flex flex-col items-center gap-1">
-                  <span className="display text-4xl text-magenta sm:text-5xl">{p.percent}%</span>
+                  <span className="display text-4xl text-flame sm:text-5xl">{p.percent}%</span>
                   <span className="text-xs font-medium opacity-70">бонусами</span>
                 </span>
                 <span className="flex-1">
                   <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="text-xl font-bold">{p.name}</span>
                     {p.octopay && (
-                      <span className="rounded-full bg-magenta-ink px-2.5 py-0.5 text-xs font-bold text-chalk">
+                      <span className="rounded-full bg-flame-ink px-2.5 py-0.5 text-xs font-bold text-paper">
                         OctōPAY
                       </span>
                     )}
@@ -125,7 +125,7 @@ export function PartnersView() {
           ))}
 
           {visible.length === 0 && (
-            <li className="rounded-[24px] border-2 border-dashed border-blush p-8 text-center">
+            <li className="rounded-[24px] border-2 border-dashed border-cream p-8 text-center">
               <p className="text-xl font-bold">Здесь пока никого нет</p>
               <p className="mt-2 opacity-80">Снимите фильтры или поищите по другой улице.</p>
               <button
@@ -135,7 +135,7 @@ export function PartnersView() {
                   setOctopayOnly(false);
                   setQuery("");
                 }}
-                className="mt-5 rounded-[10px] bg-magenta-ink px-6 py-3 font-bold text-chalk transition-colors hover:bg-forest"
+                className="mt-5 rounded-[10px] bg-flame-ink px-6 py-3 font-bold text-paper transition-colors hover:bg-graphite"
               >
                 Показать всех
               </button>
@@ -166,7 +166,7 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={`shrink-0 rounded-full border-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-        active ? "border-forest bg-forest text-chalk" : "border-blush hover:border-bubblegum"
+        active ? "border-graphite bg-graphite text-paper" : "border-cream hover:border-amber"
       }`}
     >
       {children}

@@ -1,27 +1,23 @@
-// Flat brand illustrations: magenta forms, forest line work, blush and lilac washes.
+// Flat brand illustrations: flame forms, graphite line work, cream and smoke washes.
 // All decorative — each root svg is aria-hidden.
 
 type ArtProps = { className?: string };
 
-const INK = "var(--forest)";
-const PINK = "var(--magenta)";
-const GUM = "var(--bubblegum)";
-const CHALK = "var(--chalk)";
+const INK = "var(--graphite)";
+const PINK = "var(--flame)";
+const GUM = "var(--amber)";
+const CHALK = "var(--paper)";
 
+// Фирменный жетон: знак Loal (кошелёк с буквой L) в оранжевом круге.
 export function Coin({ className = "" }: ArtProps) {
   return (
     <svg viewBox="0 0 64 68" className={className} aria-hidden="true">
-      <circle cx="32" cy="36" r="30" fill="#a8256a" />
+      <circle cx="32" cy="36" r="30" fill="#c42700" />
       <circle cx="32" cy="31" r="30" fill={PINK} />
-      <circle cx="32" cy="31" r="22" fill="none" stroke={GUM} strokeWidth="2.5" />
-      <path
-        d="M21 36 32 25l11 11"
-        fill="none"
-        stroke={CHALK}
-        strokeWidth="5.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <g transform="translate(13 12) scale(0.59)" fill={CHALK}>
+        <path d="M31 5.2a3.2 3.2 0 0 1 4.6 0l11.8 12.2a3.2 3.2 0 0 1 .1 4.3L31.2 41.4c-1.5 1.7-4.3 1.3-5.3-.8L12.2 23.4a3.2 3.2 0 0 1 .4-4z" />
+        <path d="M28.6 43.9c-1.2-1.8.2-4.2 2.4-4.1l20.4.9a3.2 3.2 0 0 1 2.9 2.4l2.3 8.7a3.2 3.2 0 0 1-3.1 4H34a3.2 3.2 0 0 1-2.7-1.4z" />
+      </g>
     </svg>
   );
 }

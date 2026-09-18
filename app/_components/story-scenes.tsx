@@ -3,14 +3,14 @@ import { QrPattern } from "./illustrations";
 // Large scenes for the month story. Elements marked data-pop pop in,
 // data-draw strokes are drawn on, data-float bob gently once shown.
 
-const INK = "var(--forest)";
-const PINK = "var(--magenta)";
-const BLUSH = "var(--blush)";
-const GUM = "var(--bubblegum)";
-const CHALK = "var(--chalk)";
-const LILAC = "var(--lilac)";
-const DISPLAY = { fontFamily: "var(--font-sofia-condensed)", fontWeight: 900 } as const;
-const BODY = { fontFamily: "var(--font-onest)" } as const;
+const INK = "var(--graphite)";
+const PINK = "var(--flame)";
+const BLUSH = "var(--cream)";
+const GUM = "var(--amber)";
+const CHALK = "var(--paper)";
+const LILAC = "var(--smoke)";
+const DISPLAY = { fontFamily: "var(--font-jost)", fontWeight: 700 } as const;
+const BODY = { fontFamily: "var(--font-jost)" } as const;
 
 function Sparkle({ x, y, s = 1, fill = GUM }: { x: number; y: number; s?: number; fill?: string }) {
   return (
@@ -26,7 +26,7 @@ function Sparkle({ x, y, s = 1, fill = GUM }: { x: number; y: number; s?: number
 function MiniCoin({ x, y, r = 22 }: { x: number; y: number; r?: number }) {
   return (
     <g data-pop data-float transform={`translate(${x} ${y})`}>
-      <circle cy={r * 0.16} r={r} fill="#a8256a" />
+      <circle cy={r * 0.16} r={r} fill="#c42700" />
       <circle r={r} fill={PINK} />
       <circle r={r * 0.72} fill="none" stroke={GUM} strokeWidth={r * 0.08} />
       <path
@@ -62,11 +62,11 @@ export function SubscribeScene({ className = "" }: { className?: string }) {
           strokeWidth="3"
           strokeLinejoin="round"
         />
-        <text x="56" y="232" fill={INK} fontSize="15" fontWeight="700" style={BODY}>
+        <text x="56" y="232" fill={INK} fontSize="11" fontWeight="700" style={BODY}>
           Подписка
         </text>
         <path d="M56 252h88M56 272h60M56 292h74" stroke={LILAC} strokeWidth="6" strokeLinecap="round" />
-        <text x="56" y="336" fill={PINK} fontSize="30" style={DISPLAY}>
+        <text x="56" y="334" fill={PINK} fontSize="18" style={DISPLAY}>
           440 сом
         </text>
       </g>
@@ -75,21 +75,21 @@ export function SubscribeScene({ className = "" }: { className?: string }) {
         <rect x="170" y="30" width="180" height="370" rx="34" fill={INK} />
         <rect x="184" y="56" width="152" height="318" rx="22" fill={CHALK} />
         <rect x="235" y="40" width="50" height="8" rx="4" fill={CHALK} opacity="0.3" />
-        <text x="260" y="92" textAnchor="middle" fill={INK} fontSize="16" fontWeight="700" style={BODY}>
+        <text x="260" y="92" textAnchor="middle" fill={INK} fontSize="12" fontWeight="700" style={BODY}>
           OctōPAY
         </text>
         {/* Subscription shown in som: 5 $ at roughly 87.5 som per dollar */}
-        <text x="260" y="170" textAnchor="middle" fill={PINK} fontSize="70" style={DISPLAY}>
-          440<tspan fontSize="30"> сом</tspan>
+        <text x="260" y="168" textAnchor="middle" fill={PINK} fontSize="40" style={DISPLAY}>
+          440<tspan fontSize="18"> сом</tspan>
         </text>
-        <text x="260" y="196" textAnchor="middle" fill={INK} fontSize="13" style={BODY}>
+        <text x="260" y="196" textAnchor="middle" fill={INK} fontSize="11" style={BODY}>
           Подписка Loal
         </text>
         <rect x="211" y="212" width="98" height="98" rx="10" fill={BLUSH} />
         <QrPattern x={220} y={221} size={80} />
         <rect data-scan x="214" y="226" width="92" height="4" rx="2" fill={PINK} />
         <rect x="200" y="326" width="120" height="32" rx="16" fill={PINK} />
-        <text x="260" y="347" textAnchor="middle" fill={CHALK} fontSize="14" fontWeight="700" style={BODY}>
+        <text x="260" y="347" textAnchor="middle" fill={CHALK} fontSize="11" fontWeight="700" style={BODY}>
           Оплатить
         </text>
       </g>
@@ -117,28 +117,28 @@ export function WalletScene({ className = "" }: { className?: string }) {
     <svg viewBox="0 0 520 440" className={className} aria-hidden="true">
       <g data-pop transform="rotate(-10 250 200)">
         <rect x="95" y="70" width="320" height="200" rx="24" fill={LILAC} />
-        <text x="120" y="106" fill={INK} fontSize="16" fontWeight="600" style={BODY}>
+        <text x="120" y="106" fill={INK} fontSize="12" fontWeight="600" style={BODY}>
           Проездной
         </text>
       </g>
       <g data-pop transform="rotate(-4 250 230)">
         <rect x="95" y="118" width="320" height="200" rx="24" fill={GUM} />
-        <text x="120" y="154" fill={INK} fontSize="16" fontWeight="600" style={BODY}>
+        <text x="120" y="154" fill={INK} fontSize="12" fontWeight="600" style={BODY}>
           Спортзал
         </text>
       </g>
       <g data-pop>
         <rect x="80" y="170" width="350" height="220" rx="26" fill={INK} />
-        <text x="108" y="214" fill={CHALK} fontSize="34" style={DISPLAY}>
+        <text x="108" y="214" fill={CHALK} fontSize="26" style={DISPLAY}>
           Loal
         </text>
-        <text x="404" y="210" textAnchor="end" fill={CHALK} fontSize="13" opacity="0.8" style={BODY}>
+        <text x="404" y="210" textAnchor="end" fill={CHALK} fontSize="11" opacity="0.8" style={BODY}>
           до 1 октября
         </text>
-        <text x="108" y="262" fill={CHALK} fontSize="14" opacity="0.8" style={BODY}>
+        <text x="108" y="262" fill={CHALK} fontSize="11" opacity="0.8" style={BODY}>
           Баланс бонусов
         </text>
-        <text x="106" y="340" fill={GUM} fontSize="86" style={DISPLAY}>
+        <text x="106" y="340" fill={GUM} fontSize="65" style={DISPLAY}>
           100 000
         </text>
         <rect x="350" y="296" width="62" height="62" rx="8" fill={CHALK} />
@@ -147,7 +147,7 @@ export function WalletScene({ className = "" }: { className?: string }) {
 
       <g data-pop data-float>
         <rect x="318" y="44" width="176" height="62" rx="31" fill={PINK} />
-        <text x="406" y="87" textAnchor="middle" fill={CHALK} fontSize="38" style={DISPLAY}>
+        <text x="406" y="87" textAnchor="middle" fill={CHALK} fontSize="29" style={DISPLAY}>
           +100 000
         </text>
       </g>
@@ -168,33 +168,33 @@ export function PayScene({ className = "" }: { className?: string }) {
       <g data-pop transform="rotate(-12 150 260)">
         <rect x="90" y="140" width="124" height="230" rx="22" fill={INK} />
         <rect x="100" y="160" width="104" height="190" rx="14" fill={CHALK} />
-        <text x="152" y="192" textAnchor="middle" fill={INK} fontSize="20" style={DISPLAY}>
+        <text x="152" y="192" textAnchor="middle" fill={INK} fontSize="15" style={DISPLAY}>
           Loal
         </text>
         <rect x="112" y="206" width="80" height="80" rx="6" fill={BLUSH} />
         <QrPattern x={118} y={212} size={68} />
-        <text x="152" y="322" textAnchor="middle" fill={PINK} fontSize="26" style={DISPLAY}>
+        <text x="152" y="322" textAnchor="middle" fill={PINK} fontSize="20" style={DISPLAY}>
           100 000
         </text>
       </g>
 
       <g data-pop>
         <path d="M290 30h110v120H290z" fill={CHALK} stroke={INK} strokeWidth="3" strokeLinejoin="round" />
-        <text x="304" y="52" fill={INK} fontSize="13" fontWeight="700" style={BODY}>
+        <text x="304" y="52" fill={INK} fontSize="11" fontWeight="700" style={BODY}>
           Кофейня
         </text>
         <path d="M304 66h80M304 80h54" stroke={LILAC} strokeWidth="5" strokeLinecap="round" />
-        <text x="304" y="108" fill={PINK} fontSize="22" style={DISPLAY}>
+        <text x="304" y="108" fill={PINK} fontSize="17" style={DISPLAY}>
           −400 сом
         </text>
       </g>
       <g data-pop>
         <rect x="262" y="120" width="166" height="272" rx="28" fill={INK} />
         <rect x="282" y="146" width="126" height="92" rx="12" fill={GUM} />
-        <text x="345" y="184" textAnchor="middle" fill={INK} fontSize="15" fontWeight="600" style={BODY}>
+        <text x="345" y="184" textAnchor="middle" fill={INK} fontSize="11" fontWeight="600" style={BODY}>
           К оплате
         </text>
-        <text x="345" y="222" textAnchor="middle" fill={INK} fontSize="36" style={DISPLAY}>
+        <text x="345" y="222" textAnchor="middle" fill={INK} fontSize="27" style={DISPLAY}>
           1 600 сом
         </text>
         {[0, 1, 2].map((c) =>
@@ -247,10 +247,10 @@ export function RefillScene({ className = "" }: { className?: string }) {
         <rect x="50" y="70" width="230" height="250" rx="28" fill="none" stroke={INK} strokeWidth="4" />
         <rect x="95" y="46" width="14" height="46" rx="7" fill={INK} />
         <rect x="221" y="46" width="14" height="46" rx="7" fill={INK} />
-        <text x="165" y="118" textAnchor="middle" fill={CHALK} fontSize="18" fontWeight="700" style={BODY}>
+        <text x="165" y="118" textAnchor="middle" fill={CHALK} fontSize="14" fontWeight="700" style={BODY}>
           октябрь
         </text>
-        <text x="165" y="280" textAnchor="middle" fill={INK} fontSize="170" style={DISPLAY}>
+        <text x="165" y="280" textAnchor="middle" fill={INK} fontSize="129" style={DISPLAY}>
           1
         </text>
       </g>
@@ -267,10 +267,10 @@ export function RefillScene({ className = "" }: { className?: string }) {
 
       <g data-pop>
         <rect x="300" y="200" width="160" height="104" rx="16" fill={INK} />
-        <text x="318" y="230" fill={CHALK} fontSize="18" style={DISPLAY}>
+        <text x="318" y="230" fill={CHALK} fontSize="14" style={DISPLAY}>
           Loal
         </text>
-        <text x="316" y="284" fill={GUM} fontSize="46" style={DISPLAY}>
+        <text x="316" y="284" fill={GUM} fontSize="35" style={DISPLAY}>
           100 000
         </text>
       </g>

@@ -1,26 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --magenta: #db3c8a;
-  /* Deeper magenta for buttons, small text and filled areas (5:1 on chalk) */
-  --magenta-ink: #c2307a;
-  --forest: #00522d;
-  --blush: #fce5df;
-  --chalk: #fff8f6;
-  --bubblegum: #f29ebd;
-  --lilac: #d1cfe4;
+  /* Палитра из брендбука Loal (2026): оранжевый акцент, светлый фон, графит. */
+  --flame: #ff3300; /* Акцент: логотип, ключевые цифры, кнопки */
+  --flame-ink: #c42700; /* Тот же акцент для мелкого текста и ссылок (5.5:1 на фоне) */
+  --amber: #ff9720; /* Поддержка: графика, акценты на тёмном */
+  --cream: #f4f0ee; /* Светлая подложка: тёплый серый из шкалы брендбука */
+  --paper: #fcf9f9; /* Основной фон */
+  --graphite: #161515; /* Структура: текст и тёмные секции */
+  --smoke: #d9d3d3; /* Разделители и рамки */
 }
 
 @theme inline {
-  --color-magenta: var(--magenta);
-  --color-magenta-ink: var(--magenta-ink);
-  --color-forest: var(--forest);
-  --color-blush: var(--blush);
-  --color-chalk: var(--chalk);
-  --color-bubblegum: var(--bubblegum);
-  --color-lilac: var(--lilac);
-  --font-display: var(--font-sofia-condensed);
-  --font-sans: var(--font-onest);
+  --color-flame: var(--flame);
+  --color-flame-ink: var(--flame-ink);
+  --color-amber: var(--amber);
+  --color-cream: var(--cream);
+  --color-paper: var(--paper);
+  --color-graphite: var(--graphite);
+  --color-smoke: var(--smoke);
+  --font-display: var(--font-jost);
+  --font-sans: var(--font-jost);
 }
 
 html {
@@ -28,28 +28,33 @@ html {
 }
 
 body {
-  background: var(--chalk);
-  color: var(--forest);
-  font-family: var(--font-onest), system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--graphite);
+  font-family: var(--font-jost), system-ui, sans-serif;
 }
 
 ::selection {
-  background: var(--magenta);
-  color: var(--chalk);
+  background: var(--flame);
+  color: var(--paper);
 }
 
 :focus-visible {
-  outline: 3px solid var(--magenta);
+  outline: 3px solid var(--flame);
   outline-offset: 3px;
   border-radius: 4px;
 }
 
-/* Tight display leading, as in the design system (0.7–0.8) */
+/* Заголовки: геометрический гротеск вместо Samsung Sharp Sans из брендбука */
 .display {
-  font-family: var(--font-sofia-condensed), sans-serif;
-  font-weight: 900;
-  line-height: 0.8;
-  letter-spacing: -0.01em;
+  font-family: var(--font-jost), sans-serif;
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+}
+
+/* Фирменный градиент: FF3300 → FF9720 */
+.brand-gradient {
+  background: linear-gradient(120deg, var(--flame) 0%, var(--amber) 100%);
 }
 
 /* Hero content waits for the GSAP intro (see page-motion.tsx). The class is set by an inline
@@ -58,15 +63,15 @@ body {
   visibility: hidden;
 }
 
-/* Calculator slider on the forest panel */
+/* Calculator slider on the graphite panel */
 .calc-range {
   appearance: none;
   height: 14px;
   border-radius: 999px;
   background: linear-gradient(
     to right,
-    var(--magenta) var(--fill, 0%),
-    rgb(255 248 246 / 0.18) var(--fill, 0%)
+    var(--flame) var(--fill, 0%),
+    rgb(252 249 249 / 0.18) var(--fill, 0%)
   );
   cursor: pointer;
 }
@@ -75,16 +80,16 @@ body {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--chalk);
-  border: 6px solid var(--magenta);
+  background: var(--paper);
+  border: 6px solid var(--flame);
   transition: scale 150ms;
 }
 .calc-range::-moz-range-thumb {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: var(--chalk);
-  border: 6px solid var(--magenta);
+  background: var(--paper);
+  border: 6px solid var(--flame);
 }
 .calc-range:active::-webkit-slider-thumb {
   scale: 1.15;
@@ -94,10 +99,10 @@ body {
   outline: none;
 }
 .calc-range:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 5px rgb(242 158 189 / 0.6);
+  box-shadow: 0 0 0 5px rgb(255 151 32 / 0.6);
 }
 .calc-range:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 5px rgb(242 158 189 / 0.6);
+  box-shadow: 0 0 0 5px rgb(255 151 32 / 0.6);
 }
 
 /* Torn-paper bottom edge for the receipt */
@@ -123,7 +128,7 @@ body {
   min-width: 44px;
   height: 44px;
   padding: 0 8px;
-  border: 2px solid var(--magenta);
+  border: 2px solid var(--flame);
   border-radius: 999px 999px 999px 6px;
   font-weight: 700;
   cursor: pointer;
@@ -135,26 +140,26 @@ body {
   transform: scale(1.08);
 }
 .map-pin--octopay {
-  background: var(--magenta-ink);
-  color: var(--chalk);
+  background: var(--flame-ink);
+  color: var(--paper);
 }
 .map-pin--plain {
-  background: var(--chalk);
-  color: var(--magenta-ink);
-  border-color: var(--magenta-ink);
+  background: var(--paper);
+  color: var(--flame-ink);
+  border-color: var(--flame-ink);
 }
 .map-pin--active {
-  background: var(--forest);
-  border-color: var(--forest);
-  color: var(--chalk);
+  background: var(--graphite);
+  border-color: var(--graphite);
+  color: var(--paper);
   transform: scale(1.08);
 }
 
 /* OpenStreetMap tiles nudged toward the brand palette (temporary map, see osm-map.tsx) */
 .map-osm .maplibregl-canvas {
-  filter: grayscale(0.6) sepia(0.22) hue-rotate(300deg) saturate(0.85) brightness(1.06) contrast(0.92);
+  filter: grayscale(0.78) sepia(0.2) saturate(1.05) brightness(1.06) contrast(0.94);
 }
 .map-osm .maplibregl-ctrl-attrib {
-  background: rgb(255 248 246 / 0.85);
-  font-family: var(--font-onest), sans-serif;
+  background: rgb(252 249 249 / 0.85);
+  font-family: var(--font-jost), sans-serif;
 }

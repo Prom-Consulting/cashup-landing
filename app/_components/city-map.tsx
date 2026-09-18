@@ -28,26 +28,26 @@ export function CityMap({
   const center = project(CITY_CENTER);
 
   return (
-    <div className="absolute inset-0 overflow-hidden bg-blush/60">
+    <div className="absolute inset-0 overflow-hidden bg-cream/60">
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden="true">
         {/* кварталы */}
         {avenues.map((x) => (
-          <line key={`a${x}`} x1={x} y1="0" x2={x - 4} y2="100" stroke="var(--chalk)" strokeWidth="1.6" />
+          <line key={`a${x}`} x1={x} y1="0" x2={x - 4} y2="100" stroke="var(--paper)" strokeWidth="1.6" />
         ))}
         {streets.map((y) => (
-          <line key={`s${y}`} x1="0" y1={y} x2="100" y2={y - 2} stroke="var(--chalk)" strokeWidth="1.2" />
+          <line key={`s${y}`} x1="0" y1={y} x2="100" y2={y - 2} stroke="var(--paper)" strokeWidth="1.2" />
         ))}
         {/* проспекты */}
-        <line x1="0" y1="40" x2="100" y2="38" stroke="var(--chalk)" strokeWidth="3.4" />
-        <line x1="46" y1="0" x2="40" y2="100" stroke="var(--chalk)" strokeWidth="3.4" />
+        <line x1="0" y1="40" x2="100" y2="38" stroke="var(--paper)" strokeWidth="3.4" />
+        <line x1="46" y1="0" x2="40" y2="100" stroke="var(--paper)" strokeWidth="3.4" />
         {/* парк */}
-        <path d="M52 44h16v14H52z" fill="var(--bubblegum)" opacity="0.45" />
-        <path d="M8 62h13v18H8z" fill="var(--bubblegum)" opacity="0.35" />
+        <path d="M52 44h16v14H52z" fill="var(--amber)" opacity="0.45" />
+        <path d="M8 62h13v18H8z" fill="var(--amber)" opacity="0.35" />
         {/* река Ала-Арча */}
         <path
           d="M30 -2C28 18 24 30 26 48 28 66 22 82 24 102"
           fill="none"
-          stroke="var(--lilac)"
+          stroke="var(--smoke)"
           strokeWidth="2.4"
           strokeLinecap="round"
         />
@@ -60,7 +60,7 @@ export function CityMap({
 
       <span
         aria-hidden="true"
-        className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-forest/30"
+        className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-graphite/30"
         style={{ left: `${center.left}%`, top: `${center.top}%` }}
       />
 

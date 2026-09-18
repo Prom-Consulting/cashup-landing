@@ -21,7 +21,7 @@ const style: StyleSpecification = {
     },
   },
   layers: [
-    { id: "bg", type: "background", paint: { "background-color": "#fff8f6" } },
+    { id: "bg", type: "background", paint: { "background-color": "#fcf9f9" } },
     { id: "osm", type: "raster", source: "osm" },
   ],
 };
@@ -121,7 +121,7 @@ export function OsmMap({
             type="button"
             onClick={() => zoomBy(b.delta)}
             aria-label={b.label}
-            className="grid h-11 w-11 place-items-center rounded-full border-2 border-forest bg-chalk text-2xl leading-none font-bold transition-colors hover:bg-forest hover:text-chalk"
+            className="grid h-11 w-11 place-items-center rounded-full border-2 border-graphite bg-paper text-2xl leading-none font-bold transition-colors hover:bg-graphite hover:text-paper"
           >
             {b.sign}
           </button>

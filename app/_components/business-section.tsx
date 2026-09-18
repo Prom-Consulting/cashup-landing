@@ -29,12 +29,12 @@ function Check({ className }: { className: string }) {
 
 export function BusinessSection({ partnerUrl }: { partnerUrl: string }) {
   return (
-    <section id="business" className="relative scroll-mt-6 overflow-hidden bg-forest text-chalk">
+    <section id="business" className="relative scroll-mt-6 overflow-hidden bg-graphite text-paper">
       <div className="mx-auto max-w-[1440px] px-5 py-24 sm:px-10 lg:py-32">
         <div className="grid items-center gap-16 lg:grid-cols-[1.15fr_1fr]">
           <div>
-            <p className="text-lg font-medium text-bubblegum">Для бизнеса</p>
-            <h2 data-split className="display mt-4 text-[clamp(3.5rem,8.5vw,8rem)] text-chalk">
+            <p className="text-lg font-medium text-amber">Для бизнеса</p>
+            <h2 data-split className="display mt-4 text-[clamp(2.43rem,5.9vw,5.52rem)] text-paper">
               Покупатели, <span className="whitespace-nowrap">у которых</span> есть чем платить
             </h2>
             <p className="mt-8 max-w-[48ch] text-lg leading-relaxed sm:text-xl">
@@ -43,7 +43,7 @@ export function BusinessSection({ partnerUrl }: { partnerUrl: string }) {
             </p>
             <a
               href={partnerUrl}
-              className="mt-10 inline-flex items-center justify-center rounded-[10px] bg-chalk px-7 py-4 font-bold text-forest transition-colors hover:bg-bubblegum"
+              className="mt-10 inline-flex items-center justify-center rounded-[10px] bg-paper px-7 py-4 font-bold text-graphite transition-colors hover:bg-amber"
             >
               Подключить бизнес
             </a>
@@ -65,20 +65,20 @@ export function BusinessSection({ partnerUrl }: { partnerUrl: string }) {
 
             <div
               data-biz-chip
-              className="absolute top-8 -left-4 rotate-[-6deg] rounded-full bg-magenta-ink px-5 py-2.5 font-bold sm:-left-10"
+              className="absolute top-8 -left-4 rotate-[-6deg] rounded-full bg-flame-ink px-5 py-2.5 font-bold sm:-left-10"
             >
               Партнёр Loal
             </div>
 
             <div
               data-biz-widget
-              className="absolute -bottom-8 -left-4 w-[min(300px,82%)] rounded-3xl bg-chalk p-5 text-forest sm:-left-12"
+              className="absolute -bottom-8 -left-4 w-[min(300px,82%)] rounded-3xl bg-paper p-5 text-graphite sm:-left-12"
             >
               <p className="text-sm opacity-70">Кабинет партнёра</p>
               <p className="mt-1 font-bold">Оплата бонусами в октябре</p>
               <div className="mt-4 flex items-center gap-3">
-                <div className="h-3 flex-1 overflow-hidden rounded-full bg-blush">
-                  <div data-biz-meter className="h-full w-1/5 rounded-full bg-magenta" />
+                <div className="h-3 flex-1 overflow-hidden rounded-full bg-cream">
+                  <div data-biz-meter className="h-full w-1/5 rounded-full bg-flame" />
                 </div>
                 <span className="display text-4xl">до 20%</span>
               </div>
@@ -90,25 +90,25 @@ export function BusinessSection({ partnerUrl }: { partnerUrl: string }) {
           </div>
         </div>
 
-        <h3 className="display mt-32 text-[clamp(2.75rem,5vw,4.5rem)]">Три способа подключиться</h3>
+        <h3 className="display mt-32 text-[clamp(1.92rem,3.47vw,3.1rem)]">Три способа подключиться</h3>
         <div data-models className="mt-10 grid gap-5 lg:grid-cols-3 lg:items-stretch">
           {models(partnerUrl).map((m) => (
             <article
               key={m.key}
               data-model
               className={`relative flex flex-col rounded-[32px] p-8 sm:p-10 ${
-                m.featured ? "bg-magenta-ink text-chalk lg:-my-4 lg:py-14" : "bg-chalk text-forest"
+                m.featured ? "bg-flame-ink text-paper lg:-my-4 lg:py-14" : "bg-paper text-graphite"
               }`}
             >
               {m.featured && (
-                <p className="absolute -top-4 left-8 rotate-[-3deg] rounded-full bg-bubblegum px-4 py-1.5 text-sm font-bold text-forest sm:left-10">
+                <p className="absolute -top-4 left-8 rotate-[-3deg] rounded-full bg-amber px-4 py-1.5 text-sm font-bold text-graphite sm:left-10">
                   Выгоднее всего
                 </p>
               )}
-              <h4 className="display text-[clamp(2.25rem,3.4vw,3rem)]">{m.title}</h4>
+              <h4 className="display text-[clamp(1.57rem,2.36vw,2.07rem)]">{m.title}</h4>
               <p
-                className={`display mt-6 text-[clamp(4.5rem,7vw,6.5rem)] whitespace-nowrap ${
-                  m.featured ? "text-chalk" : "text-magenta"
+                className={`display mt-6 text-[clamp(3.12rem,4.86vw,4.48rem)] whitespace-nowrap ${
+                  m.featured ? "text-paper" : "text-flame"
                 }`}
               >
                 {m.price}
@@ -117,7 +117,7 @@ export function BusinessSection({ partnerUrl }: { partnerUrl: string }) {
               <ul className="mt-8 flex flex-1 flex-col gap-3.5">
                 {m.points.map((pt) => (
                   <li key={pt} className="flex gap-3">
-                    <Check className={m.featured ? "bg-chalk text-magenta-ink" : "bg-forest text-chalk"} />
+                    <Check className={m.featured ? "bg-paper text-flame-ink" : "bg-graphite text-paper"} />
                     <span>{pt}</span>
                   </li>
                 ))}
@@ -126,8 +126,8 @@ export function BusinessSection({ partnerUrl }: { partnerUrl: string }) {
                 href={m.cta.href}
                 className={`mt-10 inline-flex items-center justify-center rounded-[10px] px-6 py-3.5 font-bold transition-colors ${
                   m.featured
-                    ? "bg-chalk text-magenta-ink hover:bg-forest hover:text-chalk"
-                    : "border-2 border-forest hover:bg-forest hover:text-chalk"
+                    ? "bg-paper text-flame-ink hover:bg-graphite hover:text-paper"
+                    : "border-2 border-graphite hover:bg-graphite hover:text-paper"
                 }`}
               >
                 {m.cta.label}
@@ -140,7 +140,7 @@ export function BusinessSection({ partnerUrl }: { partnerUrl: string }) {
           <h3 className="text-xl font-bold">В кабинете партнёра</h3>
           <ul data-rise className="mt-5 flex flex-wrap gap-3">
             {cabinet.map((item) => (
-              <li key={item} className="rounded-full border-2 border-chalk/25 px-5 py-2.5 font-medium">
+              <li key={item} className="rounded-full border-2 border-paper/25 px-5 py-2.5 font-medium">
                 {item}
               </li>
             ))}

@@ -36,8 +36,8 @@ function FaqItem({ item, open, onToggle }: { item: Item; open: boolean; onToggle
       });
       gsap.to(icon.current, {
         rotate: open ? 135 : 0,
-        backgroundColor: open ? "#c2307a" : "#fce5df",
-        color: open ? "#fff8f6" : "#00522d",
+        backgroundColor: open ? "#ff3300" : "#ffeee2",
+        color: open ? "#161515" : "#161515",
         duration: 0.5 * d,
         ease: "back.out(2)",
         overwrite: true,
@@ -47,7 +47,7 @@ function FaqItem({ item, open, onToggle }: { item: Item; open: boolean; onToggle
   );
 
   return (
-    <div className="border-b-2 border-blush">
+    <div className="border-b-2 border-cream">
       <h3>
         <button
           type="button"
@@ -56,11 +56,11 @@ function FaqItem({ item, open, onToggle }: { item: Item; open: boolean; onToggle
           onClick={onToggle}
           className="group flex w-full items-center justify-between gap-6 py-7 text-left text-xl font-medium sm:text-2xl"
         >
-          <span className="transition-colors group-hover:text-magenta-ink">{item.q}</span>
+          <span className="transition-colors group-hover:text-flame-ink">{item.q}</span>
           <span
             ref={icon}
             aria-hidden="true"
-            className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-blush transition-[scale] group-hover:scale-110 group-active:scale-95 sm:h-16 sm:w-16"
+            className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-cream transition-[scale] group-hover:scale-110 group-active:scale-95 sm:h-16 sm:w-16"
           >
             <svg viewBox="0 0 24 24" className="h-7 w-7">
               <path d="M12 4v16M4 12h16" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />

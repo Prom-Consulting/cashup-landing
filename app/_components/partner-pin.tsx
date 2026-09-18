@@ -37,10 +37,10 @@ export function PartnerPin({
         aria-hidden="true"
         className={`flex h-11 min-w-11 items-center justify-center rounded-full rounded-bl-md border-2 px-2 font-bold shadow-sm transition-colors ${
           active
-            ? "border-forest bg-forest text-chalk"
+            ? "border-graphite bg-graphite text-paper"
             : partner.octopay
-              ? "border-magenta bg-magenta-ink text-chalk"
-              : "border-magenta-ink bg-chalk text-magenta-ink"
+              ? "border-flame bg-flame-ink text-paper"
+              : "border-flame-ink bg-paper text-flame-ink"
         }`}
       >
         {partner.percent}%

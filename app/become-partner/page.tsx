@@ -6,6 +6,7 @@ import { Coin } from "../_components/illustrations";
 import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
 import { models } from "../_data/models";
+import { CITY, EMAIL, OCTOPAY_URL, PARTNER_MAIL, PHONE, PHONE_HREF } from "../_data/site";
 import { PartnerForm } from "./partner-form";
 
 export const metadata: Metadata = {
@@ -13,8 +14,6 @@ export const metadata: Metadata = {
   description:
     "Подключите заведение к Loal: клиенты с балансом 100 000 сом бонусами, свой процент оплаты бонусами, кабинет партнёра и место в каталоге.",
 };
-
-const PARTNER_MAIL = "mailto:info@promconsult.pro?subject=Подключение%20к%20Loal";
 
 const steps = [
   {
@@ -78,7 +77,7 @@ export default function BecomePartnerPage() {
         <section className="mx-auto grid max-w-[1440px] items-center gap-14 px-5 pt-6 pb-20 sm:px-10 lg:grid-cols-[1.15fr_1fr] lg:pt-10 lg:pb-28">
           <div>
             <p className="text-lg font-medium">Для бизнеса в Бишкеке</p>
-            <h1 className="display mt-4 text-[clamp(3.5rem,8.5vw,7.5rem)] text-magenta">Станьте партнёром Loal</h1>
+            <h1 className="display mt-4 text-[clamp(2.43rem,5.9vw,5.17rem)] text-flame">Станьте партнёром Loal</h1>
             <p className="mt-8 max-w-[50ch] text-lg leading-relaxed sm:text-xl">
               Подписчики Loal ищут, где потратить бонусы. Подключите заведение, задайте свой процент — и получайте
               гостей из каталога.
@@ -86,13 +85,13 @@ export default function BecomePartnerPage() {
             <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
               <Link
                 href="#form"
-                className="inline-flex items-center justify-center rounded-[10px] bg-magenta-ink px-7 py-4 font-bold text-chalk transition-colors hover:bg-forest"
+                className="inline-flex items-center justify-center rounded-[10px] bg-flame-ink px-7 py-4 font-bold text-paper transition-colors hover:bg-graphite"
               >
                 Оставить заявку
               </Link>
               <Link
                 href="/partners"
-                className="font-medium underline decoration-bubblegum decoration-2 underline-offset-6 hover:decoration-magenta"
+                className="font-medium underline decoration-amber decoration-2 underline-offset-6 hover:decoration-flame"
               >
                 Посмотреть каталог
               </Link>
@@ -111,9 +110,9 @@ export default function BecomePartnerPage() {
                 className="object-cover object-[50%_40%]"
               />
             </div>
-            <div className="absolute -bottom-6 -left-4 w-[min(280px,80%)] rounded-3xl bg-forest p-5 text-chalk sm:-left-10">
+            <div className="absolute -bottom-6 -left-4 w-[min(280px,80%)] rounded-3xl bg-graphite p-5 text-paper sm:-left-10">
               <p className="text-sm opacity-80">Гость оплатил</p>
-              <p className="display mt-1 text-4xl text-bubblegum">400 сом бонусами</p>
+              <p className="display mt-1 text-4xl text-amber">400 сом бонусами</p>
               <p className="mt-2 text-sm opacity-80">Остальное — деньгами на ваш счёт</p>
             </div>
             <div className="absolute -top-6 -right-4 w-20" aria-hidden="true">
@@ -122,12 +121,12 @@ export default function BecomePartnerPage() {
           </div>
         </section>
 
-        <section className="bg-blush/50">
+        <section className="bg-cream/50">
           <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-10 lg:py-28">
-            <h2 className="display max-w-[16ch] text-[clamp(3rem,7vw,6rem)] text-magenta">Что это даёт заведению</h2>
+            <h2 className="display max-w-[16ch] text-[clamp(2.08rem,4.86vw,4.14rem)] text-flame">Что это даёт заведению</h2>
             <div className="mt-12 grid gap-6 md:grid-cols-2">
               {gains.map((g) => (
-                <div key={g.title} className="rounded-[28px] bg-chalk p-8">
+                <div key={g.title} className="rounded-[28px] bg-paper p-8">
                   <h3 className="text-xl font-bold">{g.title}</h3>
                   <p className="mt-3 max-w-[46ch] leading-relaxed">{g.text}</p>
                 </div>
@@ -137,11 +136,11 @@ export default function BecomePartnerPage() {
         </section>
 
         <section className="mx-auto max-w-[1440px] px-5 py-20 sm:px-10 lg:py-28">
-          <h2 className="display text-[clamp(3rem,7vw,6rem)] text-magenta">Как подключиться</h2>
+          <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)] text-flame">Как подключиться</h2>
           <ol className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {steps.map((s, i) => (
-              <li key={s.title} className="border-t-2 border-forest pt-5">
-                <span className="display grid h-11 w-11 place-items-center rounded-full bg-magenta-ink text-2xl text-chalk">
+              <li key={s.title} className="border-t-2 border-graphite pt-5">
+                <span className="display grid h-11 w-11 place-items-center rounded-full bg-flame-ink text-2xl text-paper">
                   {i + 1}
                 </span>
                 <h3 className="mt-4 text-xl font-bold leading-snug">{s.title}</h3>
@@ -151,26 +150,26 @@ export default function BecomePartnerPage() {
           </ol>
         </section>
 
-        <section className="bg-forest text-chalk">
+        <section className="bg-graphite text-paper">
           <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-10 lg:py-28">
-            <h2 className="display text-[clamp(3rem,7vw,6rem)]">Выберите модель</h2>
+            <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)]">Выберите модель</h2>
             <div className="mt-12 grid gap-5 lg:grid-cols-3 lg:items-stretch">
               {models(PARTNER_MAIL).map((m) => (
                 <article
                   key={m.key}
                   className={`relative flex flex-col rounded-[32px] p-8 sm:p-10 ${
-                    m.featured ? "bg-magenta-ink text-chalk lg:-my-4 lg:py-14" : "bg-chalk text-forest"
+                    m.featured ? "bg-flame-ink text-paper lg:-my-4 lg:py-14" : "bg-paper text-graphite"
                   }`}
                 >
                   {m.featured && (
-                    <p className="absolute -top-4 left-8 rotate-[-3deg] rounded-full bg-bubblegum px-4 py-1.5 text-sm font-bold text-forest sm:left-10">
+                    <p className="absolute -top-4 left-8 rotate-[-3deg] rounded-full bg-amber px-4 py-1.5 text-sm font-bold text-graphite sm:left-10">
                       Выгоднее всего
                     </p>
                   )}
-                  <h3 className="display text-[clamp(2.25rem,3.4vw,3rem)]">{m.title}</h3>
+                  <h3 className="display text-[clamp(1.57rem,2.36vw,2.07rem)]">{m.title}</h3>
                   <p
-                    className={`display mt-6 text-[clamp(4rem,6vw,6rem)] whitespace-nowrap ${
-                      m.featured ? "text-chalk" : "text-magenta"
+                    className={`display mt-6 text-[clamp(2.78rem,4.17vw,4.14rem)] whitespace-nowrap ${
+                      m.featured ? "text-paper" : "text-flame"
                     }`}
                   >
                     {m.price}
@@ -182,7 +181,7 @@ export default function BecomePartnerPage() {
                         <span
                           aria-hidden="true"
                           className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full ${
-                            m.featured ? "bg-chalk text-magenta-ink" : "bg-forest text-chalk"
+                            m.featured ? "bg-paper text-flame-ink" : "bg-graphite text-paper"
                           }`}
                         >
                           <svg viewBox="0 0 24 24" className="h-3.5 w-3.5">
@@ -204,7 +203,11 @@ export default function BecomePartnerPage() {
               ))}
             </div>
             <p className="mt-8 max-w-[64ch] text-sm opacity-75">
-              Все подписки оплачиваются через OctōPAY на счёт Loal и продлеваются в кабинете партнёра.
+              Все подписки оплачиваются через{" "}
+              <a href={OCTOPAY_URL} className="underline underline-offset-4 hover:no-underline">
+                OctōPAY
+              </a>{" "}
+              на счёт Loal и продлеваются в кабинете партнёра.
             </p>
           </div>
         </section>
@@ -212,22 +215,22 @@ export default function BecomePartnerPage() {
         <section id="form" className="scroll-mt-6">
           <div className="mx-auto grid max-w-[1440px] gap-12 px-5 py-20 sm:px-10 lg:grid-cols-[1fr_1.2fr] lg:py-28">
             <div>
-              <h2 className="display text-[clamp(3rem,7vw,6rem)] text-magenta">Заявка</h2>
+              <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)] text-flame">Заявка</h2>
               <p className="mt-6 max-w-[42ch] text-lg leading-relaxed">
                 Заполните форму — перезвоним, поможем выбрать модель и настроить процент. Или напишите нам напрямую.
               </p>
               <ul className="mt-8 flex flex-col gap-3 text-lg">
                 <li>
-                  <a href={PARTNER_MAIL} className="text-magenta-ink underline-offset-4 hover:underline">
-                    info@promconsult.pro
+                  <a href={PARTNER_MAIL} className="text-flame-ink underline-offset-4 hover:underline">
+                    {EMAIL}
                   </a>
                 </li>
                 <li>
-                  <a href="tel:+996600001978" className="text-magenta-ink underline-offset-4 hover:underline">
-                    +996 600 001 978
+                  <a href={PHONE_HREF} className="text-flame-ink underline-offset-4 hover:underline">
+                    {PHONE}
                   </a>
                 </li>
-                <li>Бишкек, Кыргызстан</li>
+                <li>{CITY}</li>
               </ul>
             </div>
             <PartnerForm />
@@ -236,10 +239,10 @@ export default function BecomePartnerPage() {
 
         <section className="mx-auto max-w-[1440px] px-5 pb-24 sm:px-10 lg:pb-32">
           <div className="grid gap-10 lg:grid-cols-[1fr_1.6fr]">
-            <h2 className="display text-[clamp(2.75rem,6vw,5rem)] text-magenta">Вопросы</h2>
+            <h2 className="display text-[clamp(1.92rem,4.17vw,3.45rem)] text-flame">Вопросы</h2>
             <dl>
               {faq.map((item) => (
-                <div key={item.q} className="border-b-2 border-blush py-6">
+                <div key={item.q} className="border-b-2 border-cream py-6">
                   <dt className="text-xl font-medium">{item.q}</dt>
                   <dd className="mt-3 max-w-[60ch] leading-relaxed">{item.a}</dd>
                 </div>

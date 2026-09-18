@@ -23,7 +23,7 @@ export default function PartnersPage() {
         <section className="mx-auto max-w-[1440px] px-5 pt-6 pb-10 sm:px-10 lg:pt-10">
           <div className="grid items-end gap-8 lg:grid-cols-[1.3fr_1fr]">
             <div>
-              <h1 className="display text-[clamp(3.5rem,9vw,8rem)] text-magenta">Где тратить бонусы</h1>
+              <h1 className="display text-[clamp(2.43rem,6.25vw,5.52rem)] text-flame">Где тратить бонусы</h1>
               <p className="mt-6 max-w-[52ch] text-lg leading-relaxed sm:text-xl">
                 Партнёры Loal в Бишкеке и процент, который каждый из них разрешает оплатить бонусами в этом месяце.
                 Наведите на заведение — увидите его на карте.
@@ -40,9 +40,9 @@ export default function PartnersPage() {
         <PartnersView />
 
         <section className="mx-auto max-w-[1440px] px-5 pb-24 sm:px-10 lg:pb-32">
-          <div className="grid gap-6 rounded-[32px] bg-forest p-8 text-chalk sm:p-12 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+          <div className="grid gap-6 rounded-[32px] bg-graphite p-8 text-paper sm:p-12 lg:grid-cols-[1.4fr_1fr] lg:items-center">
             <div>
-              <h2 className="display text-[clamp(2.5rem,5vw,4.5rem)]">Вашего заведения тут нет?</h2>
+              <h2 className="display text-[clamp(1.74rem,3.47vw,3.1rem)]">Вашего заведения тут нет?</h2>
               <p className="mt-4 max-w-[52ch] text-lg leading-relaxed">
                 Подключите Loal — и в каталог придут клиенты, у которых на карте уже лежат 100 000 сом бонусами.
               </p>
@@ -50,13 +50,13 @@ export default function PartnersPage() {
             <div className="flex flex-wrap gap-4 lg:justify-end">
               <Link
                 href="/become-partner"
-                className="inline-flex items-center justify-center rounded-[10px] bg-chalk px-7 py-4 font-bold text-forest transition-colors hover:bg-bubblegum"
+                className="inline-flex items-center justify-center rounded-[10px] bg-paper px-7 py-4 font-bold text-graphite transition-colors hover:bg-amber"
               >
                 Стать партнёром
               </Link>
               <Link
                 href="/#price"
-                className="inline-flex items-center justify-center rounded-[10px] border-2 border-chalk px-7 py-4 font-bold transition-colors hover:bg-chalk hover:text-forest"
+                className="inline-flex items-center justify-center rounded-[10px] border-2 border-paper px-7 py-4 font-bold transition-colors hover:bg-paper hover:text-graphite"
               >
                 Тарифы
               </Link>
@@ -72,10 +72,10 @@ export default function PartnersPage() {
 
 function Stat({ value, label }: { value: string | number; label: string }) {
   return (
-    <div className="rounded-[20px] bg-blush/60 p-3 sm:p-4">
+    <div className="rounded-[20px] bg-cream/60 p-3 sm:p-4">
       <dt className="sr-only">{label}</dt>
       <dd>
-        <span className="display block text-[clamp(2.25rem,4vw,3.5rem)] text-forest">{value}</span>
+        <span className="display block text-[clamp(1.57rem,2.78vw,2.42rem)] text-graphite">{value}</span>
         <span className="mt-1 block text-xs font-medium sm:text-sm">{label}</span>
       </dd>
     </div>

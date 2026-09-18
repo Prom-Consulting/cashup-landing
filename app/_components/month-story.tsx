@@ -38,7 +38,8 @@ const steps = [
 ];
 
 // Hex values so GSAP can interpolate the blob colour.
-const blobColors = ["#f29ebd", "#d1cfe4", "#e878b2", "#f29ebd"];
+// Подложки сцен: светлые оттенки фирменного градиента
+const blobColors = ["#ffe0c4", "#f0ebe8", "#ffd2ae", "#f7e7da"];
 
 // Adds a from-tween only when the scene has matching elements (avoids GSAP "target not found").
 const fromIf = (tl: gsap.core.Timeline, nodes: NodeListOf<Element>, vars: gsap.TweenVars, position: number) =>
@@ -86,8 +87,8 @@ export function MonthStory() {
         const arts = slides.map((sl) => sl.querySelector("[data-slide-art]")!);
         const texts = slides.map((sl) => sl.querySelector("[data-slide-text]")!);
         const blobLeft = (i: number) => (i % 2 ? "50%" : "4%");
-        const white = "#fff8f6";
-        const ink = "#00522d";
+        const white = "#fcf9f9";
+        const ink = "#161515";
 
         // Start from a clean, explicit state: a previous mobile context may have left inline styles.
         gsap.set([...arts, ...texts], { clearProps: "all" });
@@ -267,9 +268,9 @@ export function MonthStory() {
 
                 <div data-slide-text className="lg:w-[44%]">
                   <p className="font-medium">Шаг {i + 1} из 4</p>
-                  <h3 className="display mt-3 text-[clamp(3.25rem,6.5vw,6.5rem)] text-magenta">{step.title}</h3>
+                  <h3 className="display mt-3 text-[clamp(2.26rem,4.51vw,4.48rem)] text-flame">{step.title}</h3>
                   <p className="mt-6 max-w-[40ch] text-lg leading-relaxed sm:text-xl">{step.text}</p>
-                  <p className="mt-8 inline-flex items-baseline gap-3 rounded-full bg-chalk px-6 py-3">
+                  <p className="mt-8 inline-flex items-baseline gap-3 rounded-full bg-paper px-6 py-3">
                     <span className="font-medium">Бонусов на карте</span>
                     <span className="display text-4xl whitespace-nowrap tabular-nums">
                       <span data-slide-balance>{format(step.balance)}</span> сом
@@ -286,17 +287,17 @@ export function MonthStory() {
           className="absolute bottom-6 left-1/2 hidden w-[min(90%,760px)] -translate-x-1/2 group-data-[pinned=true]:block"
         >
           <div className="relative grid grid-cols-4">
-            <div className="absolute top-5 right-[12.5%] left-[12.5%] h-1 -translate-y-1/2 rounded-full bg-forest/15">
-              <div data-rail-line className="h-full origin-left rounded-full bg-magenta-ink" />
+            <div className="absolute top-5 right-[12.5%] left-[12.5%] h-1 -translate-y-1/2 rounded-full bg-graphite/15">
+              <div data-rail-line className="h-full origin-left rounded-full bg-flame-ink" />
             </div>
             {steps.map((step, i) => (
               <div key={step.short} className="relative flex flex-col items-center gap-2.5">
-                <span className="relative grid h-10 w-10 place-items-center rounded-full border-2 border-forest/20 bg-chalk">
+                <span className="relative grid h-10 w-10 place-items-center rounded-full border-2 border-graphite/20 bg-paper">
                   <span data-rail-ring className="absolute -inset-1.5">
-                    <span className="absolute inset-0 rounded-full border-2 border-magenta" />
-                    <span data-rail-pulse className="absolute inset-0 rounded-full border-2 border-magenta" />
+                    <span className="absolute inset-0 rounded-full border-2 border-flame" />
+                    <span data-rail-pulse className="absolute inset-0 rounded-full border-2 border-flame" />
                   </span>
-                  <span data-rail-fill className="absolute -inset-0.5 rounded-full bg-magenta-ink" />
+                  <span data-rail-fill className="absolute -inset-0.5 rounded-full bg-flame-ink" />
                   <span data-rail-num className="display relative text-2xl leading-none">
                     {i + 1}
                   </span>

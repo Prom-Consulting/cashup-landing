@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "./logo";
+import { CITY, EMAIL, OCTOPAY_URL, PHONE, PHONE_HREF, PROM_URL } from "../_data/site";
 
 const product = [
   { label: "Как это работает", href: "/#how" },
@@ -8,11 +9,11 @@ const product = [
   { label: "Стать партнёром", href: "/become-partner" },
 ];
 
-const ecosystem = [{ label: "OctōPAY", note: "платежи по QR" }];
+const ecosystem = [{ label: "OctōPAY", note: "платежи по QR", href: OCTOPAY_URL }];
 
 export function SiteFooter() {
   return (
-    <footer id="contacts" className="bg-blush/60">
+    <footer id="contacts" className="bg-cream/60">
       <div className="mx-auto grid max-w-[1440px] gap-12 px-5 pt-16 pb-10 sm:px-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="max-w-[36ch]">
           <Logo />
@@ -30,7 +31,7 @@ export function SiteFooter() {
           <ul className="mt-5 flex flex-col gap-3">
             {product.map((item) => (
               <li key={item.href}>
-                <Link href={item.href} className="underline-offset-4 hover:text-magenta-ink hover:underline">
+                <Link href={item.href} className="underline-offset-4 hover:text-flame-ink hover:underline">
                   {item.label}
                 </Link>
               </li>
@@ -43,7 +44,9 @@ export function SiteFooter() {
           <ul className="mt-5 flex flex-col gap-3">
             {ecosystem.map((item) => (
               <li key={item.label}>
-                <span className="font-medium">{item.label}</span>
+                <a href={item.href} className="font-medium underline-offset-4 hover:text-flame-ink hover:underline">
+                  {item.label}
+                </a>
                 <span className="block text-sm opacity-70">{item.note}</span>
               </li>
             ))}
@@ -53,19 +56,19 @@ export function SiteFooter() {
         <address className="not-italic">
           <h2 className="text-sm font-medium opacity-70">Контакты</h2>
           <ul className="mt-5 flex flex-col gap-3">
-            <li>Бишкек, Кыргызстан</li>
+            <li>{CITY}</li>
             <li>
-              <a href="tel:+996600001978" className="text-magenta-ink underline-offset-4 hover:underline">
-                +996 600 001 978
+              <a href={PHONE_HREF} className="text-flame-ink underline-offset-4 hover:underline">
+                {PHONE}
               </a>
             </li>
             <li>
-              <a href="mailto:info@promconsult.pro" className="text-magenta-ink underline-offset-4 hover:underline">
-                info@promconsult.pro
+              <a href={`mailto:${EMAIL}`} className="text-flame-ink underline-offset-4 hover:underline">
+                {EMAIL}
               </a>
             </li>
             <li>
-              <a href="https://promconsulting.org" className="text-magenta-ink underline-offset-4 hover:underline">
+              <a href={PROM_URL} className="text-flame-ink underline-offset-4 hover:underline">
                 promconsulting.org
               </a>
             </li>
@@ -74,11 +77,11 @@ export function SiteFooter() {
       </div>
 
       <div className="mx-auto max-w-[1440px] px-5 sm:px-10">
-        <div className="flex flex-col gap-2 border-t border-bubblegum py-6 text-sm sm:flex-row sm:justify-between">
+        <div className="flex flex-col gap-2 border-t border-amber py-6 text-sm sm:flex-row sm:justify-between">
           <p className="opacity-70">© 2026 Loal. Все права защищены.</p>
           <p>
             <span className="opacity-70">Powered by </span>
-            <a href="https://promconsulting.org" className="text-magenta-ink underline-offset-4 hover:underline">
+            <a href={PROM_URL} className="text-flame-ink underline-offset-4 hover:underline">
               Prom.Consulting
             </a>
           </p>

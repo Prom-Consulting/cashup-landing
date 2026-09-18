@@ -20,7 +20,7 @@ export function SiteHeader({ cta = { label: "Оформить подписку",
         <ul className="flex gap-8 font-medium">
           {nav.map((item) => (
             <li key={item.href}>
-              <Link href={item.href} className="underline-offset-4 hover:text-magenta-ink hover:underline">
+              <Link href={item.href} className="underline-offset-4 hover:text-flame-ink hover:underline">
                 {item.label}
               </Link>
             </li>
@@ -29,7 +29,7 @@ export function SiteHeader({ cta = { label: "Оформить подписку",
       </nav>
       <Link
         href={cta.href}
-        className="rounded-full bg-magenta-ink px-5 py-2.5 text-sm font-bold text-chalk transition-colors hover:bg-forest"
+        className="rounded-full bg-flame-ink px-5 py-2.5 text-sm font-bold text-paper transition-colors hover:bg-graphite"
       >
         {cta.label}
       </Link>

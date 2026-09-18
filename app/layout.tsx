@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
-import { Onest, Sofia_Sans_Extra_Condensed } from "next/font/google";
+import { Jost } from "next/font/google";
 import "./globals.css";
 
-const onest = Onest({
-  variable: "--font-onest",
-  subsets: ["latin", "cyrillic"],
-});
-
-const sofiaCondensed = Sofia_Sans_Extra_Condensed({
-  variable: "--font-sofia-condensed",
-  subsets: ["latin", "cyrillic"],
-  weight: ["900"],
+// Ближайший бесплатный аналог Samsung Sharp Sans и Gilroy из брендбука:
+// геометрический гротеск с одноэтажной «a», как в логотипе Loal.
+const jost = Jost({
+  variable: "--font-jost",
+  subsets: ["latin", "latin-ext", "cyrillic"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const MOTION_PENDING_SCRIPT = `(function(){var d=document.documentElement;if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;d.classList.add("motion-pending");setTimeout(function(){d.classList.remove("motion-pending")},4000)})();`;
@@ -26,7 +23,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="ru"
       suppressHydrationWarning
-      className={`${onest.variable} ${sofiaCondensed.variable} h-full antialiased`}
+      className={`${jost.variable} h-full antialiased`}
     >
       <head>
         {/* Hide hero content only while the GSAP intro is expected, with a failsafe if scripts never run. */}
