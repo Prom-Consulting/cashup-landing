@@ -1,5 +1,7 @@
 // Три способа подключения из ТЗ (раздел 2.3). Используются на главной и на странице «Стать партнёром».
 
+import { OCTOPAY_URL } from "./site";
+
 export type Model = {
   key: string;
   title: string;
@@ -49,7 +51,7 @@ export function models(partnerUrl: string): Model[] {
         "Деньги зачисляются на ваш счёт",
         "Без участия в программе Loal",
       ],
-      cta: { label: "Узнать об OctōPAY", href: "https://octopay.click" },
+      cta: { label: "Узнать об OctōPAY", href: OCTOPAY_URL },
     },
   ];
 }
