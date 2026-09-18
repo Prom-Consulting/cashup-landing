@@ -58,7 +58,12 @@ export function OsmMap({
     map.current = instance;
     instance.once("load", () => setReady(true));
 
+    // Контейнер меняет размер и без ресайза окна: соседняя колонка, фильтры, шрифты.
+    const observer = new ResizeObserver(() => instance.resize());
+    observer.observe(container.current);
+
     return () => {
+      observer.disconnect();
       markers.current.forEach((m) => m.remove());
       markers.current.clear();
       instance.remove();

@@ -7,6 +7,10 @@ import { useGSAP } from "@gsap/react";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText);
 
+// На телефонах адресная строка постоянно меняет высоту окна: без этого
+// ScrollTrigger пересчитывал бы разметку на каждом пикселе прокрутки.
+ScrollTrigger.config({ ignoreMobileResize: true });
+
 const formatBalance = (n: number) => Math.round(n).toLocaleString("ru-RU").replace(/\s/g, " ");
 
 function heroIntro() {
@@ -172,6 +176,25 @@ function business() {
 export function PageMotion() {
   useGSAP(() => {
     const mm = gsap.matchMedia();
+
+    // Поворот экрана и смена ширины колонки (шрифты, картинки) — повод пересчитать разметку.
+    // Следим только за шириной: высота меняется и от самого пересчёта, это зациклило бы наблюдателя.
+    let timer = 0;
+    const refresh = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => ScrollTrigger.refresh(), 150);
+    };
+    window.addEventListener("orientationchange", refresh);
+
+    const main = document.querySelector("main");
+    let lastWidth = main?.getBoundingClientRect().width ?? 0;
+    const observer = new ResizeObserver(([entry]) => {
+      const width = entry.contentRect.width;
+      if (Math.abs(width - lastWidth) < 1) return;
+      lastWidth = width;
+      refresh();
+    });
+    if (main) observer.observe(main);
 
     mm.add({ motion: "(prefers-reduced-motion: no-preference)" }, (ctx) => {
       const { motion } = ctx.conditions as Record<string, boolean>;

@@ -55,6 +55,7 @@ export function Map2gis({
   // and the page falls back to the stylised city plan instead.
   useEffect(() => {
     let cancelled = false;
+    let resizeObserver: ResizeObserver | undefined;
     const keyIsLive = fetch(`https://keys.api.2gis.com/public/v1/keys/${KEY}/services/mapgl-js-api`)
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => json?.result?.is_active === true)
@@ -80,11 +81,16 @@ export function Map2gis({
           disablePitchByUserInteraction: true,
         }) as unknown as MapInstance;
         setReady(true);
+        if (container.current) {
+          resizeObserver = new ResizeObserver(() => map.current?.invalidateSize());
+          resizeObserver.observe(container.current);
+        }
       })
       .catch(onFail);
 
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
       markers.current.forEach((m) => m.destroy());
       markers.current.clear();
       map.current?.destroy();
