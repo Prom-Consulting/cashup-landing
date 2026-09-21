@@ -83,6 +83,12 @@ export function BonusCalculator() {
 
   const fill = ((amount - MIN) / (MAX - MIN)) * 100;
 
+  // Печать круглая и фиксированного размера: чем длиннее число, тем мельче шрифт,
+  // чтобы и «−20», и «−10 000» помещались внутри круга.
+  const digits = String(bonuses).length;
+  const stampSize =
+    digits <= 3 ? "text-2xl sm:text-3xl" : digits === 4 ? "text-xl sm:text-2xl" : "text-lg sm:text-xl";
+
   return (
     <div ref={root} className="grid overflow-hidden rounded-[36px] bg-graphite text-paper lg:grid-cols-[1.1fr_1fr]">
       <div className="flex flex-col gap-10 p-7 sm:p-12">
@@ -210,9 +216,12 @@ export function BonusCalculator() {
             style={{ transform: "rotate(-12deg)" }}
             className="absolute -top-10 -right-2 grid h-24 w-24 sm:-top-12 sm:-right-8 sm:h-28 sm:w-28 place-items-center rounded-full border-4 border-flame bg-paper text-center text-flame-ink"
           >
-            <span className="display text-3xl leading-none">
-              −<span data-out-bonus>{initial.bonuses}</span>
-              <span className="block text-base">сом бонусами</span>
+            <span className="flex flex-col items-center leading-none">
+              <span className={`display whitespace-nowrap tabular-nums ${stampSize}`}>
+                −<span data-out-bonus>{initial.bonuses}</span>
+              </span>
+              <span className="mt-1 text-[0.7rem] font-medium sm:text-xs">сом</span>
+              <span className="text-[0.7rem] font-medium sm:text-xs">бонусами</span>
             </span>
           </div>
         </div>
