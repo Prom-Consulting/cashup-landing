@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
-import { Jost } from "next/font/google";
+import { Google_Sans, Jost } from "next/font/google";
 import "./globals.css";
 
-// Ближайший бесплатный аналог Samsung Sharp Sans и Gilroy из брендбука:
-// геометрический гротеск с одноэтажной «a», как в логотипе Loal.
+// Шрифт макета главной (Figma «loal»): весь текст — Google Sans.
+const googleSans = Google_Sans({
+  variable: "--font-google-sans",
+  subsets: ["latin", "latin-ext", "cyrillic"],
+  weight: ["400", "500", "700"],
+});
+
+// Jost остаётся только в логотипе и метке OctōPAY, как в макете.
 const jost = Jost({
   variable: "--font-jost",
   subsets: ["latin", "latin-ext", "cyrillic"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["700"],
 });
 
 const MOTION_PENDING_SCRIPT = `(function(){var d=document.documentElement;if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;d.classList.add("motion-pending");setTimeout(function(){d.classList.remove("motion-pending")},4000)})();`;
@@ -23,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="ru"
       suppressHydrationWarning
-      className={`${jost.variable} h-full antialiased`}
+      className={`${googleSans.variable} ${jost.variable} h-full antialiased`}
     >
       <head>
         {/* Hide hero content only while the GSAP intro is expected, with a failsafe if scripts never run. */}

@@ -1,9 +1,9 @@
+import Image from "next/image";
+import heroCards from "@/public/images/landing/hero-cards.png";
 import { BonusCalculator } from "./_components/bonus-calculator";
 import { BusinessSection } from "./_components/business-section";
 import { Faq } from "./_components/faq";
-import { HeroVisual } from "./_components/hero-visual";
-import { BagIcon, BeautyIcon, CarIcon, Coin, CoffeeIcon, HomeIcon, SportIcon } from "./_components/illustrations";
-import { MonthStory } from "./_components/month-story";
+import { MonthSteps } from "./_components/month-steps";
 import { PageMotion } from "./_components/page-motion";
 import { SiteFooter } from "./_components/site-footer";
 import { SiteHeader } from "./_components/site-header";
@@ -13,12 +13,12 @@ import { OCTOPAY_URL, PARTNER_MAIL } from "./_data/site";
 const SUBSCRIBE_URL = "#price";
 
 const categories = [
-  { label: "Кофейни и рестораны", Icon: CoffeeIcon },
-  { label: "Салоны красоты", Icon: BeautyIcon },
-  { label: "Магазины одежды", Icon: BagIcon },
-  { label: "Фитнес и спорт", Icon: SportIcon },
-  { label: "Автосервисы", Icon: CarIcon },
-  { label: "Услуги для дома", Icon: HomeIcon },
+  { label: "Кофейни и рестораны", icon: "coffee" },
+  { label: "Салоны красоты", icon: "beauty" },
+  { label: "Магазины одежды", icon: "bag" },
+  { label: "Фитнес и спорт", icon: "sport" },
+  { label: "Автосервисы", icon: "car" },
+  { label: "Услуги для дома", icon: "home" },
 ];
 
 const included = [
@@ -63,98 +63,84 @@ const faq = [
   },
 ];
 
-function PrimaryButton({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <a
-      href={href}
-      className="inline-flex items-center justify-center rounded-[10px] bg-flame-ink px-7 py-4 font-bold text-paper transition-colors hover:bg-graphite"
-    >
-      {children}
-    </a>
-  );
-}
-
-function Ribbon() {
-  const words = ["100 000 сом бонусами", "каждый месяц", "у партнёров", "в Apple Wallet"];
-  const run = [...words, ...words];
-  return (
-    <div
-      data-marquee
-      aria-hidden="true"
-      className="relative -left-[5%] w-[110%] -rotate-2 overflow-hidden bg-graphite py-5 text-paper"
-    >
-      <div data-marquee-track className="flex w-max">
-        {[0, 1].map((copy) => (
-          <div key={copy} className="flex shrink-0 items-center">
-            {run.map((w, i) => (
-              <span key={i} className="flex items-center">
-                <span className="display px-6 text-5xl whitespace-nowrap sm:text-6xl">{w}</span>
-                <Coin className="h-10 w-10 shrink-0" />
-              </span>
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+const pill = "inline-flex items-center justify-center rounded-full px-5 py-4 text-lg transition-colors";
 
 export default function Home() {
   return (
     <>
       <PageMotion />
-      <SiteHeader />
 
       <main id="top" className="flex-1 overflow-x-clip">
-        {/* Hero */}
-        <section className="mx-auto grid max-w-[1440px] items-center gap-20 px-5 pt-8 pb-28 sm:px-10 xl:grid-cols-[1.2fr_1fr] xl:gap-12 xl:pt-6 xl:pb-36">
-          <div>
-            <h1 className="display text-flame" data-hero-item>
-              <span data-hero-number className="block text-[clamp(4.51rem,13.89vw,11.04rem)] whitespace-nowrap">
-                100 000
+        {/* Первый экран: серая подложка со скруглённым низом, шапка внутри неё */}
+        <section className="relative overflow-hidden rounded-b-[48px] bg-cream sm:rounded-b-[100px]">
+          <SiteHeader />
+          <div className="relative z-10 mx-auto flex max-w-[1005px] flex-col items-center px-5 pt-12 text-center sm:pt-24">
+            <h1 data-hero-item className="display uppercase">
+              <span
+                data-hero-number
+                className="block text-[clamp(2.9rem,8.9vw,8.4rem)] leading-[1.1] whitespace-nowrap"
+              >
+                100 000 сом
               </span>
-              <span data-hero-sub className="mt-3 block text-[clamp(1.74rem,3.89vw,3.45rem)]">
-                сом бонусами <span className="whitespace-nowrap">каждый месяц</span>
+              <span data-hero-sub className="block text-[max(min(5.8vw,1.35rem),min(4.1vw,3.85rem))] leading-[1.1]">
+                бонусами каждый месяц
               </span>
             </h1>
-            <p data-hero-item data-hero-fade className="mt-10 max-w-[44ch] text-lg leading-relaxed sm:text-xl">
+            <p data-hero-item data-hero-fade className="mt-7 max-w-[903px] text-lg leading-snug text-slate sm:text-xl">
               Подписка Loal за 5–10 $ в месяц — это карта в Apple Wallet, которой можно платить у партнёров. В начале
               каждого оплаченного месяца баланс снова полный, сколько бы вы ни потратили.
             </p>
-            <div data-hero-item data-hero-fade className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
-              <PrimaryButton href={SUBSCRIBE_URL}>Оформить подписку</PrimaryButton>
-              <a
-                href="#business"
-                className="font-medium underline decoration-amber decoration-2 underline-offset-6 hover:decoration-flame"
-              >
+            <div data-hero-item data-hero-fade className="mt-7 flex flex-wrap justify-center gap-4 sm:gap-6">
+              <a href={SUBSCRIBE_URL} className={`${pill} bg-flame text-white hover:bg-graphite`}>
+                Оформить подписку
+              </a>
+              <a href="#business" className={`${pill} bg-white text-graphite hover:bg-graphite hover:text-white`}>
                 Подключить бизнес
               </a>
             </div>
           </div>
-          <HeroVisual />
+
+          {/* Карты: верх картинки прозрачный и заходит под кнопки, низ срезает скругление секции */}
+          <div
+            data-hero-item
+            data-hero-art
+            aria-hidden="true"
+            className="pointer-events-none relative [--w:min(1184px,118vw)]"
+            // Шире родителя на телефоне, поэтому mx-auto не центрирует — считаем отступ сами.
+            style={{ width: "var(--w)", height: "calc(var(--w) * 0.386)", marginLeft: "calc(50% - var(--w) / 2)" }}
+          >
+            <Image
+              data-hero-cards
+              src={heroCards}
+              alt=""
+              preload
+              quality={90}
+              placeholder="blur"
+              sizes="(min-width: 1024px) 1184px, 118vw"
+              className="absolute left-0 h-auto w-full"
+              style={{ top: "calc(var(--w) * -0.161)" }}
+            />
+          </div>
         </section>
 
-        {/* Monthly cycle */}
-        <section id="how" className="scroll-mt-6 bg-cream/50">
-          <div className="mx-auto max-w-[1440px] px-5 pt-16 sm:px-10 sm:pt-20 xl:pt-28">
-            <h2 data-split className="display max-w-[14ch] text-[clamp(2.43rem,6.25vw,5.52rem)] text-flame">
-              Один месяц <span className="whitespace-nowrap">с Loal</span>
+        {/* Один месяц с Loal */}
+        <section id="how" className="scroll-mt-6">
+          <div className="mx-auto max-w-[1512px] px-5 pt-20 pb-16 sm:px-12 sm:pt-32 sm:pb-24">
+            <h2 data-split className="display text-center text-[clamp(2.25rem,3.7vw,3.5rem)]">
+              Один месяц с Loal
             </h2>
-          </div>
+            <MonthSteps />
 
-          <MonthStory />
-
-          <div className="mx-auto max-w-[1440px] px-5 pt-8 pb-16 sm:px-10 sm:pb-20 xl:pb-28">
-            <div data-rise className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-[28px] bg-graphite p-8 text-paper sm:p-10">
-                <p className="display text-[clamp(2.25rem,9vw,3.75rem)]">Продлили</p>
-                <p className="mt-4 max-w-[40ch] text-lg leading-relaxed">
+            <div data-rise className="mt-20 grid gap-6 sm:mt-28 md:grid-cols-2 md:gap-8">
+              <div className="rounded-[32px] bg-flame p-8 text-white sm:rounded-[48px] sm:p-11">
+                <p className="display text-[clamp(2.5rem,4.25vw,4rem)]">Продлили</p>
+                <p className="mt-6 max-w-[520px] text-lg leading-snug sm:text-xl">
                   С первого дня нового периода на карте снова 100 000 сом бонусами. Всё, что вы потратили, доначислено.
                 </p>
               </div>
-              <div className="rounded-[28px] border-2 border-graphite p-8 sm:p-10">
-                <p className="display text-[clamp(2.25rem,9vw,3.75rem)]">Не продлили</p>
-                <p className="mt-4 max-w-[40ch] text-lg leading-relaxed">
+              <div className="rounded-[32px] bg-cream p-8 sm:rounded-[48px] sm:p-11">
+                <p className="display text-[clamp(2.5rem,4.25vw,4rem)]">Не продлили</p>
+                <p className="mt-6 max-w-[520px] text-lg leading-snug sm:text-xl">
                   Оставшиеся бонусы сгорают, платить ими нельзя. Оплатите подписку — и баланс снова станет 100 000.
                 </p>
               </div>
@@ -162,126 +148,128 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Calculator */}
-        <section className="mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-28">
-          <div className="grid items-end gap-6 lg:grid-cols-[1.3fr_1fr]">
-            <h2 data-split className="display text-[clamp(2.43rem,6.25vw,5.52rem)] text-flame">
+        {/* Калькулятор на оранжевом */}
+        <section className="bg-flame text-white">
+          <div className="mx-auto max-w-[1512px] px-5 py-20 sm:px-12 sm:py-28">
+            <h2 data-split className="display text-center text-[clamp(2.25rem,3.7vw,3.5rem)]">
               Сколько закроют бонусы
             </h2>
-            <p className="max-w-[40ch] text-lg leading-relaxed lg:pb-3">
+            <p className="mx-auto mt-6 max-w-[520px] text-center text-lg leading-snug sm:text-xl">
               Передвиньте сумму и выберите процент партнёра — чек пересчитается сам.
             </p>
-          </div>
-          <div data-calc className="mt-14">
-            <BonusCalculator />
+            <div data-calc className="mt-10 sm:mt-10">
+              <BonusCalculator />
+            </div>
           </div>
         </section>
 
-        {/* Where to spend */}
-        <section id="where" className="scroll-mt-6 mx-auto max-w-[1440px] px-5 pb-16 sm:px-10 sm:pb-20 xl:pb-28">
-          <div className="grid items-center gap-12 lg:grid-cols-[1fr_1.3fr]">
+        {/* Где тратить */}
+        <section id="where" className="scroll-mt-6">
+          <div className="mx-auto grid max-w-[1064px] items-center gap-12 px-5 py-20 sm:px-12 sm:py-32 lg:grid-cols-[522px_1fr] lg:gap-[174px] lg:px-0">
             <div>
-              <h2 data-split className="display text-[clamp(2.43rem,6.25vw,5.52rem)] text-flame">
-                Где тратить
+              <h2 data-split className="display text-[clamp(2.25rem,3.7vw,3.5rem)]">
+                Где тратить?
               </h2>
-              <p className="mt-6 max-w-[42ch] text-lg leading-relaxed">
+              <p className="mt-6 text-lg leading-snug text-slate sm:text-xl">
                 Все партнёры и их проценты — в каталоге на сайте. Бонусы принимают только активные партнёры, и только в
                 пределах своего процента.
               </p>
-              <p className="mt-6 inline-flex max-w-[44ch] items-start gap-3 rounded-2xl bg-cream px-5 py-4">
+              <div className="relative mt-12 max-w-[377px] rounded-3xl bg-cream px-5 pt-5 pb-4 text-lg leading-snug">
                 <a
                   href={OCTOPAY_URL}
-                  className="mt-0.5 shrink-0 rounded-full bg-flame-ink px-2.5 py-0.5 text-sm font-bold text-paper transition-colors hover:bg-graphite"
+                  className="font-brand absolute -top-4 left-12 rounded-full bg-flame-ink px-3 py-0.5 text-[17.5px] font-bold text-white transition-colors hover:bg-graphite"
                 >
                   OctōPAY
                 </a>
-                <span>С этой меткой — больше бонусов: они списываются и начисляются сами, когда вы платите по QR.</span>
-              </p>
+                С этой меткой — больше бонусов: они списываются и начисляются сами, когда вы платите по QR.
+              </div>
             </div>
-            <ul data-categories>
-              {categories.map(({ label, Icon }) => (
-                <li key={label} data-category className="group flex items-center gap-4 border-b-2 border-cream py-3 sm:gap-5">
-                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-cream transition-transform duration-300 group-hover:-rotate-12 sm:h-16 sm:w-16">
-                    <Icon className="h-7 w-7 sm:h-10 sm:w-10" />
+
+            <ul data-categories className="flex flex-col gap-5 sm:gap-7">
+              {categories.map(({ label, icon }) => (
+                <li key={label} data-category className="group flex items-center gap-4">
+                  <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-cream transition-transform duration-300 group-hover:-rotate-12">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/images/landing/icon-${icon}.svg`} alt="" className="h-8 w-8" />
                   </span>
-                  <span className="display min-w-0 text-[clamp(1.25rem,3.47vw,2.59rem)] text-graphite">{label}</span>
+                  <span className="text-xl font-medium sm:text-[25px]">{label}</span>
                 </li>
               ))}
             </ul>
           </div>
         </section>
 
-        <Ribbon />
-
-        {/* Price */}
-        <section id="price" className="relative -mt-3 scroll-mt-6 overflow-hidden bg-flame-ink text-paper">
-          <div
-            data-price-coin
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-24 -bottom-24 w-[420px] opacity-25 sm:-right-16"
-          >
-            <Coin className="h-auto w-full" />
-          </div>
-          <div className="relative mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-28">
-            <h2 data-split className="display text-[clamp(2.43rem,6.25vw,5.52rem)]">
+        {/* Тарифы */}
+        <section id="price" className="scroll-mt-6 bg-cream">
+          <div className="mx-auto max-w-[1512px] px-5 py-20 sm:px-12 sm:py-28">
+            <h2 data-split className="display text-center text-[clamp(2.25rem,3.7vw,3.5rem)]">
               Тарифы
             </h2>
-            <p className="mt-4 max-w-[52ch] text-lg">
+            <p className="mx-auto mt-6 max-w-[523px] text-center text-lg leading-snug text-slate sm:text-xl">
               Все подписки оплачиваются через{" "}
-              <a href={OCTOPAY_URL} className="underline underline-offset-4 hover:no-underline">
+              <a href={OCTOPAY_URL} className="text-flame-ink underline underline-offset-4 hover:no-underline">
                 OctōPAY
               </a>{" "}
               на счёт Loal и продлеваются в личном кабинете.
             </p>
 
-            <div className="mt-14 grid gap-6 lg:grid-cols-[1.25fr_1fr] lg:gap-10">
-              {/* Client subscription */}
+            <div className="mx-auto mt-14 grid max-w-[1200px] gap-12 lg:grid-cols-[1fr_478px] lg:gap-[60px]">
+              {/* Клиенту */}
               <div className="flex flex-col">
-                <h3 className="text-xl font-bold">Клиенту: карта Loal</h3>
-                <p data-price className="display mt-4 text-[clamp(3rem,11.11vw,8.62rem)] whitespace-nowrap">
-                  5–10 $
+                <p className="text-lg sm:text-xl">Клиенту: карта Loal</p>
+                <p
+                  data-price
+                  className="display mt-6 flex flex-wrap items-baseline gap-x-[0.35em] text-[clamp(3.75rem,7.2vw,6.8rem)] leading-none"
+                >
+                  <span className="whitespace-nowrap">5–10 $</span>
+                  <span className="text-[0.41em] whitespace-nowrap">в месяц</span>
                 </p>
-                <p className="display text-[clamp(1.57rem,2.78vw,2.42rem)]">в месяц</p>
-                <p className="mt-3 text-lg opacity-90">Примерно 440–880 сом. На карте — 100 000 сом бонусами.</p>
-                <ul data-rise className="mt-8 flex flex-col gap-3 text-lg">
+                <p className="mt-6 text-lg text-slate sm:text-xl">
+                  Примерно 440–880 сом. На карте — 100&nbsp;000 сом бонусами.
+                </p>
+                <ul data-rise className="mt-6 flex flex-wrap gap-4">
                   {included.map((item) => (
-                    <li key={item} className="border-b border-paper/40 pb-3">
+                    <li key={item} className="rounded-full bg-white px-5 py-4 text-lg sm:text-xl">
                       {item}
                     </li>
                   ))}
                 </ul>
                 <a
                   href={SUBSCRIBE_URL}
-                  className="mt-10 inline-flex items-center justify-center self-start rounded-[10px] bg-paper px-7 py-4 font-bold text-graphite transition-colors hover:bg-graphite hover:text-paper"
+                  className={`${pill} mt-10 self-start bg-flame px-6 py-5 text-xl font-bold text-white hover:bg-graphite`}
                 >
                   Оформить подписку
                 </a>
               </div>
 
-              {/* Partner subscription */}
-              <div className="flex flex-col rounded-[32px] bg-paper p-8 text-graphite sm:p-10">
-                <h3 className="text-xl font-bold">Партнёру: только лояльность</h3>
-                <p className="display mt-4 text-[clamp(2.25rem,6.25vw,5.17rem)] whitespace-nowrap text-flame">30–50 $</p>
-                <p className="display text-[clamp(1.39rem,2.36vw,2.07rem)]">в месяц</p>
-                <ul className="mt-6 flex flex-col gap-3">
+              {/* Партнёру */}
+              <div className="flex flex-col gap-3 rounded-[32px] bg-white p-6 sm:p-8">
+                <p className="text-lg sm:text-xl">Партнёру: только лояльность</p>
+                <p className="display mt-3 flex flex-wrap items-baseline gap-x-[0.3em] text-[clamp(2.75rem,4.4vw,4.15rem)] leading-none text-flame">
+                  <span className="whitespace-nowrap">30–50 $</span>
+                  <span className="text-[0.53em] whitespace-nowrap">в месяц</span>
+                </p>
+                <ul className="mt-3 flex flex-wrap gap-3">
                   {partnerIncluded.map((item) => (
-                    <li key={item} className="border-b border-cream pb-3">
+                    <li key={item} className="rounded-full bg-cream px-4 py-3 text-[15px]">
                       {item}
                     </li>
                   ))}
                 </ul>
-
-                <div className="mt-8 rounded-2xl bg-graphite p-5 text-paper">
-                  <p className="font-bold">OctōPAY + лояльность</p>
-                  <p className="mt-1 flex items-baseline gap-3">
-                    <span className="display shrink-0 text-5xl whitespace-nowrap text-amber">0 $</span>
-                    <span>абонентской платы — только комиссия OctōPAY с оборота</span>
+                <div className="mt-2 rounded-3xl bg-graphite p-5 text-white">
+                  <p className="text-lg">OctōPAY + лояльность</p>
+                  <p className="mt-3 flex items-center gap-3">
+                    <span className="display shrink-0 text-[clamp(3.25rem,4.9vw,4.6rem)] leading-none text-flame">
+                      0 $
+                    </span>
+                    <span className="text-base leading-snug">
+                      абонентской платы — только комиссия OctōPAY с оборота
+                    </span>
                   </p>
                 </div>
-
                 <a
                   href="#business"
-                  className="mt-8 inline-flex items-center justify-center self-start rounded-[10px] bg-flame-ink px-7 py-4 font-bold text-paper transition-colors hover:bg-graphite"
+                  className={`${pill} mt-1 self-start bg-flame px-6 py-5 text-xl font-bold text-white hover:bg-graphite`}
                 >
                   Подключить бизнес
                 </a>
@@ -292,10 +280,10 @@ export default function Home() {
 
         <BusinessSection partnerUrl={PARTNER_MAIL} />
 
-        {/* FAQ */}
-        <section id="faq" className="scroll-mt-6 mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-28">
-          <div className="grid gap-10 lg:grid-cols-[1fr_1.6fr]">
-            <h2 data-split className="display text-[clamp(2.43rem,6.25vw,5.52rem)] text-flame">
+        {/* Вопросы */}
+        <section id="faq" className="scroll-mt-6">
+          <div className="mx-auto grid max-w-[1512px] gap-10 px-5 py-20 sm:px-12 sm:py-32 lg:grid-cols-[1fr_812px]">
+            <h2 data-split className="display text-[clamp(3rem,5.85vw,5.5rem)] tracking-[-0.02em] text-flame">
               Вопросы
             </h2>
             <Faq items={faq} />

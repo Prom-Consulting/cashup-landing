@@ -33,11 +33,16 @@ export function LoalMark({ className = "", tone = "brand" }: { className?: strin
   );
 }
 
-export function Logo({ className = "" }: { className?: string }) {
+export function Logo({ className = "", size = "md" }: { className?: string; size?: "md" | "lg" }) {
+  const lg = size === "lg";
   return (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <LoalMark className="h-8 w-8" />
-      <span className="display text-[1.75rem] leading-none text-graphite">Loal</span>
+    <span className={`inline-flex items-center ${lg ? "gap-3" : "gap-2.5"} ${className}`}>
+      <LoalMark className={lg ? "h-[42px] w-[42px]" : "h-8 w-8"} />
+      <span
+        className={`font-brand leading-none font-bold tracking-[-0.02em] text-black ${lg ? "text-[37px]" : "text-[28px]"}`}
+      >
+        Loal
+      </span>
     </span>
   );
 }

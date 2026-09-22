@@ -36,8 +36,8 @@ function FaqItem({ item, open, onToggle }: { item: Item; open: boolean; onToggle
       });
       gsap.to(icon.current, {
         rotate: open ? 135 : 0,
-        backgroundColor: open ? "#ff3300" : "#ffeee2",
-        color: open ? "#161515" : "#161515",
+        backgroundColor: open ? "#ff3300" : "#edf2f4",
+        color: open ? "#ffffff" : "#090809",
         duration: 0.5 * d,
         ease: "back.out(2)",
         overwrite: true,
@@ -47,16 +47,16 @@ function FaqItem({ item, open, onToggle }: { item: Item; open: boolean; onToggle
   );
 
   return (
-    <div className="border-b-2 border-cream">
+    <div className="border-b border-slate-soft/20">
       <h3>
         <button
           type="button"
           aria-expanded={open}
           aria-controls={`${id}-panel`}
           onClick={onToggle}
-          className="group flex w-full items-center justify-between gap-6 py-7 text-left text-xl font-medium sm:text-2xl"
+          className="group flex w-full items-center justify-between gap-6 py-7 text-left text-xl font-medium sm:py-[28px] sm:text-2xl"
         >
-          <span className="transition-colors group-hover:text-flame-ink">{item.q}</span>
+          <span className="transition-colors group-hover:text-flame">{item.q}</span>
           <span
             ref={icon}
             aria-hidden="true"
@@ -75,7 +75,7 @@ function FaqItem({ item, open, onToggle }: { item: Item; open: boolean; onToggle
         className={`overflow-hidden ${open ? "" : "h-0"}`}
         inert={!open}
       >
-        <p className={`max-w-[60ch] pb-8 text-lg leading-relaxed sm:pr-20 ${open ? "" : "invisible opacity-0"}`}>
+        <p className={`max-w-[556px] pb-8 text-lg leading-[1.6] sm:pr-20 ${open ? "" : "invisible opacity-0"}`}>
           {item.a}
         </p>
       </div>

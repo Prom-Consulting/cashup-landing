@@ -3,90 +3,93 @@ import { Logo } from "./logo";
 import { CITY, EMAIL, OCTOPAY_URL, PHONE, PHONE_HREF, PROM_URL } from "../_data/site";
 
 const product = [
-  { label: "Как это работает", href: "/#how" },
+  { label: "Как это работает?", href: "/#how" },
   { label: "Тарифы", href: "/#price" },
   { label: "Партнёры на карте", href: "/partners" },
   { label: "Стать партнёром", href: "/become-partner" },
 ];
 
-const ecosystem = [{ label: "OctōPAY", note: "платежи по QR", href: OCTOPAY_URL }];
+const link = "font-medium underline-offset-4 hover:underline";
 
 export function SiteFooter() {
   return (
-    <footer id="contacts" className="bg-cream/60">
-      <div className="mx-auto grid max-w-[1440px] gap-12 px-5 pt-16 pb-10 sm:px-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
-        <div className="max-w-[36ch]">
-          <Logo />
-          <p className="mt-6 leading-relaxed">
-            Подписка на бонусы в Кыргызстане. 100 000 сом бонусами на карте в
-            Apple Wallet каждый оплаченный месяц — платите ими у партнёров.
-          </p>
-          <p className="mt-4 text-sm opacity-70">Проект Prom.Consulting</p>
-        </div>
+    <footer id="contacts" className="overflow-hidden">
+      <div className="mx-auto max-w-[1512px] px-5 sm:px-12">
+        <div className="rounded-[32px] bg-cream p-7 sm:rounded-[40px] sm:p-11">
+          <div className="grid gap-10 md:grid-cols-[1.6fr_1fr_1fr_1.1fr] md:gap-8">
+            <div className="max-w-[539px]">
+              <Logo size="lg" />
+              <p className="mt-4 text-lg leading-snug text-slate sm:text-xl">
+                Подписка на бонусы в Кыргызстане. 100 000 сом бонусами на карте в Apple Wallet каждый оплаченный месяц —
+                платите ими у партнёров.
+              </p>
+            </div>
 
-        <nav aria-labelledby="footer-product">
-          <h2 id="footer-product" className="text-sm font-medium opacity-70">
-            Продукт
-          </h2>
-          <ul className="mt-5 flex flex-col gap-3">
-            {product.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} className="underline-offset-4 hover:text-flame-ink hover:underline">
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+            <nav aria-labelledby="footer-product">
+              <h2 id="footer-product" className="text-base text-slate">
+                Продукт
+              </h2>
+              <ul className="mt-4 flex flex-col gap-4 text-lg sm:text-xl">
+                {product.map((item) => (
+                  <li key={item.href}>
+                    <Link href={item.href} className={`${link} hover:text-flame`}>
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
 
-        <div>
-          <h2 className="text-sm font-medium opacity-70">Экосистема</h2>
-          <ul className="mt-5 flex flex-col gap-3">
-            {ecosystem.map((item) => (
-              <li key={item.label}>
-                <a href={item.href} className="font-medium underline-offset-4 hover:text-flame-ink hover:underline">
-                  {item.label}
-                </a>
-                <span className="block text-sm opacity-70">{item.note}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <address className="not-italic">
-          <h2 className="text-sm font-medium opacity-70">Контакты</h2>
-          <ul className="mt-5 flex flex-col gap-3">
-            <li>{CITY}</li>
-            <li>
-              <a href={PHONE_HREF} className="text-flame-ink underline-offset-4 hover:underline">
-                {PHONE}
+            <div>
+              <h2 className="text-base text-slate">Экосистема</h2>
+              <a href={OCTOPAY_URL} className={`mt-4 block text-lg hover:text-flame sm:text-xl ${link}`}>
+                OctōPAY
               </a>
-            </li>
-            <li>
-              <a href={`mailto:${EMAIL}`} className="text-flame-ink underline-offset-4 hover:underline">
-                {EMAIL}
-              </a>
-            </li>
-            <li>
-              <a href={PROM_URL} className="text-flame-ink underline-offset-4 hover:underline">
-                promconsulting.org
-              </a>
-            </li>
-          </ul>
-        </address>
-      </div>
+              <p className="mt-1 text-base text-slate">платежи по QR</p>
+            </div>
 
-      <div className="mx-auto max-w-[1440px] px-5 sm:px-10">
-        <div className="flex flex-col gap-2 border-t border-amber py-6 text-sm sm:flex-row sm:justify-between">
-          <p className="opacity-70">© 2026 Loal. Все права защищены.</p>
-          <p>
-            <span className="opacity-70">Powered by </span>
-            <a href={PROM_URL} className="text-flame-ink underline-offset-4 hover:underline">
-              Prom.Consulting
-            </a>
-          </p>
+            <address className="not-italic">
+              <h2 className="text-base text-slate">Контакты</h2>
+              <ul className="mt-4 flex flex-col gap-4 text-lg sm:text-xl">
+                <li className="font-medium">{CITY}</li>
+                <li>
+                  <a href={PHONE_HREF} className={`${link} text-flame-ink`}>
+                    {PHONE}
+                  </a>
+                </li>
+                <li>
+                  <a href={`mailto:${EMAIL}`} className={`${link} text-flame-ink`}>
+                    {EMAIL}
+                  </a>
+                </li>
+                <li>
+                  <a href={PROM_URL} className={`${link} text-flame-ink`}>
+                    promconsulting.org
+                  </a>
+                </li>
+              </ul>
+            </address>
+          </div>
+
+          <div className="mt-12 flex flex-col gap-2 border-t border-slate-soft/50 pt-6 text-base text-slate sm:mt-14 sm:flex-row sm:justify-between sm:text-xl">
+            <p>© 2026 Loal. Все права защищены.</p>
+            <p>
+              Powered by{" "}
+              <a href={PROM_URL} className="underline-offset-4 hover:text-flame hover:underline">
+                Prom.Consulting
+              </a>
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* Огромная надпись, срезанная нижним краем страницы, — как в макете */}
+      <p
+        aria-hidden="true"
+        className="loal-wordmark display mt-4 -mb-[9vw] text-center text-[38vw] leading-none tracking-normal uppercase select-none sm:-mb-[8vw]"
+      >
+        Loal
+      </p>
     </footer>
   );
 }
