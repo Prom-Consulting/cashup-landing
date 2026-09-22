@@ -1,8 +1,7 @@
-import Image from "next/image";
-import heroCards from "@/public/images/landing/hero-cards.png";
 import { BonusCalculator } from "./_components/bonus-calculator";
 import { BusinessSection } from "./_components/business-section";
 import { Faq } from "./_components/faq";
+import { HeroCards } from "./_components/hero-cards";
 import { MonthSteps } from "./_components/month-steps";
 import { PageMotion } from "./_components/page-motion";
 import { SiteFooter } from "./_components/site-footer";
@@ -39,7 +38,7 @@ const partnerIncluded = [
 const faq = [
   {
     q: "Сколько стоит подписка?",
-    a: "5–10 $ за месяц. Оплата проходит через OctōPAY, продлить можно в личном кабинете одной кнопкой.",
+    a: "10 $ в месяц. Оплата проходит через OctōPAY, продлить можно в личном кабинете одной кнопкой.",
   },
   {
     q: "Что будет, если не продлить подписку?",
@@ -59,7 +58,7 @@ const faq = [
   },
   {
     q: "Как подключить свой бизнес?",
-    a: "Выберите модель: только лояльность за 30–50 $ в месяц, OctōPAY с лояльностью без абонентской платы или только OctōPAY. Напишите нам — поможем настроить кабинет и процент.",
+    a: "Выберите модель: только лояльность за 40 $ в месяц, OctōPAY с лояльностью без абонентской платы или только OctōPAY. Напишите нам — поможем настроить кабинет и процент.",
   },
 ];
 
@@ -87,7 +86,7 @@ export default function Home() {
               </span>
             </h1>
             <p data-hero-item data-hero-fade className="mt-7 max-w-[903px] text-lg leading-snug text-slate sm:text-xl">
-              Подписка Loal за 5–10 $ в месяц — это карта в Apple Wallet, которой можно платить у партнёров. В начале
+              Подписка Loal за 10 $ в месяц — это карта в Apple Wallet, которой можно платить у партнёров. В&nbsp;начале
               каждого оплаченного месяца баланс снова полный, сколько бы вы ни потратили.
             </p>
             <div data-hero-item data-hero-fade className="mt-7 flex flex-wrap justify-center gap-4 sm:gap-6">
@@ -100,7 +99,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Карты: верх картинки прозрачный и заходит под кнопки, низ срезает скругление секции */}
+          {/* Карты лояльности веером: низ срезает скругление секции */}
           <div
             data-hero-item
             data-hero-art
@@ -109,17 +108,7 @@ export default function Home() {
             // Шире родителя на телефоне, поэтому mx-auto не центрирует — считаем отступ сами.
             style={{ width: "var(--w)", height: "calc(var(--w) * 0.386)", marginLeft: "calc(50% - var(--w) / 2)" }}
           >
-            <Image
-              data-hero-cards
-              src={heroCards}
-              alt=""
-              preload
-              quality={90}
-              placeholder="blur"
-              sizes="(min-width: 1024px) 1184px, 118vw"
-              className="absolute left-0 h-auto w-full"
-              style={{ top: "calc(var(--w) * -0.161)" }}
-            />
+            <HeroCards />
           </div>
         </section>
 
@@ -221,11 +210,11 @@ export default function Home() {
                   data-price
                   className="display mt-6 flex flex-wrap items-baseline gap-x-[0.35em] text-[clamp(3.75rem,7.2vw,6.8rem)] leading-none"
                 >
-                  <span className="whitespace-nowrap">5–10 $</span>
+                  <span className="whitespace-nowrap">10 $</span>
                   <span className="text-[0.41em] whitespace-nowrap">в месяц</span>
                 </p>
                 <p className="mt-6 text-lg text-slate sm:text-xl">
-                  Примерно 440–880 сом. На карте — 100&nbsp;000 сом бонусами.
+                  Примерно 880 сом. На карте — 100&nbsp;000 сом бонусами.
                 </p>
                 <ul data-rise className="mt-6 flex flex-wrap gap-4">
                   {included.map((item) => (
@@ -246,7 +235,7 @@ export default function Home() {
               <div className="flex flex-col gap-3 rounded-[32px] bg-white p-6 sm:p-8">
                 <p className="text-lg sm:text-xl">Партнёру: только лояльность</p>
                 <p className="display mt-3 flex flex-wrap items-baseline gap-x-[0.3em] text-[clamp(2.75rem,4.4vw,4.15rem)] leading-none text-flame">
-                  <span className="whitespace-nowrap">30–50 $</span>
+                  <span className="whitespace-nowrap">40 $</span>
                   <span className="text-[0.53em] whitespace-nowrap">в месяц</span>
                 </p>
                 <ul className="mt-3 flex flex-wrap gap-3">

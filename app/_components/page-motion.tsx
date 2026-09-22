@@ -18,8 +18,9 @@ function heroIntro() {
   tl.from(number.chars, { yPercent: 115, duration: 1.1, stagger: 0.05 })
     .from("[data-hero-sub]", { yPercent: 60, autoAlpha: 0, duration: 0.8 }, 0.4)
     .from("[data-hero-fade]", { y: 24, autoAlpha: 0, duration: 0.8, stagger: 0.1 }, 0.65)
-    // Карты поднимаются из-под скругления секции веером.
-    .from("[data-hero-cards]", { yPercent: 28, scale: 0.92, autoAlpha: 0, duration: 1.4, ease: "expo.out" }, 0.55);
+    // Карты поднимаются из-под скругления секции стопкой и раскрываются веером.
+    .from("[data-hero-cards]", { yPercent: 30, autoAlpha: 0, duration: 1.1, ease: "expo.out" }, 0.55)
+    .from("[data-hero-card]", { x: 0, y: 0, rotation: 0, duration: 1.2, ease: "back.out(1.4)" }, 0.9);
 
   // Содержимое скрыто CSS, пока таймлайн не выставил стартовые значения.
   gsap.set("[data-hero-item]", { visibility: "visible" });
