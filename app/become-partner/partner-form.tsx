@@ -12,7 +12,7 @@ import { EMAIL } from "../_data/site";
 gsap.registerPlugin(useGSAP);
 
 const plans = [
-  { id: "loyalty", label: "Только лояльность", note: "30–50 $ в месяц" },
+  { id: "loyalty", label: "Только лояльность", note: "40 $ в месяц" },
   { id: "bundle", label: "OctōPAY + лояльность", note: "без абонентской платы" },
   { id: "octopay", label: "Только OctōPAY", note: "комиссия с оборота" },
 ] as const;

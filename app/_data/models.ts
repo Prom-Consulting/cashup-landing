@@ -17,7 +17,7 @@ export function models(partnerUrl: string): Model[] {
     {
       key: "loyalty",
       title: "Только лояльность",
-      price: "30–50 $",
+      price: "40 $",
       priceNote: "в месяц, оплата через OctōPAY",
       points: [
         "Место в каталоге Loal и кабинет партнёра",

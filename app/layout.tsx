@@ -21,7 +21,7 @@ const MOTION_PENDING_SCRIPT = `(function(){var d=document.documentElement;if(mat
 export const metadata: Metadata = {
   title: "Loal — 100 000 сом бонусами каждый месяц",
   description:
-    "Подписка Loal за 5–10 $ в месяц: карта в Apple Wallet с балансом 100 000 сом бонусами, который обновляется каждый оплаченный месяц. Платите бонусами у партнёров.",
+    "Подписка Loal за 10 $ в месяц: карта в Apple Wallet с балансом 100 000 сом бонусами, который обновляется каждый оплаченный месяц. Платите бонусами у партнёров.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
