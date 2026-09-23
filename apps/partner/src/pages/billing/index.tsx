@@ -1,4 +1,5 @@
-import { Badge, Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
+import { invoiceState } from "@loal/api";
+import { Badge, Button, Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { useCurrentStore } from "../../entities/session/model";
 import { useInvoices, useSubscription } from "../../entities/store/api";
 import { InvoiceForm } from "../../features/billing/invoice-form";
@@ -20,7 +21,7 @@ export function BillingPage() {
         action={
           subscription.data && (
             <Badge tone={subscription.data.isActive ? "good" : "warn"}>
-              {subscription.data.isActive ? `до ${formatDate(subscription.data.expiresAt)}` : "не активна"}
+              {subscription.data.isActive ? `доступ до ${formatDate(subscription.data.expiresAt)}` : "доступ закрыт"}
             </Badge>
           )
         }
@@ -36,35 +37,44 @@ export function BillingPage() {
 
       {invoices.isPending && <Loading />}
       {invoices.isError && <ErrorState error={invoices.error} onRetry={() => invoices.refetch()} />}
-      {invoices.isSuccess && invoices.data.length === 0 && <EmptyState title="Счетов пока нет" />}
+      {invoices.isSuccess && invoices.data.length === 0 && (
+        <EmptyState title="Счетов пока нет" description="Выставьте первый счёт — он появится здесь." />
+      )}
 
       <div className="flex flex-col gap-3">
-        {(invoices.data ?? []).map((invoice) => (
-          <Card key={invoice.id}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xl font-bold tabular-nums">
-                  {invoice.amount ? `${money.format(invoice.amount)} сом` : "Счёт"}
-                  {invoice.months ? <span className="text-muted-foreground"> · {invoice.months} мес.</span> : null}
-                </p>
-                <p className="mt-1 text-base text-muted-foreground">
-                  {formatDateTime(invoice.createdAt)}
-                  {invoice.status ? ` · ${invoice.status}` : ""}
-                </p>
+        {(invoices.data ?? []).map((invoice) => {
+          const state = invoiceState(invoice);
+          return (
+            <Card key={invoice.id}>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-center gap-3">
+                    <span className="text-xl font-bold tabular-nums">
+                      {invoice.amount ? `${money.format(invoice.amount)} сом` : "Счёт"}
+                    </span>
+                    {invoice.months ? (
+                      <span className="text-lg text-muted-foreground">за {invoice.months} мес.</span>
+                    ) : null}
+                    <Badge tone={state.tone}>{state.label}</Badge>
+                  </p>
+                  <p className="mt-1 text-base text-muted-foreground">
+                    {invoice.status === "paid" && invoice.paidAt
+                      ? `оплачен ${formatDateTime(invoice.paidAt)}`
+                      : `выставлен ${formatDateTime(invoice.createdAt)}`}
+                  </p>
+                </div>
+
+                {state.payable && (
+                  <Button asChild>
+                    <a href={invoice.paymentUrl!} target="_blank" rel="noreferrer">
+                      Оплатить
+                    </a>
+                  </Button>
+                )}
               </div>
-              {invoice.paymentUrl && (
-                <a
-                  href={invoice.paymentUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full bg-flame px-5 py-3 text-lg font-medium text-white transition-colors hover:bg-graphite"
-                >
-                  Оплатить
-                </a>
-              )}
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
     </section>
   );

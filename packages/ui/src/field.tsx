@@ -60,13 +60,18 @@ export function Field({
   );
 }
 
-/** Общие классы контролов: одинаковая рамка, фокус и состояние ошибки. */
+/**
+ * Общие классы контролов. Совпадают с полем из @loal/ui/shadcn, чтобы формы
+ * выглядели одинаково, из какого бы набора ни был взят сам контрол.
+ */
 export const controlClass = (invalid: boolean, extra = "") =>
   [
-    "w-full rounded-2xl border-2 bg-paper px-5 py-3.5 transition-colors",
-    "focus-visible:outline-none",
-    invalid
-      ? "border-flame-ink focus-visible:border-flame-ink"
-      : "border-smoke hover:border-graphite/40 focus-visible:border-flame",
+    "h-12 w-full rounded-2xl border-2 bg-surface px-4 text-lg text-foreground transition-colors",
+    "outline-none placeholder:text-muted-foreground",
+    "focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring",
+    invalid ? "border-destructive" : "border-border focus:border-foreground",
+    "disabled:opacity-60",
     extra,
-  ].join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");

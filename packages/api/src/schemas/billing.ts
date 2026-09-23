@@ -29,17 +29,47 @@ export const cardSubscriptionSchema = z.looseObject({
 });
 export type CardSubscription = z.infer<typeof cardSubscriptionSchema>;
 
-/** Счёт на оплату. Форма ответа в документе не зафиксирована — читаем мягко. */
+/** Счёт на оплату: pending — ждёт оплаты, paid — оплачен, cancelled — отменён. */
+export const invoiceStatusSchema = z.enum(["pending", "paid", "cancelled"]);
+export type InvoiceStatus = z.infer<typeof invoiceStatusSchema>;
+
 export const invoiceSchema = z.looseObject({
   id: z.string(),
   amount: z.number().nullish(),
   months: z.number().nullish(),
+  /** Строкой, а не enum: незнакомый статус не должен ронять экран оплаты. */
   status: z.string().nullish(),
   paymentUrl: z.string().nullish(),
   providerInvoiceId: z.string().nullish(),
+  product: z.string().nullish(),
+  paidAt: z.string().nullish(),
+  expiresAt: z.string().nullish(),
   createdAt: z.string().nullish(),
 });
 export type Invoice = z.infer<typeof invoiceSchema>;
+
+export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
+  pending: "Ждёт оплаты",
+  paid: "Оплачен",
+  cancelled: "Отменён",
+};
+
+/**
+ * Состояние счёта для экрана: подпись, тон метки и можно ли платить.
+ * Просроченную ссылку считаем отдельно — заплатить по ней уже нельзя.
+ */
+export function invoiceState(invoice: Invoice) {
+  const status = invoice.status ?? "pending";
+  const expired =
+    status === "pending" && Boolean(invoice.expiresAt) && new Date(invoice.expiresAt!).getTime() < Date.now();
+
+  if (status === "paid") return { label: "Оплачен", tone: "good" as const, payable: false };
+  if (status === "cancelled") return { label: "Отменён", tone: "quiet" as const, payable: false };
+  if (expired) return { label: "Ссылка истекла", tone: "quiet" as const, payable: false };
+  if (status === "pending")
+    return { label: "Ждёт оплаты", tone: "warn" as const, payable: Boolean(invoice.paymentUrl) };
+  return { label: status, tone: "neutral" as const, payable: Boolean(invoice.paymentUrl) };
+}
 
 /** Коды тарифов бэкенда в человеческие слова; незнакомый код показываем как есть. */
 const PLAN_LABELS: Record<string, string> = {

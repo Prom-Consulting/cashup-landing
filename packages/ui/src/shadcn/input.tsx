@@ -4,7 +4,7 @@ import type { ComponentProps } from "react";
 import { cn } from "./lib";
 
 const base =
-  "w-full rounded-2xl border-2 bg-surface px-4 py-3 text-lg text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-60";
+  "h-12 w-full rounded-2xl border-2 bg-surface px-4 text-lg text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-60";
 
 /**
  * Поле ввода. Кроме обычных свойств принимает `describedBy` и `invalid` — их отдаёт
@@ -32,7 +32,12 @@ export function Textarea({ className, describedBy, invalid, "aria-invalid": aria
     <textarea
       aria-describedby={describedBy}
       aria-invalid={broken || undefined}
-      className={cn(base, "min-h-[120px] resize-y", broken ? "border-destructive" : "border-border", className)}
+      className={cn(
+        base,
+        "h-auto min-h-[120px] py-3 resize-y",
+        broken ? "border-destructive" : "border-border",
+        className,
+      )}
       {...props}
     />
   );

@@ -1,14 +1,15 @@
 import { ApiError, createInvoiceInputSchema, type CreateInvoiceInput } from "@loal/api";
 import { fieldError, formError, zodValidate } from "@loal/forms";
-import { Field } from "@loal/ui/field";
-import { Button } from "@loal/ui/shadcn";
-import { TextInput } from "@loal/ui/inputs";
+import { Button, Input, Label } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useCreateInvoice } from "../../entities/store/api";
 
 const initialValues = { amount: "", months: "1" } as unknown as CreateInvoiceInput;
 
-/** Счёт на продление доступа: сумма и на сколько месяцев. */
+/** Частые сроки — кнопками: набирать «3» руками незачем. */
+const PRESETS = [1, 3, 6, 12];
+
+/** Счёт на продление доступа: сумма и срок. */
 export function InvoiceForm({ storeId }: { storeId: string }) {
   const createInvoice = useCreateInvoice(storeId);
 
@@ -19,59 +20,77 @@ export function InvoiceForm({ storeId }: { storeId: string }) {
       onSubmit={async (values, helpers) => {
         helpers.setStatus(undefined);
         try {
-          const invoice = await createInvoice.mutateAsync(values);
+          await createInvoice.mutateAsync(values);
           helpers.resetForm();
-          // Ссылку на оплату открывает сам человек: всплывающие окна браузер режет
-          helpers.setStatus(invoice.paymentUrl ? "Счёт создан — ссылка на оплату в списке ниже" : "Счёт создан");
+          helpers.setStatus("Счёт выставлен — ссылка на оплату в списке ниже");
         } catch (error) {
-          helpers.setStatus(
-            error instanceof ApiError
-              ? error.message
-              : error instanceof Error
-                ? error.message
-                : "Не удалось создать счёт",
-          );
+          helpers.setStatus(error instanceof ApiError ? error.message : "Не удалось выставить счёт");
         } finally {
           helpers.setSubmitting(false);
         }
       }}
     >
-      {(form) => (
-        <Form className="flex flex-col gap-4 sm:flex-row sm:items-end" noValidate>
-          <Field label="Сумма, сом" error={fieldError(form, "amount")} className="flex-1">
-            {(parts) => (
-              <TextInput
-                {...parts}
-                name="amount"
-                inputMode="numeric"
-                value={String(form.values.amount ?? "")}
-                onChange={form.handleChange}
-                onBlur={form.handleBlur}
-              />
-            )}
-          </Field>
-          <Field label="Месяцев" error={fieldError(form, "months")} className="sm:w-[140px]">
-            {(parts) => (
-              <TextInput
-                {...parts}
-                name="months"
-                inputMode="numeric"
-                value={String(form.values.months ?? "")}
-                onChange={form.handleChange}
-                onBlur={form.handleBlur}
-              />
-            )}
-          </Field>
-          <Button type="submit" variant="outline" disabled={form.isSubmitting}>
-            {form.isSubmitting ? "Выставляем…" : "Выставить счёт"}
-          </Button>
-          {formError(form) && (
-            <p role="status" className="text-base font-medium text-flame-ink sm:basis-full">
-              {formError(form)}
-            </p>
-          )}
-        </Form>
-      )}
+      {(form) => {
+        const months = String(form.values.months ?? "");
+        return (
+          <Form className="flex flex-col gap-5" noValidate>
+            <div className="grid gap-5 sm:grid-cols-[minmax(0,240px)_1fr]">
+              <div>
+                <Label htmlFor="amount">Сумма, сом</Label>
+                <Input
+                  id="amount"
+                  name="amount"
+                  inputMode="numeric"
+                  placeholder="3000"
+                  className="mt-2 tabular-nums"
+                  value={String(form.values.amount ?? "")}
+                  onChange={form.handleChange}
+                  onBlur={form.handleBlur}
+                  invalid={Boolean(fieldError(form, "amount"))}
+                />
+                {fieldError(form, "amount") && (
+                  <p className="mt-2 text-base text-destructive">{fieldError(form, "amount")}</p>
+                )}
+              </div>
+
+              <div>
+                <span className="text-base font-medium">Срок</span>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {PRESETS.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={months === String(value)}
+                      onClick={() => form.setFieldValue("months", String(value))}
+                      className={`h-12 rounded-2xl border-2 px-5 text-lg transition-colors ${
+                        months === String(value)
+                          ? "border-secondary bg-secondary text-secondary-foreground"
+                          : "border-border bg-surface hover:border-foreground"
+                      }`}
+                    >
+                      {value} мес.
+                    </button>
+                  ))}
+                </div>
+                {fieldError(form, "months") && (
+                  <p className="mt-2 text-base text-destructive">{fieldError(form, "months")}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <Button type="submit" disabled={form.isSubmitting}>
+                {form.isSubmitting ? "Выставляем…" : "Выставить счёт"}
+              </Button>
+              {formError(form) && (
+                <p role="status" className="text-base text-muted-foreground">
+                  {formError(form)}
+                </p>
+              )}
+            </div>
+          </Form>
+        );
+      }}
     </Formik>
   );
 }
