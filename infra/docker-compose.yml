@@ -8,6 +8,9 @@
 # и фронтенд не должен в ней лежать.
 name: loal-front
 
+# Healthcheck здесь сознательно не задаём: Traefik исключает контейнер из
+# маршрутизации, пока проверка не прошла, и падение проверки означало бы 404
+# вместо страницы. За перезапуск отвечает restart: unless-stopped.
 x-app: &app
   restart: unless-stopped
   networks: [web]
@@ -24,12 +27,6 @@ services:
     image: loal-landing:latest
     environment:
       NEXT_PUBLIC_SITE_URL: https://${LANDING_HOST:-loal.kg}
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
     labels:
       - traefik.enable=true
       - traefik.docker.network=${TRAEFIK_NETWORK:-infra_default}
