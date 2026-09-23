@@ -1,0 +1,25 @@
+{
+  "name": "@loal/forms",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "peerDependencies": {
+    "formik": "^2",
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@loal/tsconfig": "workspace:*",
+    "@types/react": "^19",
+    "formik": "^2.4.9",
+    "typescript": "^5"
+  }
+}

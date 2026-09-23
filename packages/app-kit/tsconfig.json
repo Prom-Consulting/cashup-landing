@@ -1,0 +1,4 @@
+{
+  "extends": "@loal/tsconfig/react.json",
+  "include": ["src"]
+}
