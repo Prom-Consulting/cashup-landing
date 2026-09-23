@@ -5,14 +5,14 @@ import { Field } from "@loal/ui/field";
 import { TextInput } from "@loal/ui/inputs";
 import { Button, Card, PageHeader } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
-import { useCurrentStore } from "../../entities/session/model";
+import { useCurrentMerchant } from "../../entities/session/model";
 
 const initialValues: ChangePasswordInput = { currentPassword: "", newPassword: "", repeatPassword: "" };
 
 /** Профиль: кто вошёл и смена пароля. */
 export function ProfilePage() {
   const api = useApi();
-  const { label, membership } = useCurrentStore();
+  const { label, membership } = useCurrentMerchant();
 
   return (
     <section className="flex max-w-[560px] flex-col gap-6">

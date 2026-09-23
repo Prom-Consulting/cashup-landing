@@ -1,11 +1,12 @@
-import { Store01Icon, UserCircleIcon, WorkflowSquare02Icon } from "@hugeicons/core-free-icons";
+import { Store01Icon, UserCircleIcon, UserGroupIcon, WorkflowSquare02Icon } from "@hugeicons/core-free-icons";
 import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
 import { Icon, type IconSvg } from "@loal/ui/shadcn";
 import { Link, Outlet, useLocation } from "react-router";
 import { useCurrentUser } from "../../entities/session/model";
 
 const nav: (NavItem & { icon: IconSvg })[] = [
-  { to: "/", label: "Магазины", icon: Store01Icon },
+  { to: "/", label: "Заведения", icon: Store01Icon },
+  { to: "/customers", label: "Клиенты", icon: UserGroupIcon },
   { to: "/leads", label: "Заявки", icon: WorkflowSquare02Icon },
   { to: "/profile", label: "Профиль", icon: UserCircleIcon },
 ];

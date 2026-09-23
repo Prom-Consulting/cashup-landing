@@ -13,8 +13,8 @@ import {
   TableRow,
 } from "@loal/ui/shadcn";
 import { useState } from "react";
-import { useDeductions } from "../../entities/store/api";
-import { useCurrentStore } from "../../entities/session/model";
+import { useDeductions } from "../../entities/merchant/api";
+import { useCurrentMerchant } from "../../entities/session/model";
 import { formatDateTime } from "../../shared/lib/format";
 
 const money = new Intl.NumberFormat("ru-RU");
@@ -22,10 +22,10 @@ const PAGE_SIZE = 50;
 
 /** Журнал списаний: строка — один товар в чеке, а не чек целиком. */
 export function DeductionsPage() {
-  const { storeId } = useCurrentStore();
+  const { merchantId } = useCurrentMerchant();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const deductions = useDeductions(storeId ?? "", { page, pageSize: PAGE_SIZE, search: search.trim() || undefined });
+  const deductions = useDeductions(merchantId ?? "", { page, pageSize: PAGE_SIZE, search: search.trim() || undefined });
 
   const rows = deductions.data?.items ?? [];
   const total = deductions.data?.total ?? 0;

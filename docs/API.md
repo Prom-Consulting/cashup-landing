@@ -8,6 +8,64 @@
 
 ---
 
+## Что изменилось 23 сентября 2026: карта принадлежит платформе
+
+Раньше карту, клиента и программу «держал» магазин — тот самый, который в системе
+назывался Cashup. Теперь у них владельца нет вообще: платформа одна, и записывать её
+в каждую строку было нечего. Магазин остался магазином — со своими сотрудниками,
+филиалами, подпиской и токеном 1С.
+
+Для фронта это значит три вещи.
+
+**1. `stores` стали `merchants`.** В адресах, в полях ответов и в токене.
+
+| Было | Стало |
+|---|---|
+| `/admin/v1/stores` | `/admin/v1/merchants` |
+| `/admin/v1/stores/{id}` | `/admin/v1/merchants/{id}` |
+| `/admin/v1/stores/{id}/deductions` | `/admin/v1/merchants/{id}/deductions` |
+| `/admin/v1/stores/{id}/subscription` | `/admin/v1/merchants/{id}/subscription` |
+| `/admin/v1/stores/{id}/payments` | `/admin/v1/merchants/{id}/payments` |
+| `/admin/v1/stores/{id}/onec-integration` | `/admin/v1/merchants/{id}/onec-integration` |
+| `/admin/v1/stores/{id}/members` | `/admin/v1/merchants/{id}/members` |
+| `/admin/v1/stores/{id}/branches` | `/admin/v1/merchants/{id}/branches` |
+| `/admin/v1/stores/{id}/pos-settings` | `/admin/v1/merchants/{id}/pos-settings` |
+| `/admin/v1/stores/{id}/sales` | `/admin/v1/merchants/{id}/sales` |
+| `/admin/v1/stores/{id}/profile` | `/admin/v1/merchants/{id}/profile` |
+| `/admin/v1/stores/{id}/template-assets?slot=storeLogo` | `/admin/v1/merchants/{id}/profile-assets?slot=merchantLogo` |
+
+**2. У платформенного — магазин из адреса исчез совсем.**
+
+| Было | Стало |
+|---|---|
+| `/admin/v1/stores/{id}/customers` | `/admin/v1/customers` |
+| `/admin/v1/stores/{id}/customers/{cid}/cards` | `/admin/v1/customers/{cid}/cards` |
+| `/admin/v1/stores/{id}/cards` | `/admin/v1/cards` |
+| `/admin/v1/stores/{id}/cards/{serial}/subscription` | `/admin/v1/cards/{serial}/subscription` |
+| `/admin/v1/stores/{id}/templates` | `/admin/v1/templates` |
+| `/admin/v1/stores/{id}/template-assets` | `/admin/v1/template-assets` |
+| `/admin/v1/stores/{id}/loyalty-programs` | `/admin/v1/loyalty-programs` |
+| `/admin/v1/stores/{id}/customer-field-settings` | `/admin/v1/customer-field-settings` |
+| `/v1/public/enroll/{storeId}/{templateId}` | `/v1/public/enroll/{templateId}` |
+
+Поле `storeId` пропало из ответов по клиенту, карте, шаблону, программе, подписке
+клиента и сертификату. В операции вместо пары `storeId` + `merchantStoreId` теперь один
+`merchantId` — магазин, где потратили; у начисления подписки он `null`.
+
+**3. Эти адреса доступны только агентству.** Магазину они закрыты целиком — не
+отфильтрованы, а именно закрыты, `403`. Магазин видит свой журнал списаний, свою
+подписку, своих сотрудников и свои настройки 1С — и больше ничего. Раньше защита
+держалась на том, что в адресе стоял его собственный id; id не стало, и защитой стала
+роль.
+
+**Токен нужно перевыпустить.** Клеймо `stores[]` в нём переименовано в `merchants[]`, а
+`storeId` внутри — в `merchantId`. Старые токены не подойдут: перелогиниться.
+
+Не менялось ничего из того, что знают чужие системы: `/auth/*`, вебхуки 1С и OctōPAY,
+протокол Apple Wallet, `/v1/cards/{serial}`, `/v1/redemptions`.
+
+---
+
 ## Общее
 
 **Формат.** JSON, UTF-8. Даты — ISO 8601 (`2026-09-23T10:15:00.000Z`), даты без времени —
@@ -97,6 +155,10 @@ Content-Type: application/json
 
 Этот endpoint используется и перед регистрацией, и перед входом по телефону. Код
 одноразовый: успешная регистрация или вход его поглощает.
+
+Краткий `503` WhatsApp-сервиса во время переподключения аккаунта backend повторяет сам
+до трёх раз. `502` frontend получит только если все попытки закончились неудачно; в этом
+случае код не сохранён и запрос можно безопасно повторить позже.
 
 ### Регистрация
 
@@ -193,16 +255,19 @@ Frontend обязан отдельно обработать `error === "SESSION_
 
 | Метод | Адрес | Что делает |
 |---|---|---|
-| `GET` | `/auth/me` | Разбор токена: `sub`, `email`, `role`, `stores[]`, `sessionId`. Отвечает `401`, если сессия заменена |
+| `GET` | `/auth/me` | Разбор токена: `sub`, `email`, `role`, `merchants[]`, `sessionId`. Отвечает `401`, если сессия заменена |
 | `GET` | `/auth/me/profile` | `{ id, email, fullName, role }` |
 | `PUT` | `/auth/me` | Смена имени и почты; возвращает новый токен |
 | `PUT` | `/auth/me/password` | `{ currentPassword, newPassword }` |
 
-В токене лежит `stores[]` — список магазинов, где человек состоит, с ролью и правами.
-По нему фронт решает, какие разделы показывать, не спрашивая сервер.
+В токене лежит `merchants[]` — список магазинов, где человек работает, с ролью и
+правами: `{ memberId, merchantId, role, permissions }`. По нему фронт решает, какие
+разделы показывать, не спрашивая сервер.
 
-Роли: `super_admin` (агентство, видит всё), `store_admin`, `store_staff`, `api`. Внутри
-магазина у человека своя роль: `admin`, `staff`, `partner`, `partner_employee`.
+Роли аккаунта: `super_admin` (агентство, видит всё), `store_admin`, `store_staff`, `api`.
+Внутри магазина у человека своя роль: `admin`, `staff`, `partner`, `partner_employee`.
+Названия ролей аккаунта остались прежними: переименование тронуло бы выданные токены
+ради одной только вывески.
 
 Пример общей обёртки запросов:
 
@@ -238,7 +303,7 @@ export async function api(path: string, init: RequestInit = {}) {
 
 ```
 GET /v1/cards/{serial}
-→ { serialNumber, storeId, customerId, status, pointsBalance, punchCount,
+→ { serialNumber, customerId, status, pointsBalance, punchCount,
     barcodeValue, platform, passVersion, createdAt, ... }
 ```
 
@@ -247,15 +312,15 @@ GET /v1/cards/{serial}
 ### Подписка клиента
 
 ```
-GET    /admin/v1/stores/{storeId}/cards/{serial}/subscription   → подписка или null
-POST   /admin/v1/stores/{storeId}/cards/{serial}/subscription   { "months": 3 }
-DELETE /admin/v1/stores/{storeId}/cards/{serial}/subscription   отмена
+GET    /admin/v1/cards/{serial}/subscription   → подписка или null
+POST   /admin/v1/cards/{serial}/subscription   { "months": 3 }
+DELETE /admin/v1/cards/{serial}/subscription   отмена
 ```
 
 Ответ:
 
 ```json
-{ "id": "...", "storeId": "...", "cardId": "...",
+{ "id": "...", "cardId": "...",
   "status": "active",
   "pointsPerPeriod": 100000,
   "periodsTotal": 3, "periodsGranted": 1,
@@ -303,7 +368,7 @@ POST /v1/redemptions                    (нужен токен кассира)
 ```
 
 Магазин **не передаётся** — сервер определяет его по тому, где работает вошедший кассир.
-Если человек работает в нескольких магазинах, надо добавить `"storeId"`, иначе придёт
+Если человек работает в нескольких магазинах, надо добавить `"merchantId"`, иначе придёт
 `400`.
 
 Процент покрытия в приложении — **не больше 30**. У магазина со своей 1С правила свои.
@@ -327,7 +392,7 @@ POST /v1/redemptions                    (нужен токен кассира)
 ### Журнал списаний
 
 ```
-GET /admin/v1/stores/{storeId}/deductions?page=1&pageSize=50&search=&from=&to=
+GET /admin/v1/merchants/{merchantId}/deductions?page=1&pageSize=50&search=&from=&to=
 → { "items": [...], "total": 128, "page": 1, "pageSize": 50 }
 ```
 
@@ -342,15 +407,15 @@ GET /admin/v1/stores/{storeId}/deductions?page=1&pageSize=50&search=&from=&to=
 
 `channel`: `onec` — списание пришло из 1С, `scanner` — из нашего приложения.
 
-Один и тот же адрес обслуживает оба кабинета: магазин видит только свой `storeId`,
+Один и тот же адрес обслуживает оба кабинета: магазин видит только свой `merchantId`,
 агентство — любой. `search` ищет по клиенту и названию товара.
 
 ### Подписка магазина
 
 ```
-GET  /admin/v1/stores/{storeId}/subscription
-POST /admin/v1/stores/{storeId}/subscription     { "months": 1 }
-→ { storeId, plan, status, startedAt, expiresAt, isActive }
+GET  /admin/v1/merchants/{merchantId}/subscription
+POST /admin/v1/merchants/{merchantId}/subscription     { "months": 1 }
+→ { merchantId, plan, status, startedAt, expiresAt, isActive }
 ```
 
 `isActive` — главное поле: пока оно `false`, магазин **не может принимать бонусы** ни
@@ -360,19 +425,67 @@ POST /admin/v1/stores/{storeId}/subscription     { "months": 1 }
 ### Счета
 
 ```
-GET  /admin/v1/stores/{storeId}/payments          история счетов
-POST /admin/v1/stores/{storeId}/payments          { "amount": 3000, "months": 1 }
+GET  /admin/v1/merchants/{merchantId}/payments          история счетов
+POST /admin/v1/merchants/{merchantId}/payments          { "amount": 3000, "months": 1 }
 ```
 
 Счёт отвечает на вопрос «заплатили ли», подписка — «можно ли принимать бонусы». Это
 разные вещи и разные адреса.
 
+### Профиль для витрины
+
+То, что клиент видит в каталоге приложения и на лендинге.
+
+```
+GET /admin/v1/merchants/{merchantId}/profile
+PUT /admin/v1/merchants/{merchantId}/profile
+{
+  "category": "Кофейня",
+  "description": "Свежая обжарка и выпечка каждый день",
+  "logoUrl": "https://loal.promconsult.pro/v1/public/template-assets/….png",
+  "photos": ["https://…/1.png", "https://…/2.png"],
+  "instagramUrl": "https://instagram.com/coffee",
+  "twogisUrl": "https://2gis.kg/bishkek/firm/…"
+}
+→ тот же объект
+```
+
+`PUT` **заменяет профиль целиком**: присылать надо все шесть полей. Чтобы очистить поле,
+отправьте `null`, для фотографий — `[]`. Если поле пропустить, придёт `400`.
+
+| Поле | Ограничения |
+|---|---|
+| `category` | строка 1–60 символов или `null`; список категорий пока свободный |
+| `description` | 1–2000 символов или `null` |
+| `logoUrl`, `instagramUrl`, `twogisUrl` | адрес `http(s)://`, до 500 символов, или `null` |
+| `photos` | массив адресов, до 10 штук; порядок сохраняется как прислан |
+
+Читать может любой сотрудник магазина. Менять — только администратор магазина
+(`admin`), партнёр (`partner`) или агентство; остальным `403`.
+
+**Картинки загружаются отдельно**, до сохранения профиля:
+
+```
+POST /admin/v1/merchants/{merchantId}/profile-assets?slot=merchantLogo   multipart, поле file
+POST /admin/v1/merchants/{merchantId}/profile-assets?slot=merchantPhoto
+→ { "url": "https://…/v1/public/template-assets/<id>.png" }
+```
+
+Принимаются PNG, JPG и SVG до 25 МБ. На выходе всегда PNG. `merchantLogo` вписывается в
+квадрат 512×512 с прозрачными полями, `merchantPhoto` уменьшается до 1600 px по большей
+стороне без обрезки. Полученный `url` кладётся в `logoUrl` или `photos`. Файл без
+профиля ни на что не влияет.
+
+Адрес свой, а не общий `/admin/v1/template-assets`: тот принадлежит платформе и открыт
+только агентству, а профиль заполняет сам магазин. Отдаются картинки по прежнему
+публичному адресу — хранилище одно и то же.
+
 ### Настройки 1С
 
 ```
-GET  /admin/v1/stores/{storeId}/onec-integration
-POST /admin/v1/stores/{storeId}/onec-integration/regenerate-token
-→ { storeId, inboundWebhookUrl, createdAt }
+GET  /admin/v1/merchants/{merchantId}/onec-integration
+POST /admin/v1/merchants/{merchantId}/onec-integration/regenerate-token
+→ { merchantId, inboundWebhookUrl, createdAt }
 ```
 
 `inboundWebhookUrl` — готовый адрес, его копируют в настройки 1С магазина. Перевыпуск
@@ -382,40 +495,38 @@ POST /admin/v1/stores/{storeId}/onec-integration/regenerate-token
 
 ## Кабинет агентства
 
-Всё под `/admin/v1`. Доступ к `/admin/v1/stores/{id}/...` есть у сотрудников этого
-магазина и у `super_admin`; к остальному — только у `super_admin`.
+Всё под `/admin/v1`. Доступ к `/admin/v1/merchants/{id}/...` есть у сотрудников этого
+магазина и у `super_admin`; ко всему остальному — только у `super_admin`.
 
 ### Магазины
 
 | Метод | Адрес | Комментарий |
 |---|---|---|
-| `GET` | `/admin/v1/stores?kind=merchant` | Список; фильтр по роли магазина |
-| `POST` | `/admin/v1/stores` | `{ slug, name, kind?, contactEmail?, contactPhone? }` |
-| `GET` | `/admin/v1/stores/{id}` | |
-| `PATCH` | `/admin/v1/stores/{id}` | Название, контакты, этап производства |
-| `POST` | `/admin/v1/stores/{id}/suspend` | |
-| `DELETE` | `/admin/v1/stores/{id}` | Стирает магазин во всех схемах |
-
-`kind`: `issuer` — магазин, которому принадлежат карты (в Cashup он один); `merchant` —
-участник, принимающий карту. По умолчанию `merchant`. **Выпустить карту может только
-`issuer`**, остальным придёт `400`.
+| `GET` | `/admin/v1/merchants` | Список. Только агентство |
+| `POST` | `/admin/v1/merchants` | `{ slug, name, contactEmail?, contactPhone? }`. Только агентство |
+| `GET` | `/admin/v1/merchants/{id}` | Виден и самому магазину |
+| `PATCH` | `/admin/v1/merchants/{id}` | Название, контакты, этап подключения |
+| `POST` | `/admin/v1/merchants/{id}/suspend` | |
+| `DELETE` | `/admin/v1/merchants/{id}` | Убирает магазин. Клиенты, карты и баланс остаются — они не его |
 
 ### Клиенты и карты
 
+Платформенные, магазину закрыты.
+
 | Метод | Адрес |
 |---|---|
-| `GET` / `POST` | `/admin/v1/stores/{storeId}/customers` |
-| `GET` | `/admin/v1/stores/{storeId}/customers/table?page=&pageSize=&search=` |
-| `POST` | `/admin/v1/stores/{storeId}/customers/{id}/archive` |
-| `POST` | `/admin/v1/stores/{storeId}/cards` — `{ customerId, templateId, programId }` |
-| `GET` | `/admin/v1/stores/{storeId}/customers/{customerId}/cards` |
-| `POST` | `/admin/v1/stores/{storeId}/cards/{serial}/revoke` |
+| `GET` / `POST` | `/admin/v1/customers` |
+| `GET` | `/admin/v1/customers/table?page=&pageSize=&search=` |
+| `POST` | `/admin/v1/customers/{id}/archive` |
+| `POST` | `/admin/v1/cards` — `{ customerId, templateId, programId }` |
+| `GET` | `/admin/v1/customers/{customerId}/cards` |
+| `POST` | `/admin/v1/cards/{serial}/revoke` |
 
 ### Программы лояльности
 
 ```
-GET|POST          /admin/v1/stores/{storeId}/loyalty-programs
-GET|PATCH|DELETE  /admin/v1/stores/{storeId}/loyalty-programs/{id}
+GET|POST          /admin/v1/loyalty-programs
+GET|PATCH|DELETE  /admin/v1/loyalty-programs/{id}
 ```
 
 Программа Cashup — тип `onec`, в её настройках одно поле:
@@ -424,10 +535,10 @@ GET|PATCH|DELETE  /admin/v1/stores/{storeId}/loyalty-programs/{id}
 ### Шаблоны карт
 
 ```
-GET  /admin/v1/stores/{storeId}/templates
-POST /admin/v1/stores/{storeId}/templates/custom
-PUT  /admin/v1/stores/{storeId}/templates/{id}
-POST /admin/v1/stores/{storeId}/templates/{id}/publish
+GET  /admin/v1/templates
+POST /admin/v1/templates/custom
+PUT  /admin/v1/templates/{id}
+POST /admin/v1/templates/{id}/publish
 ```
 
 Дизайн карты — объект `design`: цвета, формат штрихкода, наборы полей. Формат штрихкода —
@@ -446,15 +557,25 @@ POST /admin/v1/stores/{storeId}/templates/{id}/publish
 | Метод | Адрес | Зачем |
 |---|---|---|
 | `GET` | `/health` | Живость шлюза |
-| `GET` | `/v1/public/partners` | Витрина: магазины-участники с действующей подпиской |
+| `GET` | `/v1/public/partners` | Витрина: магазины-участники с действующей подпиской, см. ниже |
 | `GET` | `/v1/public/card-examples` | Примеры карт для лендинга |
-| `GET` | `/v1/public/enroll/{storeId}/{templateId}` | Данные для страницы самостоятельной выдачи |
-| `POST` | `/v1/public/enroll/{storeId}/{templateId}/{programId}` | Клиент заводит себе карту |
+| `GET` | `/v1/public/enroll/{templateId}` | Данные для страницы самостоятельной выдачи |
+| `POST` | `/v1/public/enroll/{templateId}/{programId}` | Клиент заводит себе карту |
 | `POST` | `/v1/public/leads` | Заявка с лендинга |
 | `GET` | `/v1/public/passes/{serial}` | Страница карты и ссылка на добавление в Wallet |
 | `GET` | `/v1/public/onec-card/{token}/{serial}` | Для 1С: что на карте |
 | `POST` | `/v1/public/onec-webhook/{token}` | Для 1С: списание |
 | `POST` | `/v1/public/octopay/webhook` | Колбэк OctōPAY |
+
+Ответ витрины — массив магазинов по алфавиту, у каждого профиль целиком:
+
+```json
+[{ "id": "...", "name": "Кофе Хаус", "contactPhone": "996700000000",
+   "category": "Кофейня", "description": "...", "logoUrl": "https://...",
+   "photos": ["https://..."], "instagramUrl": null, "twogisUrl": "https://..." }]
+```
+
+Магазин с незаполненным профилем в списке тоже есть, у него поля `null`, а `photos` пустой.
 
 Адреса `/v1/devices/*`, `/v1/passes/*`, `/v1/log` — протокол Apple Wallet, их вызывают
 телефоны, а не фронт.
@@ -464,6 +585,6 @@ POST /admin/v1/stores/{storeId}/templates/{id}/publish
 ## Наследие
 
 `/v1/scan/preview`, `/v1/cards/{serial}/scan-confirm*`, `/v1/pos-settings`,
-`/admin/v1/stores/{id}/sales` — начисление и списание баллов из продукта, из которого
+`/admin/v1/merchants/{id}/sales` — начисление и списание баллов из продукта, из которого
 вырос Cashup. Работают, но к Cashup отношения не имеют: здесь баллы выдаёт подписка, а
 списывает касса через `/v1/redemptions`. Новый код на них лучше не завязывать.

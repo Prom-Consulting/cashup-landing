@@ -1,6 +1,6 @@
 import {
   ApiError,
-  STORE_STATUS_LABELS,
+  MERCHANT_STATUS_LABELS,
   WORKFLOW_STATUS_LABELS,
   buyMonthsInputSchema,
   type BuyMonthsInput,
@@ -17,13 +17,13 @@ import { Link, useParams } from "react-router";
 import {
   useCreateInvite,
   useGrantSubscription,
-  useStore,
-  useStoreDeductions,
-  useStoreInvites,
-  useStoreMembers,
-  useStoreSubscription,
-  useSuspendStore,
-} from "../../entities/store/api";
+  useMerchant,
+  useMerchantDeductions,
+  useMerchantInvites,
+  useMerchantMembers,
+  useMerchantSubscription,
+  useSuspendMerchant,
+} from "../../entities/merchant/api";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
 
 const MEMBER_ROLE_LABELS: Record<string, string> = {
@@ -33,34 +33,34 @@ const MEMBER_ROLE_LABELS: Record<string, string> = {
   partner_employee: "Сотрудник партнёра",
 };
 
-/** Карточка магазина: реквизиты, команда и коды приглашения владельца. */
-export function StoreDetailsPage() {
-  const { storeId = "" } = useParams();
-  const store = useStore(storeId);
-  const members = useStoreMembers(storeId);
-  const invites = useStoreInvites(storeId);
-  const createInvite = useCreateInvite(storeId);
-  const subscription = useStoreSubscription(storeId);
-  const grant = useGrantSubscription(storeId);
-  const suspend = useSuspendStore(storeId);
-  const deductions = useStoreDeductions(storeId, { page: 1, pageSize: 5 });
+/** Карточка заведениеа: реквизиты, команда и коды приглашения владельца. */
+export function MerchantDetailsPage() {
+  const { merchantId = "" } = useParams();
+  const merchant = useMerchant(merchantId);
+  const members = useMerchantMembers(merchantId);
+  const invites = useMerchantInvites(merchantId);
+  const createInvite = useCreateInvite(merchantId);
+  const subscription = useMerchantSubscription(merchantId);
+  const grant = useGrantSubscription(merchantId);
+  const suspend = useSuspendMerchant(merchantId);
+  const deductions = useMerchantDeductions(merchantId, { page: 1, pageSize: 5 });
   const [confirmSuspend, setConfirmSuspend] = useState(false);
 
-  if (store.isPending) return <Loading />;
-  if (store.isError) return <ErrorState error={store.error} onRetry={() => store.refetch()} />;
+  if (merchant.isPending) return <Loading />;
+  if (merchant.isError) return <ErrorState error={merchant.error} onRetry={() => merchant.refetch()} />;
 
   return (
     <section className="flex flex-col gap-6">
       <Link to="/" className="text-base text-slate underline-offset-4 hover:underline">
-        ← К списку магазинов
+        ← К списку заведениеов
       </Link>
 
       <PageHeader
-        title={store.data.name}
-        description={`${store.data.slug} · создан ${formatDate(store.data.createdAt)}`}
+        title={merchant.data.name}
+        description={`${merchant.data.slug} · создан ${formatDate(merchant.data.createdAt)}`}
         action={
-          <Badge tone={store.data.status === "active" ? "good" : "warn"}>
-            {STORE_STATUS_LABELS[store.data.status]}
+          <Badge tone={merchant.data.status === "active" ? "good" : "warn"}>
+            {MERCHANT_STATUS_LABELS[merchant.data.status]}
           </Badge>
         }
       />
@@ -70,26 +70,22 @@ export function StoreDetailsPage() {
         <dl className="mt-4 grid gap-3 sm:grid-cols-2">
           <div>
             <dt className="text-base text-muted-foreground">Стадия работы</dt>
-            <dd className="text-lg">{WORKFLOW_STATUS_LABELS[store.data.workflowStatus]}</dd>
-          </div>
-          <div>
-            <dt className="text-base text-muted-foreground">Подписка оплачена до</dt>
-            <dd className="text-lg">{formatDate(store.data.subscriptionPaidUntil)}</dd>
+            <dd className="text-lg">{WORKFLOW_STATUS_LABELS[merchant.data.workflowStatus]}</dd>
           </div>
           <div>
             <dt className="text-base text-muted-foreground">Почта</dt>
-            <dd className="text-lg">{store.data.contactEmail ?? "—"}</dd>
+            <dd className="text-lg">{merchant.data.contactEmail ?? "—"}</dd>
           </div>
           <div>
             <dt className="text-base text-muted-foreground">Телефон</dt>
-            <dd className="text-lg">{store.data.contactPhone ?? "—"}</dd>
+            <dd className="text-lg">{merchant.data.contactPhone ?? "—"}</dd>
           </div>
         </dl>
       </Card>
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-xl font-bold">Подписка магазина</h2>
+          <h2 className="text-xl font-bold">Подписка заведениеа</h2>
           {subscription.data && (
             <Badge tone={subscription.data.isActive ? "good" : "warn"}>
               {subscription.data.isActive ? `активна до ${formatDate(subscription.data.expiresAt)}` : "не активна"}
@@ -97,8 +93,8 @@ export function StoreDetailsPage() {
           )}
         </div>
         <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
-          Пока подписка неактивна, магазин не принимает бонусы ни через приложение, ни через 1С. Здесь доступ выдаётся
-          без оплаты — обычный путь продления идёт через счёт в кабинете магазина.
+          Пока подписка неактивна, заведение не принимает бонусы ни через приложение, ни через 1С. Здесь доступ выдаётся
+          без оплаты — обычный путь продления идёт через счёт в кабинете заведениеа.
         </p>
         {subscription.isPending && <Loading />}
         {subscription.isError && <ErrorState error={subscription.error} onRetry={() => subscription.refetch()} />}
@@ -145,19 +141,6 @@ export function StoreDetailsPage() {
       </Card>
 
       <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-bold">Клиенты и карты</h2>
-          <Button asChild variant="outline" size="sm">
-            <Link to={`/stores/${storeId}/customers`}>
-              <Icon icon={UserGroupIcon} />
-              Открыть
-            </Link>
-          </Button>
-        </div>
-        <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">Список гостей магазина и выпуск новых карт.</p>
-      </Card>
-
-      <Card>
         <h2 className="text-xl font-bold">Последние списания</h2>
         {deductions.isPending && <Loading />}
         {deductions.isSuccess && deductions.data.items.length === 0 && (
@@ -185,7 +168,7 @@ export function StoreDetailsPage() {
         <h2 className="text-xl font-bold">Команда</h2>
         {members.isPending && <Loading />}
         {members.isError && <ErrorState error={members.error} onRetry={() => members.refetch()} />}
-        {members.isSuccess && members.data.length === 0 && <EmptyState title="В магазине пока нет сотрудников" />}
+        {members.isSuccess && members.data.length === 0 && <EmptyState title="В заведениее пока нет сотрудников" />}
         <ul className="mt-4 flex flex-col gap-3">
           {(members.data ?? []).map((member) => (
             <li
@@ -204,9 +187,9 @@ export function StoreDetailsPage() {
       </Card>
 
       <Card>
-        <h2 className="text-xl font-bold">Приостановить магазин</h2>
+        <h2 className="text-xl font-bold">Приостановить заведение</h2>
         <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
-          Магазин перестаёт обслуживаться платформой. Действие видно всем его сотрудникам.
+          Заведение перестаёт обслуживаться платформой. Действие видно всем его сотрудникам.
         </p>
         {suspend.isError && <ErrorState error={suspend.error} />}
         {confirmSuspend ? (
@@ -230,10 +213,10 @@ export function StoreDetailsPage() {
             type="button"
             variant="outline"
             className="mt-4"
-            disabled={store.data.status === "suspended"}
+            disabled={merchant.data.status === "suspended"}
             onClick={() => setConfirmSuspend(true)}
           >
-            {store.data.status === "suspended" ? "Уже приостановлен" : "Приостановить"}
+            {merchant.data.status === "suspended" ? "Уже приостановлен" : "Приостановить"}
           </Button>
         )}
       </Card>
@@ -251,7 +234,7 @@ export function StoreDetailsPage() {
           </Button>
         </div>
         <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
-          По коду владелец регистрируется сам и сразу получает права на этот магазин.
+          По коду владелец регистрируется сам и сразу получает права на этот заведение.
         </p>
         {createInvite.isError && <ErrorState error={createInvite.error} />}
         {invites.isPending && <Loading />}

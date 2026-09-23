@@ -10,14 +10,14 @@ import { z } from "zod";
 export const platformRoleSchema = z.enum(["super_admin", "store_admin", "store_staff", "api"]);
 export type PlatformRole = z.infer<typeof platformRoleSchema>;
 
-/** Роль внутри магазина. partner — отдельный бизнес со своим кабинетом. */
-export const storeMemberRoleSchema = z.enum(["admin", "staff", "partner", "partner_employee"]);
-export type StoreMemberRole = z.infer<typeof storeMemberRoleSchema>;
+/** Роль внутри заведения. partner — отдельный бизнес со своим кабинетом. */
+export const merchantMemberRoleSchema = z.enum(["admin", "staff", "partner", "partner_employee"]);
+export type MerchantMemberRole = z.infer<typeof merchantMemberRoleSchema>;
 
 export const membershipSchema = z.looseObject({
   memberId: z.string(),
-  storeId: z.string(),
-  role: storeMemberRoleSchema,
+  merchantId: z.string(),
+  role: merchantMemberRoleSchema,
   permissions: z.record(z.string(), z.boolean()).default({}),
 });
 export type Membership = z.infer<typeof membershipSchema>;
@@ -27,7 +27,8 @@ export const sessionSchema = z.looseObject({
   sub: z.string(),
   email: z.string(),
   role: platformRoleSchema,
-  stores: z.array(membershipSchema).default([]),
+  /** Заведения, где человек работает. Раньше поле называлось stores. */
+  merchants: z.array(membershipSchema).default([]),
 });
 export type Session = z.infer<typeof sessionSchema>;
 

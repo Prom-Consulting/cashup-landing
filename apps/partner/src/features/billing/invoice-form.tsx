@@ -2,7 +2,7 @@ import { ApiError, createInvoiceInputSchema, type CreateInvoiceInput } from "@lo
 import { fieldError, formError, zodValidate } from "@loal/forms";
 import { Button, Input, Label } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
-import { useCreateInvoice } from "../../entities/store/api";
+import { useCreateInvoice } from "../../entities/merchant/api";
 
 const initialValues = { amount: "", months: "1" } as unknown as CreateInvoiceInput;
 
@@ -10,8 +10,8 @@ const initialValues = { amount: "", months: "1" } as unknown as CreateInvoiceInp
 const PRESETS = [1, 3, 6, 12];
 
 /** Счёт на продление доступа: сумма и срок. */
-export function InvoiceForm({ storeId }: { storeId: string }) {
-  const createInvoice = useCreateInvoice(storeId);
+export function InvoiceForm({ merchantId }: { merchantId: string }) {
+  const createInvoice = useCreateInvoice(merchantId);
 
   return (
     <Formik

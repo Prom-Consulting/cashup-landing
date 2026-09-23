@@ -1,15 +1,15 @@
 import { Button, PageHeader } from "@loal/ui/shadcn";
 import { Card, ErrorState, Loading } from "@loal/ui/shadcn";
 import { useState } from "react";
-import { useCurrentStore } from "../../entities/session/model";
-import { useOnecIntegration, useRegenerateOnecToken } from "../../entities/store/api";
+import { useCurrentMerchant } from "../../entities/session/model";
+import { useOnecIntegration, useRegenerateOnecToken } from "../../entities/merchant/api";
 import { formatDateTime } from "../../shared/lib/format";
 
 /** Адрес вебхука копируют в настройки 1С магазина. Перевыпуск ломает старый адрес. */
 export function OnecPage() {
-  const { storeId, isOwner } = useCurrentStore();
-  const onec = useOnecIntegration(storeId ?? "");
-  const regenerate = useRegenerateOnecToken(storeId ?? "");
+  const { merchantId, canManage } = useCurrentMerchant();
+  const onec = useOnecIntegration(merchantId ?? "");
+  const regenerate = useRegenerateOnecToken(merchantId ?? "");
   const [confirming, setConfirming] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -51,7 +51,7 @@ export function OnecPage() {
         </div>
       </Card>
 
-      {isOwner && (
+      {canManage && (
         <Card>
           <h2 className="text-xl font-bold">Перевыпустить токен</h2>
           <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">

@@ -1,71 +1,72 @@
-import { customersApi, type CreateCustomerInput, type CustomerQuery, type IssueCardInput } from "@loal/api";
+import { platformApi, type CreateCustomerInput, type CustomerQuery, type IssueCardInput } from "@loal/api";
 import { useApi } from "./session";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+/**
+ * Клиенты и карты принадлежат платформе: заведения к ним доступа не имеют (403).
+ * Поэтому здесь нет merchantId — только агентство.
+ */
 export const customerKeys = {
-  table: (storeId: string, query: CustomerQuery) => ["customers", storeId, query] as const,
-  cards: (storeId: string, customerId: string) => ["customers", storeId, customerId, "cards"] as const,
-  catalog: (storeId: string) => ["catalog", storeId] as const,
+  all: ["customers"] as const,
+  table: (query: CustomerQuery) => ["customers", query] as const,
+  cards: (customerId: string) => ["customers", customerId, "cards"] as const,
+  catalog: ["catalog"] as const,
 };
 
-export function useCustomers(storeId: string, query: CustomerQuery) {
+export function useCustomers(query: CustomerQuery) {
   const api = useApi();
   return useQuery({
-    queryKey: customerKeys.table(storeId, query),
-    queryFn: () => customersApi(api).table(storeId, query),
-    enabled: Boolean(storeId),
+    queryKey: customerKeys.table(query),
+    queryFn: () => platformApi(api).customers(query),
     placeholderData: (previous) => previous,
   });
 }
 
-export function useCustomerCards(storeId: string, customerId: string | null) {
+export function useCustomerCards(customerId: string | null) {
   const api = useApi();
   return useQuery({
-    queryKey: customerKeys.cards(storeId, customerId ?? ""),
-    queryFn: () => customersApi(api).cards(storeId, customerId!),
-    enabled: Boolean(storeId && customerId),
+    queryKey: customerKeys.cards(customerId ?? ""),
+    queryFn: () => platformApi(api).customerCards(customerId!),
+    enabled: Boolean(customerId),
   });
 }
 
 /** Шаблоны карт и программы нужны вместе: без пары выпускать нечего. */
-export function useIssueCatalog(storeId: string, enabled: boolean) {
+export function useIssueCatalog(enabled: boolean) {
   const api = useApi();
   return useQuery({
-    queryKey: customerKeys.catalog(storeId),
+    queryKey: customerKeys.catalog,
     queryFn: async () => {
-      const [templates, programs] = await Promise.all([
-        customersApi(api).templates(storeId),
-        customersApi(api).programs(storeId),
-      ]);
+      const [templates, programs] = await Promise.all([platformApi(api).templates(), platformApi(api).programs()]);
       return { templates, programs };
     },
-    enabled: Boolean(storeId) && enabled,
+    enabled,
   });
 }
 
-export function useCreateCustomer(storeId: string) {
+export function useCreateCustomer() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateCustomerInput) => customersApi(api).create(storeId, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["customers", storeId] }),
+    mutationFn: (input: CreateCustomerInput) => platformApi(api).createCustomer(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: customerKeys.all }),
   });
 }
 
-export function useIssueCard(storeId: string) {
+export function useIssueCard() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: IssueCardInput) => customersApi(api).issueCard(storeId, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["customers", storeId] }),
+    mutationFn: (input: IssueCardInput) => platformApi(api).issueCard(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: customerKeys.all }),
   });
 }
 
-export function useRevokeCard(storeId: string) {
+export function useRevokeCard() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (serial: string) => customersApi(api).revokeCard(storeId, serial),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["customers", storeId] }),
+    mutationFn: (serial: string) => platformApi(api).revokeCard(serial),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: customerKeys.all }),
   });
 }

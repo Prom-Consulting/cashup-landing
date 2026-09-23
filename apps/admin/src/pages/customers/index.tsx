@@ -1,4 +1,4 @@
-import { ArrowLeft02Icon, Search01Icon } from "@hugeicons/core-free-icons";
+import { Search01Icon } from "@hugeicons/core-free-icons";
 import { IssueCardDialog, useCustomers } from "@loal/app-kit";
 import {
   Badge,
@@ -9,6 +9,7 @@ import {
   Icon,
   Input,
   Loading,
+  PageHeader,
   Table,
   TableBody,
   TableCell,
@@ -17,19 +18,18 @@ import {
   TableRow,
 } from "@loal/ui/shadcn";
 import { useState } from "react";
-import { Link, useParams } from "react-router";
-import { useStore } from "../../entities/store/api";
 import { formatDate } from "../../shared/lib/format";
 
 const PAGE_SIZE = 20;
 
-/** Клиенты магазина и выпуск карт. Карты выпускает магазин с ролью issuer. */
-export function StoreCustomersPage() {
-  const { storeId = "" } = useParams();
-  const store = useStore(storeId);
+/**
+ * Клиенты и карты принадлежат платформе, а не заведению: список один на всех,
+ * и виден он только агентству.
+ */
+export function CustomersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const customers = useCustomers(storeId, { page, pageSize: PAGE_SIZE, search: search.trim() || undefined });
+  const customers = useCustomers({ page, pageSize: PAGE_SIZE, search: search.trim() || undefined });
 
   const rows = customers.data?.items ?? [];
   const total = customers.data?.total ?? 0;
@@ -37,22 +37,11 @@ export function StoreCustomersPage() {
 
   return (
     <section className="flex flex-col gap-6">
-      <Button asChild variant="ghost" size="sm" className="self-start">
-        <Link to={`/stores/${storeId}`}>
-          <Icon icon={ArrowLeft02Icon} />К магазину
-        </Link>
-      </Button>
-
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="display text-[clamp(1.75rem,3vw,2.5rem)]">Клиенты</h1>
-          <p className="mt-2 text-lg text-muted-foreground">
-            {store.data?.name ?? "Магазин"}
-            {total > 0 ? ` · всего ${total}` : ""}
-          </p>
-        </div>
-        <IssueCardDialog storeId={storeId} />
-      </div>
+      <PageHeader
+        title="Клиенты"
+        description={total > 0 ? `Всего держателей карт: ${total}` : "Держатели карт Loal и их карты."}
+        action={<IssueCardDialog />}
+      />
 
       <div className="relative max-w-[420px]">
         <Icon icon={Search01Icon} className="absolute top-1/2 left-4 -translate-y-1/2 text-muted-foreground" />

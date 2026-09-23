@@ -1,23 +1,22 @@
 import { z } from "zod";
 
 /**
- * Подписка магазина отвечает на вопрос «можно ли принимать бонусы»,
+ * Подписка заведения отвечает на вопрос «можно ли принимать бонусы»,
  * счёт — «заплатили ли». Это разные сущности и разные адреса (docs/API.md).
  */
-export const storeSubscriptionSchema = z.looseObject({
-  storeId: z.string(),
+export const merchantSubscriptionSchema = z.looseObject({
+  merchantId: z.string(),
   plan: z.string().nullish(),
   status: z.string(),
   startedAt: z.string().nullish(),
   expiresAt: z.string().nullish(),
   isActive: z.boolean(),
 });
-export type StoreSubscription = z.infer<typeof storeSubscriptionSchema>;
+export type MerchantSubscription = z.infer<typeof merchantSubscriptionSchema>;
 
 /** Подписка клиента: пачка баллов на период, остаток в конце месяца сгорает. */
 export const cardSubscriptionSchema = z.looseObject({
   id: z.string(),
-  storeId: z.string(),
   cardId: z.string(),
   status: z.enum(["active", "canceled", "expired"]),
   pointsPerPeriod: z.number(),
@@ -98,7 +97,7 @@ export type CreateInvoiceInput = z.infer<typeof createInvoiceInputSchema>;
 
 /** Настройки обмена с 1С: адрес входящего вебхука копируют в 1С магазина. */
 export const onecIntegrationSchema = z.looseObject({
-  storeId: z.string(),
+  merchantId: z.string(),
   inboundWebhookUrl: z.string(),
   createdAt: z.string().nullish(),
 });

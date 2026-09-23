@@ -1,18 +1,18 @@
 import { planLabel } from "@loal/api";
 import { Badge, Card, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Link } from "react-router";
-import { useDeductions, useStore, useSubscription } from "../../entities/store/api";
-import { useCurrentStore } from "../../entities/session/model";
+import { useDeductions, useMerchant, useSubscription } from "../../entities/merchant/api";
+import { useCurrentMerchant } from "../../entities/session/model";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
 
 const money = new Intl.NumberFormat("ru-RU");
 
 /** Главный экран: можно ли принимать бонусы и что списали последним. */
 export function DashboardPage() {
-  const { storeId } = useCurrentStore();
-  const store = useStore(storeId ?? "");
-  const subscription = useSubscription(storeId ?? "");
-  const recent = useDeductions(storeId ?? "", { page: 1, pageSize: 5 });
+  const { merchantId } = useCurrentMerchant();
+  const merchant = useMerchant(merchantId ?? "");
+  const subscription = useSubscription(merchantId ?? "");
+  const recent = useDeductions(merchantId ?? "", { page: 1, pageSize: 5 });
 
   if (subscription.isPending) return <Loading />;
   if (subscription.isError) return <ErrorState error={subscription.error} onRetry={() => subscription.refetch()} />;
@@ -22,7 +22,7 @@ export function DashboardPage() {
   return (
     <section className="flex flex-col gap-6">
       <PageHeader
-        title={store.data?.name ?? "Кабинет магазина"}
+        title={merchant.data?.name ?? "Кабинет магазина"}
         description="Пока подписка активна, касса и 1С могут списывать бонусы клиентов."
         action={<Badge tone={active ? "good" : "warn"}>{active ? "Бонусы принимаются" : "Приём остановлен"}</Badge>}
       />

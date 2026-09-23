@@ -1,21 +1,21 @@
-import { Chart01Icon, CreditCardIcon, Invoice01Icon, Settings02Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
+import { Chart01Icon, CreditCardIcon, Invoice01Icon, Settings02Icon, Store01Icon } from "@hugeicons/core-free-icons";
 import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
 import { Icon, type IconSvg } from "@loal/ui/shadcn";
 import { Select } from "@loal/ui/select";
 import { useId } from "react";
 import { Link, Outlet, useLocation } from "react-router";
-import { useCurrentStore } from "../../entities/session/model";
+import { useCurrentMerchant } from "../../entities/session/model";
 
 const nav: (NavItem & { icon: IconSvg })[] = [
   { to: "/", label: "Обзор", icon: Chart01Icon },
-  { to: "/customers", label: "Клиенты", icon: UserGroupIcon },
+  { to: "/storefront", label: "Витрина", icon: Store01Icon },
   { to: "/deductions", label: "Списания", icon: CreditCardIcon },
   { to: "/billing", label: "Оплата", icon: Invoice01Icon },
   { to: "/onec", label: "Обмен с 1С", icon: Settings02Icon },
 ];
 
 export function AppLayout() {
-  const { label, logout, memberships, storeId, selectStore } = useCurrentStore();
+  const { label, logout, memberships, merchantId, selectMerchant } = useCurrentMerchant();
   const location = useLocation();
   const selectId = useId();
 
@@ -38,7 +38,7 @@ export function AppLayout() {
       }}
     >
       {/* Человек может работать в нескольких магазинах — тогда нужен выбор */}
-      {memberships.length > 1 && storeId && (
+      {memberships.length > 1 && merchantId && (
         <div className="mb-6 max-w-[320px]">
           <label htmlFor={selectId} className="text-base text-muted-foreground">
             Магазин
@@ -47,9 +47,9 @@ export function AppLayout() {
             <Select
               id={selectId}
               invalid={false}
-              value={storeId}
-              options={memberships.map((m) => ({ id: m.storeId, label: m.storeId }))}
-              onChange={selectStore}
+              value={merchantId}
+              options={memberships.map((m) => ({ id: m.merchantId, label: m.merchantId }))}
+              onChange={selectMerchant}
             />
           </div>
         </div>

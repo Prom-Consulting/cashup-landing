@@ -1,7 +1,7 @@
 import { invoiceState } from "@loal/api";
 import { Badge, Button, Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
-import { useCurrentStore } from "../../entities/session/model";
-import { useInvoices, useSubscription } from "../../entities/store/api";
+import { useCurrentMerchant } from "../../entities/session/model";
+import { useInvoices, useSubscription } from "../../entities/merchant/api";
 import { InvoiceForm } from "../../features/billing/invoice-form";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
 
@@ -9,9 +9,9 @@ const money = new Intl.NumberFormat("ru-RU");
 
 /** Счета отвечают на вопрос «заплатили ли», подписка — «можно ли принимать бонусы». */
 export function BillingPage() {
-  const { storeId } = useCurrentStore();
-  const subscription = useSubscription(storeId ?? "");
-  const invoices = useInvoices(storeId ?? "");
+  const { merchantId } = useCurrentMerchant();
+  const subscription = useSubscription(merchantId ?? "");
+  const invoices = useInvoices(merchantId ?? "");
 
   return (
     <section className="flex flex-col gap-6">
@@ -32,7 +32,7 @@ export function BillingPage() {
         <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
           После оплаты через OctōPAY доступ продлевается сам — вручную ничего включать не нужно.
         </p>
-        <div className="mt-5">{storeId && <InvoiceForm storeId={storeId} />}</div>
+        <div className="mt-5">{merchantId && <InvoiceForm merchantId={merchantId} />}</div>
       </Card>
 
       {invoices.isPending && <Loading />}

@@ -4,9 +4,9 @@ import { LeadsPage } from "../pages/leads";
 import { LoginPage } from "../pages/login";
 import { NotFoundPage } from "../pages/not-found";
 import { ProfilePage } from "../pages/profile";
-import { StoreCustomersPage } from "../pages/store-customers";
-import { StoreDetailsPage } from "../pages/store-details";
-import { StoresPage } from "../pages/stores";
+import { CustomersPage } from "../pages/customers";
+import { MerchantDetailsPage } from "../pages/merchant-details";
+import { MerchantsPage } from "../pages/merchants";
 import { AppLayout } from "../widgets/app-layout";
 
 /** Все экраны, кроме входа, доступны только администратору платформы. */
@@ -24,9 +24,9 @@ export function AppRouter() {
           </RequireAuth>
         }
       >
-        <Route index element={<StoresPage />} />
-        <Route path="stores/:storeId" element={<StoreDetailsPage />} />
-        <Route path="stores/:storeId/customers" element={<StoreCustomersPage />} />
+        <Route index element={<MerchantsPage />} />
+        <Route path="merchants/:merchantId" element={<MerchantDetailsPage />} />
+        <Route path="customers" element={<CustomersPage />} />
         <Route path="leads" element={<LeadsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="*" element={<NotFoundPage />} />

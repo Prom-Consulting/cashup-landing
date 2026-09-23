@@ -13,14 +13,14 @@ const emptyCustomer: CreateCustomerInput = { firstName: "", lastName: "", phone:
  * по выбранному шаблону. Шаблон и программа приходят из настроек магазина — если их
  * нет, выпускать нечего, и мы честно об этом говорим.
  */
-export function IssueCardDialog({ storeId }: { storeId: string }) {
+export function IssueCardDialog() {
   const [open, setOpen] = useState(false);
   const [issued, setIssued] = useState<{ serial: string; name: string } | null>(null);
   const [templateId, setTemplateId] = useState("");
 
-  const catalog = useIssueCatalog(storeId, open);
-  const createCustomer = useCreateCustomer(storeId);
-  const issueCard = useIssueCard(storeId);
+  const catalog = useIssueCatalog(open);
+  const createCustomer = useCreateCustomer();
+  const issueCard = useIssueCard();
   const templateFieldId = useId();
 
   const templates = catalog.data?.templates ?? [];
@@ -98,7 +98,7 @@ export function IssueCardDialog({ storeId }: { storeId: string }) {
               } catch (error) {
                 helpers.setStatus(
                   error instanceof ApiError && error.status === 400
-                    ? "Этот магазин не выпускает карты — их выпускает Loal. Напишите нам, и мы включим выпуск."
+                    ? "Карту выпустить не удалось: проверьте, что у платформы есть шаблон карты и программа."
                     : error instanceof Error
                       ? error.message
                       : "Не удалось выпустить карту",
