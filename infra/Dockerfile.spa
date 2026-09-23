@@ -17,7 +17,9 @@ ARG VITE_SITE_URL
 ENV VITE_API_URL=$VITE_API_URL VITE_SITE_URL=$VITE_SITE_URL
 COPY . .
 RUN pnpm install --frozen-lockfile --offline
-RUN pnpm --filter @loal/$APP build
+# Только сборка: проверка типов уже прошла локально и в pnpm typecheck,
+# а внутри образа она удваивает время без пользы
+RUN pnpm --filter @loal/$APP exec vite build
 
 FROM nginx:1.27-alpine AS runtime
 ARG APP
