@@ -1,0 +1,29 @@
+{
+  "name": "@loal/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    "./theme.css": "./src/theme.css",
+    "./logo": "./src/logo.tsx",
+    "./field": "./src/field.tsx",
+    "./inputs": "./src/inputs.tsx",
+    "./select": "./src/select.tsx",
+    "./app-shell": "./src/app-shell.tsx",
+    "./page": "./src/page.tsx"
+  },
+  "peerDependencies": {
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@loal/tsconfig": "workspace:*",
+    "@types/react": "^19",
+    "typescript": "^5"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

@@ -1,3 +1,9 @@
-ignoredBuiltDependencies:
+packages:
+  - apps/*
+  - packages/*
+
+# Сборочные скрипты этих пакетов нужны: esbuild и sharp ставят бинарники под платформу
+onlyBuiltDependencies:
+  - esbuild
   - sharp
   - unrs-resolver

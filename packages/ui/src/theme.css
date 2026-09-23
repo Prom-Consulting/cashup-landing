@@ -1,0 +1,68 @@
+/*
+ * Бренд Loal — общий для лендинга и кабинетов (partner / client).
+ * Подключается после `@import "tailwindcss"`. Приложение само задаёт шрифты:
+ * --font-google-sans и --font-jost (лендинг — через next/font, SPA — через Google Fonts).
+ */
+
+/* Tailwind должен видеть классы компонентов пакета */
+@source "./";
+
+:root {
+  /* Палитра макета главной (Figma «loal») поверх брендбука Loal. */
+  --flame: #ff3300; /* Акцент: кнопки, цифры, логотип */
+  --flame-ink: #c42700; /* Акцент для мелкого текста и ссылок на светлом (5.5:1) */
+  --amber: #ff9720; /* Вторая точка фирменного градиента */
+  --cream: #edf2f4; /* Холодная светлая подложка: первый экран, плашки, тарифы */
+  --paper: #ffffff; /* Фон страницы */
+  --graphite: #090809; /* Текст и тёмные секции */
+  --coal: #242324; /* Вторая тёмная поверхность: чек, кнопки процентов */
+  --slate: #6f747d; /* Второстепенный текст на светлом (4.7:1); в макете #9297a0 */
+  --slate-soft: #9297a0; /* Второстепенный текст на тёмном — цвет макета */
+  --smoke: #dfe3e6; /* Разделители и рамки */
+}
+
+@theme inline {
+  --color-flame: var(--flame);
+  --color-flame-ink: var(--flame-ink);
+  --color-amber: var(--amber);
+  --color-cream: var(--cream);
+  --color-paper: var(--paper);
+  --color-graphite: var(--graphite);
+  --color-coal: var(--coal);
+  --color-slate: var(--slate);
+  --color-slate-soft: var(--slate-soft);
+  --color-smoke: var(--smoke);
+  --font-display: var(--font-google-sans);
+  --font-sans: var(--font-google-sans);
+  --font-brand: var(--font-jost);
+}
+
+body {
+  background: var(--paper);
+  color: var(--graphite);
+  font-family: var(--font-google-sans), system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--flame);
+  color: var(--paper);
+}
+
+:focus-visible {
+  outline: 3px solid var(--flame);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Заголовки макета: Google Sans 700 */
+.display {
+  font-family: var(--font-google-sans), sans-serif;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+/* Фирменный градиент: FF3300 → FF9720 */
+.brand-gradient {
+  background: linear-gradient(120deg, var(--flame) 0%, var(--amber) 100%);
+}
