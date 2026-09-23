@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@import "@loal/ui/theme.css";
+
+/* Лендинг подключает шрифты через next/font, кабинет — ссылкой на Google Fonts в index.html */
+:root {
+  --font-google-sans: "Google Sans";
+  --font-jost: "Jost";
+}
