@@ -1,25 +1,26 @@
 import { ApiError } from "@loal/api";
-import { AppleIcon, ArrowLeft02Icon } from "@hugeicons/core-free-icons";
-import { Button, Card, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
+import { AppleIcon, ArrowLeft02Icon, RefreshIcon } from "@hugeicons/core-free-icons";
+import { Button, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
 import { Link, useParams } from "react-router";
 import { appleWalletUrl, usePassInfo } from "../../entities/card/api";
-import { CardView } from "../../widgets/card-view";
 import { PaySubscriptionForm } from "../../features/subscription/pay-form";
+import { CardView } from "../../widgets/card-view";
 
 /** Страница карты по ссылке: /c/<серийный номер>. Вход не нужен — ссылка и есть доступ. */
 export function CardPage() {
   const { serial = "" } = useParams();
   const pass = usePassInfo(serial);
 
-  if (pass.isPending) return <Loading label="Открываем карту…" />;
+  if (pass.isPending) return <Loading label="Открываем карту…" rows={2} />;
 
   if (pass.isError) {
     const notFound = pass.error instanceof ApiError && pass.error.status === 404;
     return notFound ? (
-      <div className="mx-auto max-w-[420px] text-center">
-        <h1 className="display text-[2rem]">Карта не найдена</h1>
+      <div className="mx-auto max-w-[420px]">
+        <h1 className="display text-[2rem]">Такой карты нет</h1>
         <p className="mt-3 text-lg text-muted-foreground">
-          Проверьте ссылку: возможно, номер набран с ошибкой или карту отозвали.
+          Проверьте номер: возможно, в нём опечатка или карту отозвали. Если карту выдали в заведении, попросите там
+          ссылку заново.
         </p>
         <Button asChild variant="outline" className="mt-6">
           <Link to="/">
@@ -36,25 +37,34 @@ export function CardPage() {
   return (
     <div className="mx-auto flex max-w-[420px] flex-col gap-6">
       <CardView pass={pass.data} />
-      <Button asChild size="lg" className="w-full">
-        <a href={appleWalletUrl(serial)}>
-          <Icon icon={AppleIcon} />
-          Добавить в Apple Wallet
-        </a>
-      </Button>
-      <p className="text-center text-base text-muted-foreground">
-        Карта обновляется сама: баланс в Wallet меняется после каждой покупки у партнёра.
-      </p>
 
-      <Card>
-        <h2 className="text-xl font-bold">Продлить подписку</h2>
-        <p className="mt-2 text-base text-muted-foreground">
-          Каждый оплаченный месяц на карте снова 100 000 сом бонусами. Остаток прошлого месяца сгорает.
-        </p>
-        <div className="mt-5">
-          <PaySubscriptionForm serial={serial} />
-        </div>
-      </Card>
+      <div className="flex flex-col gap-3">
+        <Button asChild variant="secondary" size="lg">
+          <a href={appleWalletUrl(serial)}>
+            <Icon icon={AppleIcon} />
+            Добавить в Apple Wallet
+          </a>
+        </Button>
+
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="lg">
+              <Icon icon={RefreshIcon} />
+              Продлить подписку
+            </Button>
+          </DialogTrigger>
+          <DialogContent
+            title="Продлить подписку"
+            description="Каждый оплаченный месяц на карте снова 100 000 сом бонусами. Остаток прошлого месяца сгорает."
+          >
+            <PaySubscriptionForm serial={serial} />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <p className="text-base leading-snug text-muted-foreground">
+        Баланс в Wallet обновляется сам после каждой покупки у партнёра — открывать эту страницу заново не нужно.
+      </p>
     </div>
   );
 }

@@ -51,14 +51,6 @@ html {
 }
 
 /* Зубчатый низ чека: крупные зубцы, как в макете */
-/* Низ чека — перфорация мелкими полукруглыми вырезами, как у настоящей ленты */
-.receipt {
-  --r: 9px;
-  mask:
-    radial-gradient(var(--r) at 50% 100%, #0000 97%, #000) bottom / calc(var(--r) * 2.6) var(--r) repeat-x,
-    linear-gradient(#000 0 0) top / 100% calc(100% - var(--r) + 1px) no-repeat;
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

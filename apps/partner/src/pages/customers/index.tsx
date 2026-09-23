@@ -18,6 +18,7 @@ import {
 import { useState } from "react";
 import { IssueCardDialog, useCustomers } from "@loal/app-kit";
 import { useCurrentStore } from "../../entities/session/model";
+import { useStore } from "../../entities/store/api";
 import { formatDate } from "../../shared/lib/format";
 
 const PAGE_SIZE = 20;
@@ -28,6 +29,10 @@ export function CustomersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const customers = useCustomers(storeId ?? "", { page, pageSize: PAGE_SIZE, search: search.trim() || undefined });
+  const store = useStore(storeId ?? "");
+  // Карты выпускает только магазин-эмитент (в Cashup это сам Loal): у остальных
+  // запрос всё равно отклонят, поэтому кнопку не показываем вовсе
+  const canIssue = store.data?.kind === "issuer";
 
   const rows = customers.data?.items ?? [];
   const total = customers.data?.total ?? 0;
@@ -40,9 +45,10 @@ export function CustomersPage() {
           <h1 className="display text-[clamp(1.75rem,3vw,2.5rem)]">Клиенты</h1>
           <p className="mt-2 text-lg text-muted-foreground">
             {total > 0 ? `Всего гостей: ${total}` : "Гости, которым выпущена карта Loal."}
+            {store.isSuccess && !canIssue && " Карты выпускает Loal — напишите нам, и мы выпустим карту гостю."}
           </p>
         </div>
-        {storeId && <IssueCardDialog storeId={storeId} />}
+        {storeId && canIssue && <IssueCardDialog storeId={storeId} />}
       </div>
 
       <div className="relative max-w-[420px]">
@@ -64,7 +70,13 @@ export function CustomersPage() {
       {customers.isSuccess && rows.length === 0 && (
         <EmptyState
           title={search ? "Никого не нашли" : "Гостей пока нет"}
-          description={search ? "Попробуйте другой запрос." : "Выпустите первую карту — гость появится здесь."}
+          description={
+            search
+              ? "Попробуйте другой запрос."
+              : canIssue
+                ? "Выпустите первую карту — гость появится здесь."
+                : "Гость появится здесь, как только Loal выпустит ему карту."
+          }
         />
       )}
 
