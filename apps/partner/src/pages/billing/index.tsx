@@ -1,5 +1,4 @@
-import { Badge, Card, EmptyState, ErrorState, Loading } from "@loal/ui/shadcn";
-import { PageHeader } from "@loal/ui/page";
+import { Badge, Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { useCurrentStore } from "../../entities/session/model";
 import { useInvoices, useSubscription } from "../../entities/store/api";
 import { InvoiceForm } from "../../features/billing/invoice-form";

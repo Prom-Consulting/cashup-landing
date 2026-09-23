@@ -1,6 +1,5 @@
-import { Button } from "@loal/ui/shadcn";
+import { Button, PageHeader } from "@loal/ui/shadcn";
 import { Card, ErrorState, Loading } from "@loal/ui/shadcn";
-import { PageHeader } from "@loal/ui/page";
 import { useState } from "react";
 import { useCurrentStore } from "../../entities/session/model";
 import { useOnecIntegration, useRegenerateOnecToken } from "../../entities/store/api";

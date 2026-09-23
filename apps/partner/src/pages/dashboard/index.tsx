@@ -1,4 +1,5 @@
-import { Badge, Card, ErrorState, Loading, PageHeader } from "@loal/ui/page";
+import { planLabel } from "@loal/api";
+import { Badge, Card, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Link } from "react-router";
 import { useDeductions, useStore, useSubscription } from "../../entities/store/api";
 import { useCurrentStore } from "../../entities/session/model";
@@ -44,7 +45,7 @@ export function DashboardPage() {
           <dl className="mt-4 flex flex-col gap-3">
             <div>
               <dt className="text-base text-muted-foreground">Тариф</dt>
-              <dd className="text-lg">{subscription.data.plan ?? "—"}</dd>
+              <dd className="text-lg">{planLabel(subscription.data.plan)}</dd>
             </div>
             <div>
               <dt className="text-base text-muted-foreground">Действует до</dt>

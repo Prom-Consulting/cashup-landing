@@ -1,7 +1,8 @@
 import { ApiError, createInvoiceInputSchema, type CreateInvoiceInput } from "@loal/api";
 import { fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
-import { Button, Spinner, TextInput } from "@loal/ui/inputs";
+import { Button } from "@loal/ui/shadcn";
+import { TextInput } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
 import { useCreateInvoice } from "../../entities/store/api";
 
@@ -62,7 +63,7 @@ export function InvoiceForm({ storeId }: { storeId: string }) {
             )}
           </Field>
           <Button type="submit" variant="outline" disabled={form.isSubmitting}>
-            {form.isSubmitting ? <Spinner /> : "Выставить счёт"}
+            {form.isSubmitting ? "Выставляем…" : "Выставить счёт"}
           </Button>
           {formError(form) && (
             <p role="status" className="text-base font-medium text-flame-ink sm:basis-full">

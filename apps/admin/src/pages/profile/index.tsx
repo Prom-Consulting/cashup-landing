@@ -2,9 +2,8 @@ import { ApiError, changePasswordInputSchema, type ChangePasswordInput, authApi 
 import { useApi } from "@loal/app-kit";
 import { fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
-import { Button, Input } from "@loal/ui/shadcn";
+import { Button, Input, PageHeader } from "@loal/ui/shadcn";
 import { Card } from "@loal/ui/shadcn";
-import { PageHeader } from "@loal/ui/page";
 import { Form, Formik } from "formik";
 import { useCurrentUser } from "../../entities/session/model";
 

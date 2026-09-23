@@ -2,9 +2,8 @@ import { ApiError, changePasswordInputSchema, type ChangePasswordInput, authApi 
 import { useApi } from "@loal/app-kit";
 import { fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
-import { Button, Spinner, TextInput } from "@loal/ui/inputs";
-import { Card } from "@loal/ui/shadcn";
-import { PageHeader } from "@loal/ui/page";
+import { TextInput } from "@loal/ui/inputs";
+import { Button, Card, PageHeader } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useCurrentStore } from "../../entities/session/model";
 
@@ -99,7 +98,7 @@ export function ProfilePage() {
                 </p>
               )}
               <Button type="submit" disabled={form.isSubmitting} className="self-start">
-                {form.isSubmitting ? <Spinner /> : "Сохранить"}
+                {form.isSubmitting ? "Сохраняем…" : "Сохранить"}
               </Button>
             </Form>
           )}

@@ -1,6 +1,5 @@
 import { LEAD_STATUS_LABELS } from "@loal/api";
-import { Card, EmptyState, ErrorState, Loading } from "@loal/ui/shadcn";
-import { PageHeader } from "@loal/ui/page";
+import { Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { useLeads } from "../../entities/lead/api";
 import { LeadStatusPicker } from "../../features/lead/status-picker";
 import { formatDateTime, formatPhoneHref } from "../../shared/lib/format";

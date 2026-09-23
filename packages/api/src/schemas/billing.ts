@@ -41,6 +41,20 @@ export const invoiceSchema = z.looseObject({
 });
 export type Invoice = z.infer<typeof invoiceSchema>;
 
+/** Коды тарифов бэкенда в человеческие слова; незнакомый код показываем как есть. */
+const PLAN_LABELS: Record<string, string> = {
+  monthly: "Помесячно",
+  yearly: "На год",
+  annual: "На год",
+  trial: "Пробный",
+  free: "Бесплатный",
+};
+
+export function planLabel(plan: string | null | undefined) {
+  if (!plan) return "—";
+  return PLAN_LABELS[plan] ?? plan;
+}
+
 export const buyMonthsInputSchema = z.object({
   months: z.coerce.number().int().min(1, "Минимум месяц").max(12, "Не больше года"),
 });

@@ -1,7 +1,8 @@
 import { ApiError, createStoreInputSchema, storeKindSchema, type CreateStoreInput } from "@loal/api";
 import { fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
-import { Button, Spinner, TextInput } from "@loal/ui/inputs";
+import { Button } from "@loal/ui/shadcn";
+import { TextInput } from "@loal/ui/inputs";
 import { Select } from "@loal/ui/select";
 import { Form, Formik } from "formik";
 import { useCreateStore } from "../../entities/store/api";
@@ -107,7 +108,7 @@ export function CreateStoreForm({ onCreated }: { onCreated?: (storeId: string) =
           )}
 
           <Button type="submit" disabled={form.isSubmitting} className="self-start">
-            {form.isSubmitting ? <Spinner /> : "Создать магазин"}
+            {form.isSubmitting ? "Создаём…" : "Создать магазин"}
           </Button>
         </Form>
       )}

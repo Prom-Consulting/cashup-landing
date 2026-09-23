@@ -8,10 +8,9 @@ import {
 import { fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Form, Formik } from "formik";
-import { Input } from "@loal/ui/shadcn";
+import { Input, PageHeader } from "@loal/ui/shadcn";
 import { useState } from "react";
 import { Badge, Card, EmptyState, ErrorState, Loading } from "@loal/ui/shadcn";
-import { PageHeader } from "@loal/ui/page";
 import { Button, Icon } from "@loal/ui/shadcn";
 import { UserGroupIcon } from "@hugeicons/core-free-icons";
 import { Link, useParams } from "react-router";

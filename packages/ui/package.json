@@ -13,7 +13,6 @@
     "./inputs": "./src/inputs.tsx",
     "./select": "./src/select.tsx",
     "./app-shell": "./src/app-shell.tsx",
-    "./page": "./src/page.tsx",
     "./shadcn": "./src/shadcn/index.ts"
   },
   "peerDependencies": {

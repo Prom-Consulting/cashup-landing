@@ -5,8 +5,7 @@ import {
   type Store,
   type StoreKind,
 } from "@loal/api";
-import { Badge, Card, EmptyState, ErrorState, Loading } from "@loal/ui/shadcn";
-import { PageHeader } from "@loal/ui/page";
+import { Badge, Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Search01Icon } from "@hugeicons/core-free-icons";
 import { Button, Icon, Input } from "@loal/ui/shadcn";
 import { CreateStoreForm } from "../../features/store/create-store-form";

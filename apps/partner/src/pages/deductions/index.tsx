@@ -1,4 +1,4 @@
-import { Button, Icon, Input } from "@loal/ui/shadcn";
+import { Button, Icon, Input, PageHeader } from "@loal/ui/shadcn";
 import { Search01Icon } from "@hugeicons/core-free-icons";
 import {
   Card,
@@ -12,7 +12,6 @@ import {
   TableHeaderCell,
   TableRow,
 } from "@loal/ui/shadcn";
-import { PageHeader } from "@loal/ui/page";
 import { useState } from "react";
 import { useDeductions } from "../../entities/store/api";
 import { useCurrentStore } from "../../entities/session/model";

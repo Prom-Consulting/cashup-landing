@@ -6,6 +6,27 @@ import { Button } from "./button";
 import { Icon } from "./icon";
 import { cn } from "./lib";
 
+/** Шапка экрана: заголовок, пояснение и место под действие справа. */
+export function PageHeader({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 className="display text-[clamp(1.75rem,3vw,2.5rem)]">{title}</h1>
+        {description && <p className="mt-2 max-w-[70ch] text-lg text-muted-foreground">{description}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
 /** Заглушка на время загрузки: держит высоту, чтобы верстка не прыгала. */
 export function Skeleton({ className }: { className?: string }) {
   return <div className={cn("animate-pulse rounded-2xl bg-muted", className)} />;
