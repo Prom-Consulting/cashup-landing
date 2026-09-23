@@ -3,7 +3,8 @@ import { useApi } from "@loal/app-kit";
 import { fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Button, Spinner, TextInput } from "@loal/ui/inputs";
-import { Card, PageHeader } from "@loal/ui/page";
+import { Card } from "@loal/ui/shadcn";
+import { PageHeader } from "@loal/ui/page";
 import { Form, Formik } from "formik";
 import { useCurrentStore } from "../../entities/session/model";
 
@@ -20,7 +21,7 @@ export function ProfilePage() {
 
       <Card>
         <h2 className="text-xl font-bold">Доступ</h2>
-        <p className="mt-2 text-lg text-slate">
+        <p className="mt-2 text-lg text-muted-foreground">
           {membership?.role === "admin" || membership?.role === "partner"
             ? "Владелец магазина: видит оплату и настройки 1С"
             : "Сотрудник магазина"}
@@ -93,7 +94,7 @@ export function ProfilePage() {
                 )}
               </Field>
               {formError(form) && (
-                <p role="status" className="text-base font-medium text-flame-ink">
+                <p role="status" className="text-base font-medium text-destructive">
                   {formError(form)}
                 </p>
               )}

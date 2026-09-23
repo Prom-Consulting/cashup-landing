@@ -28,8 +28,7 @@ export const storeCabinetApi = (api: ApiClient) => ({
   deductions: (storeId: string, query: DeductionQuery = {}) =>
     api.request(deductionPageSchema, `/admin/v1/stores/${storeId}/deductions`, { query }),
 
-  subscription: (storeId: string) =>
-    api.request(storeSubscriptionSchema, `/admin/v1/stores/${storeId}/subscription`),
+  subscription: (storeId: string) => api.request(storeSubscriptionSchema, `/admin/v1/stores/${storeId}/subscription`),
 
   /** Выдача доступа агентством без оплаты. Обычный путь продления — через счёт. */
   grantSubscription: (storeId: string, input: BuyMonthsInput) =>

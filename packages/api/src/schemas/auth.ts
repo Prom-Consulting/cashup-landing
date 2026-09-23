@@ -71,7 +71,10 @@ export type OtpRequestResult = z.infer<typeof otpRequestResultSchema>;
 
 export const otpLoginInputSchema = z.object({
   phone: phoneSchema,
-  otp: z.string().trim().regex(/^\d{6}$/, "Код из шести цифр"),
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Код из шести цифр"),
 });
 export type OtpLoginInput = z.infer<typeof otpLoginInputSchema>;
 
@@ -85,7 +88,10 @@ export const registerInputSchema = z.object({
   email: z.string().trim().min(1, "Введите почту").pipe(z.email("Похоже, в почте опечатка")),
   password: z.string().min(8, "Не короче 8 символов"),
   phone: phoneSchema,
-  otp: z.string().trim().regex(/^\d{6}$/, "Код из шести цифр"),
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Код из шести цифр"),
   inviteCode: z.string().trim().optional(),
 });
 export type RegisterInput = z.infer<typeof registerInputSchema>;

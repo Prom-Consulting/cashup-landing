@@ -16,5 +16,8 @@ export const passesApi = (api: ApiClient) => ({
 
   /** Файл .pkpass отдаётся браузеру напрямую — ссылку открывает сам пользователь. */
   appleWalletUrl: (baseUrl: string, serial: string) =>
-    new URL(`v1/public/passes/${encodeURIComponent(serial)}`, baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`).toString(),
+    new URL(
+      `v1/public/passes/${encodeURIComponent(serial)}`,
+      baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`,
+    ).toString(),
 });

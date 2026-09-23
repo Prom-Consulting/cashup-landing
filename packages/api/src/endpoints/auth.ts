@@ -63,7 +63,8 @@ export const authApi = (api: ApiClient) => ({
 
   profile: () => api.request(profileSchema, "/auth/me/profile"),
 
-  updateProfile: (input: UpdateProfileInput) => api.request(authTokensSchema, "/auth/me", { method: "PUT", body: input }),
+  updateProfile: (input: UpdateProfileInput) =>
+    api.request(authTokensSchema, "/auth/me", { method: "PUT", body: input }),
 
   changePassword: ({ currentPassword, newPassword }: ChangePasswordInput) =>
     api.request(z.looseObject({ ok: z.boolean() }), "/auth/me/password", {

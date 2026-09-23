@@ -1,5 +1,6 @@
-import { Button } from "@loal/ui/inputs";
-import { Card, ErrorState, Loading, PageHeader } from "@loal/ui/page";
+import { Button } from "@loal/ui/shadcn";
+import { Card, ErrorState, Loading } from "@loal/ui/shadcn";
+import { PageHeader } from "@loal/ui/page";
 import { useState } from "react";
 import { useCurrentStore } from "../../entities/session/model";
 import { useOnecIntegration, useRegenerateOnecToken } from "../../entities/store/api";
@@ -43,18 +44,18 @@ export function OnecPage() {
             Скопировать
           </Button>
           {copied && (
-            <span role="status" className="text-base text-slate">
+            <span role="status" className="text-base text-muted-foreground">
               Скопировано
             </span>
           )}
-          <span className="text-base text-slate">Создан {formatDateTime(onec.data.createdAt)}</span>
+          <span className="text-base text-muted-foreground">Создан {formatDateTime(onec.data.createdAt)}</span>
         </div>
       </Card>
 
       {isOwner && (
         <Card>
           <h2 className="text-xl font-bold">Перевыпустить токен</h2>
-          <p className="mt-2 max-w-[70ch] text-base text-slate">
+          <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
             Нужен, если адрес попал не в те руки. Старый адрес перестаёт работать сразу — 1С придётся настроить заново.
           </p>
           {regenerate.isError && <ErrorState error={regenerate.error} />}
@@ -70,7 +71,7 @@ export function OnecPage() {
               >
                 {regenerate.isPending ? "Перевыпускаем…" : "Да, перевыпустить"}
               </Button>
-              <Button type="button" variant="quiet" onClick={() => setConfirming(false)}>
+              <Button type="button" variant="ghost" onClick={() => setConfirming(false)}>
                 Отмена
               </Button>
             </div>

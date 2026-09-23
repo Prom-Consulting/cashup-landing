@@ -1,7 +1,7 @@
 import { ApiError, buyMonthsInputSchema, type BuyMonthsInput } from "@loal/api";
 import { fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
-import { Button, Spinner } from "@loal/ui/inputs";
+import { Button } from "@loal/ui/shadcn";
 import { Select } from "@loal/ui/select";
 import { Form, Formik } from "formik";
 import { usePaySubscription } from "../../entities/card/api";
@@ -60,13 +60,13 @@ export function PaySubscriptionForm({ serial }: { serial: string }) {
           </Field>
 
           {formError(form) && (
-            <p role="alert" className="text-base font-medium text-flame-ink">
+            <p role="alert" className="text-base font-medium text-destructive">
               {formError(form)}
             </p>
           )}
 
           <Button type="submit" disabled={form.isSubmitting}>
-            {form.isSubmitting ? <Spinner /> : "Оплатить подписку"}
+            {form.isSubmitting ? "Готовим счёт…" : "Оплатить подписку"}
           </Button>
         </Form>
       )}

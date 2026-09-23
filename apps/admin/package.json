@@ -10,16 +10,17 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hugeicons/core-free-icons": "^4.3.5",
+    "@loal/api": "workspace:*",
+    "@loal/app-kit": "workspace:*",
+    "@loal/forms": "workspace:*",
     "@loal/ui": "workspace:*",
     "@tanstack/react-query": "^5.103.2",
     "formik": "^2.4.9",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-router": "^7",
-    "zod": "^4.6.5",
-    "@loal/api": "workspace:*",
-    "@loal/app-kit": "workspace:*",
-    "@loal/forms": "workspace:*"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@loal/tsconfig": "workspace:*",

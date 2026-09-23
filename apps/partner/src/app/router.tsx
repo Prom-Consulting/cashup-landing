@@ -1,6 +1,7 @@
 import { RequireAuth } from "@loal/app-kit";
 import { Route, Routes } from "react-router";
 import { BillingPage } from "../pages/billing";
+import { CustomersPage } from "../pages/customers";
 import { DashboardPage } from "../pages/dashboard";
 import { DeductionsPage } from "../pages/deductions";
 import { LoginPage } from "../pages/login";
@@ -27,6 +28,7 @@ export function AppRouter() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="customers" element={<CustomersPage />} />
         <Route path="deductions" element={<DeductionsPage />} />
         <Route path="billing" element={<BillingPage />} />
         <Route path="onec" element={<OnecPage />} />

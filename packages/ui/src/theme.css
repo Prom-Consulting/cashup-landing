@@ -21,7 +21,41 @@
   --smoke: #dfe3e6; /* Разделители и рамки */
 }
 
+/*
+ * Имена в духе shadcn поверх брендовых цветов: компоненты пишутся привычными
+ * классами (bg-background, text-muted-foreground, border-border), а палитра
+ * остаётся нашей — Loal, а не серый по умолчанию.
+ */
+:root {
+  --background: var(--cream);
+  --foreground: var(--graphite);
+  --surface: var(--paper);
+  --primary: var(--flame);
+  --primary-foreground: #ffffff;
+  --secondary: var(--graphite);
+  --secondary-foreground: var(--paper);
+  --muted: var(--cream);
+  --muted-foreground: var(--slate);
+  --border: var(--smoke);
+  --ring: var(--flame);
+  --destructive: var(--flame-ink);
+  --radius: 16px;
+}
+
 @theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --radius-card: var(--radius);
   --color-flame: var(--flame);
   --color-flame-ink: var(--flame-ink);
   --color-amber: var(--amber);

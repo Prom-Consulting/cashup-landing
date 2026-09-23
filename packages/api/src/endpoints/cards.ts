@@ -13,10 +13,14 @@ export const cardsApi = (api: ApiClient) => ({
     ),
 
   startSubscription: (storeId: string, serial: string, input: BuyMonthsInput) =>
-    api.request(cardSubscriptionSchema, `/admin/v1/stores/${storeId}/cards/${encodeURIComponent(serial)}/subscription`, {
-      method: "POST",
-      body: buyMonthsInputSchema.parse(input),
-    }),
+    api.request(
+      cardSubscriptionSchema,
+      `/admin/v1/stores/${storeId}/cards/${encodeURIComponent(serial)}/subscription`,
+      {
+        method: "POST",
+        body: buyMonthsInputSchema.parse(input),
+      },
+    ),
 
   cancelSubscription: (storeId: string, serial: string) =>
     api.request(

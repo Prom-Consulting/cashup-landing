@@ -1,6 +1,18 @@
-import { SearchInput } from "@loal/ui/inputs";
-import { Button } from "@loal/ui/inputs";
-import { Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/page";
+import { Button, Icon, Input } from "@loal/ui/shadcn";
+import { Search01Icon } from "@hugeicons/core-free-icons";
+import {
+  Card,
+  EmptyState,
+  ErrorState,
+  Loading,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+} from "@loal/ui/shadcn";
+import { PageHeader } from "@loal/ui/page";
 import { useState } from "react";
 import { useDeductions } from "../../entities/store/api";
 import { useCurrentStore } from "../../entities/session/model";
@@ -24,16 +36,19 @@ export function DeductionsPage() {
     <section className="flex flex-col gap-6">
       <PageHeader title="Списания" description={total > 0 ? `Всего строк: ${money.format(total)}` : undefined} />
 
-      <SearchInput
-        value={search}
-        onValueChange={(value) => {
-          setSearch(value);
-          setPage(1);
-        }}
-        label="Поиск по клиенту и товару"
-        placeholder="Клиент или товар"
-        className="max-w-[420px]"
-      />
+      <div className="relative max-w-[420px]">
+        <Icon icon={Search01Icon} className="absolute top-1/2 left-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
+          placeholder="Клиент или товар"
+          aria-label="Поиск по клиенту и товару"
+          className="pl-12"
+        />
+      </div>
 
       {deductions.isPending && <Loading />}
       {deductions.isError && <ErrorState error={deductions.error} onRetry={() => deductions.refetch()} />}
@@ -48,7 +63,7 @@ export function DeductionsPage() {
         <Card className="overflow-x-auto p-0">
           <table className="w-full min-w-[720px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-smoke text-base text-slate">
+              <tr className="border-b border-border text-base text-muted-foreground">
                 <th className="px-6 py-4 font-normal">Клиент</th>
                 <th className="px-6 py-4 font-normal">Товар</th>
                 <th className="px-6 py-4 font-normal">Цена</th>
@@ -60,7 +75,7 @@ export function DeductionsPage() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-b border-smoke/60 last:border-0">
+                <tr key={row.id} className="border-b border-border/60 last:border-0">
                   <td className="px-6 py-4 text-lg">{row.customerName ?? "—"}</td>
                   <td className="px-6 py-4 text-lg">{row.productName ?? "—"}</td>
                   <td className="px-6 py-4 text-lg tabular-nums">{row.price ? money.format(row.price) : "—"}</td>
@@ -68,8 +83,10 @@ export function DeductionsPage() {
                     {row.coveragePercent ? `${row.coveragePercent}%` : "—"}
                   </td>
                   <td className="px-6 py-4 text-lg tabular-nums">{money.format(row.points)}</td>
-                  <td className="px-6 py-4 text-base text-slate">{row.channel === "onec" ? "1С" : "приложение"}</td>
-                  <td className="px-6 py-4 text-base text-slate">{formatDateTime(row.createdAt)}</td>
+                  <td className="px-6 py-4 text-base text-muted-foreground">
+                    {row.channel === "onec" ? "1С" : "приложение"}
+                  </td>
+                  <td className="px-6 py-4 text-base text-muted-foreground">{formatDateTime(row.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -79,13 +96,13 @@ export function DeductionsPage() {
 
       {lastPage > 1 && (
         <div className="flex items-center gap-4">
-          <Button type="button" variant="quiet" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+          <Button type="button" variant="ghost" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
             Назад
           </Button>
-          <span className="text-base text-slate">
+          <span className="text-base text-muted-foreground">
             Страница {page} из {lastPage}
           </span>
-          <Button type="button" variant="quiet" disabled={page >= lastPage} onClick={() => setPage((p) => p + 1)}>
+          <Button type="button" variant="ghost" disabled={page >= lastPage} onClick={() => setPage((p) => p + 1)}>
             Дальше
           </Button>
         </div>

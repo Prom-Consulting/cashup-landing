@@ -1,4 +1,5 @@
-import { Badge, Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/page";
+import { Badge, Card, EmptyState, ErrorState, Loading } from "@loal/ui/shadcn";
+import { PageHeader } from "@loal/ui/page";
 import { useCurrentStore } from "../../entities/session/model";
 import { useInvoices, useSubscription } from "../../entities/store/api";
 import { InvoiceForm } from "../../features/billing/invoice-form";
@@ -28,7 +29,7 @@ export function BillingPage() {
 
       <Card>
         <h2 className="text-xl font-bold">Новый счёт</h2>
-        <p className="mt-2 max-w-[70ch] text-base text-slate">
+        <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
           После оплаты через OctōPAY доступ продлевается сам — вручную ничего включать не нужно.
         </p>
         <div className="mt-5">{storeId && <InvoiceForm storeId={storeId} />}</div>
@@ -45,9 +46,9 @@ export function BillingPage() {
               <div>
                 <p className="text-xl font-bold tabular-nums">
                   {invoice.amount ? `${money.format(invoice.amount)} сом` : "Счёт"}
-                  {invoice.months ? <span className="text-slate"> · {invoice.months} мес.</span> : null}
+                  {invoice.months ? <span className="text-muted-foreground"> · {invoice.months} мес.</span> : null}
                 </p>
-                <p className="mt-1 text-base text-slate">
+                <p className="mt-1 text-base text-muted-foreground">
                   {formatDateTime(invoice.createdAt)}
                   {invoice.status ? ` · ${invoice.status}` : ""}
                 </p>

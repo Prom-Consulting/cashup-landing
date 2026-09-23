@@ -28,11 +28,11 @@ export function DashboardPage() {
 
       {!active && (
         <Card className="border-2 border-flame">
-          <h2 className="text-xl font-bold text-flame-ink">Подписка неактивна</h2>
+          <h2 className="text-xl font-bold text-destructive">Подписка неактивна</h2>
           <p className="mt-2 max-w-[70ch] text-lg">
             Списания не проходят ни через приложение, ни через 1С. Оплатите доступ — и приём включится.
           </p>
-          <Link to="/billing" className="mt-4 inline-block text-lg text-flame-ink underline underline-offset-4">
+          <Link to="/billing" className="mt-4 inline-block text-lg text-destructive underline underline-offset-4">
             Перейти к оплате
           </Link>
         </Card>
@@ -43,11 +43,11 @@ export function DashboardPage() {
           <h2 className="text-xl font-bold">Доступ</h2>
           <dl className="mt-4 flex flex-col gap-3">
             <div>
-              <dt className="text-base text-slate">Тариф</dt>
+              <dt className="text-base text-muted-foreground">Тариф</dt>
               <dd className="text-lg">{subscription.data.plan ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-base text-slate">Действует до</dt>
+              <dt className="text-base text-muted-foreground">Действует до</dt>
               <dd className="text-lg">{formatDate(subscription.data.expiresAt)}</dd>
             </div>
           </dl>
@@ -57,21 +57,21 @@ export function DashboardPage() {
           <h2 className="text-xl font-bold">Последние списания</h2>
           {recent.isPending && <Loading />}
           {recent.isSuccess && recent.data.items.length === 0 && (
-            <p className="mt-3 text-lg text-slate">Списаний пока не было.</p>
+            <p className="mt-3 text-lg text-muted-foreground">Списаний пока не было.</p>
           )}
           <ul className="mt-3 flex flex-col gap-3">
             {(recent.data?.items ?? []).map((row) => (
               <li
                 key={row.id}
-                className="flex flex-wrap items-baseline justify-between gap-2 border-t border-smoke pt-3"
+                className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-3"
               >
                 <span className="text-lg">{row.productName ?? "Покупка"}</span>
                 <span className="text-lg tabular-nums">−{money.format(row.points)}</span>
-                <span className="basis-full text-base text-slate">{formatDateTime(row.createdAt)}</span>
+                <span className="basis-full text-base text-muted-foreground">{formatDateTime(row.createdAt)}</span>
               </li>
             ))}
           </ul>
-          <Link to="/deductions" className="mt-4 inline-block text-base text-flame-ink underline underline-offset-4">
+          <Link to="/deductions" className="mt-4 inline-block text-base text-destructive underline underline-offset-4">
             Весь журнал
           </Link>
         </Card>

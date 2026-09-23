@@ -18,8 +18,10 @@ export const partnersApi = (api: ApiClient) => ({
   addEmployee: (partnerMemberId: string, input: CreateEmployeeInput) =>
     api.request(storeMemberSchema, `/admin/v1/members/${partnerMemberId}/employees`, { method: "POST", body: input }),
 
-  payments: (partnerMemberId: string, query: { page?: number; pageSize?: number; sort?: string; order?: string } = {}) =>
-    api.request(partnerPaymentPageSchema, `/admin/v1/partners/${partnerMemberId}/payments`, { query }),
+  payments: (
+    partnerMemberId: string,
+    query: { page?: number; pageSize?: number; sort?: string; order?: string } = {},
+  ) => api.request(partnerPaymentPageSchema, `/admin/v1/partners/${partnerMemberId}/payments`, { query }),
 
   /** Публичный список активных партнёров — для каталога на лендинге. */
   publicList: () => api.request(z.array(publicPartnerSchema), "/v1/public/partners", { anonymous: true }),

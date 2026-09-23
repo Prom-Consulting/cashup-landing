@@ -1,6 +1,6 @@
 import { ApiError } from "@loal/api";
-import { Button } from "@loal/ui/inputs";
-import { ErrorState, Loading } from "@loal/ui/page";
+import { AppleIcon, ArrowLeft02Icon } from "@hugeicons/core-free-icons";
+import { Button, Card, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
 import { Link, useParams } from "react-router";
 import { appleWalletUrl, usePassInfo } from "../../entities/card/api";
 import { CardView } from "../../widgets/card-view";
@@ -18,12 +18,15 @@ export function CardPage() {
     return notFound ? (
       <div className="mx-auto max-w-[420px] text-center">
         <h1 className="display text-[2rem]">Карта не найдена</h1>
-        <p className="mt-3 text-lg text-slate">
+        <p className="mt-3 text-lg text-muted-foreground">
           Проверьте ссылку: возможно, номер набран с ошибкой или карту отозвали.
         </p>
-        <Link to="/" className="mt-6 inline-block text-lg text-flame-ink underline underline-offset-4">
-          Ввести номер заново
-        </Link>
+        <Button asChild variant="outline" className="mt-6">
+          <Link to="/">
+            <Icon icon={ArrowLeft02Icon} />
+            Ввести номер заново
+          </Link>
+        </Button>
       </div>
     ) : (
       <ErrorState error={pass.error} onRetry={() => pass.refetch()} />
@@ -33,24 +36,25 @@ export function CardPage() {
   return (
     <div className="mx-auto flex max-w-[420px] flex-col gap-6">
       <CardView pass={pass.data} />
-      <a href={appleWalletUrl(serial)} className="contents">
-        <Button type="button" className="w-full">
+      <Button asChild size="lg" className="w-full">
+        <a href={appleWalletUrl(serial)}>
+          <Icon icon={AppleIcon} />
           Добавить в Apple Wallet
-        </Button>
-      </a>
-      <p className="text-center text-base text-slate">
+        </a>
+      </Button>
+      <p className="text-center text-base text-muted-foreground">
         Карта обновляется сама: баланс в Wallet меняется после каждой покупки у партнёра.
       </p>
 
-      <section className="rounded-[24px] bg-paper p-6">
+      <Card>
         <h2 className="text-xl font-bold">Продлить подписку</h2>
-        <p className="mt-2 text-base text-slate">
+        <p className="mt-2 text-base text-muted-foreground">
           Каждый оплаченный месяц на карте снова 100 000 сом бонусами. Остаток прошлого месяца сгорает.
         </p>
         <div className="mt-5">
           <PaySubscriptionForm serial={serial} />
         </div>
-      </section>
+      </Card>
     </div>
   );
 }
