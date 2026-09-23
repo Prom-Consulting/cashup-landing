@@ -11,7 +11,7 @@ import { Field } from "@loal/ui/field";
 import { Button, PhoneInput, Spinner, TextInput } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
 import { useEffect, useState } from "react";
-import { useLogin, useLoginByOtp, useRequestOtp } from "./session";
+import { useLogin, useLoginByOtp, useRequestOtp, useSession } from "./session";
 
 /** Одно понятное сообщение вместо технической ошибки шлюза. */
 function loginErrorText(error: unknown): string {
@@ -210,9 +210,17 @@ export function LoginForm({
   defaultMode?: "password" | "phone";
 }) {
   const [mode, setMode] = useState(defaultMode);
+  const { endedReason } = useSession();
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Сессию погасил вход с другого устройства — объясняем, а не молчим */}
+      {endedReason && (
+        <p role="alert" className="rounded-2xl bg-cream px-4 py-3 text-base">
+          {endedReason}
+        </p>
+      )}
+
       <div className="flex gap-1" role="tablist" aria-label="Способ входа">
         <button
           type="button"

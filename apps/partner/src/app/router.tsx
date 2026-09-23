@@ -5,6 +5,7 @@ import { DashboardPage } from "../pages/dashboard";
 import { DeductionsPage } from "../pages/deductions";
 import { LoginPage } from "../pages/login";
 import { NotFoundPage } from "../pages/not-found";
+import { RegisterPage } from "../pages/register";
 import { OnecPage } from "../pages/onec";
 import { ProfilePage } from "../pages/profile";
 import { AppLayout } from "../widgets/app-layout";
@@ -14,6 +15,7 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
       <Route
         element={
           <RequireAuth

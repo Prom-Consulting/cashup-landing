@@ -62,11 +62,33 @@ export const phoneSchema = z
 export const otpRequestInputSchema = z.object({ phone: phoneSchema });
 export type OtpRequestInput = z.infer<typeof otpRequestInputSchema>;
 
+/** Ответ на запрос кода: сколько секунд он живёт (по умолчанию 300). */
+export const otpRequestResultSchema = z.looseObject({
+  ok: z.boolean().optional(),
+  expiresInSeconds: z.number().optional(),
+});
+export type OtpRequestResult = z.infer<typeof otpRequestResultSchema>;
+
 export const otpLoginInputSchema = z.object({
   phone: phoneSchema,
   otp: z.string().trim().regex(/^\d{6}$/, "Код из шести цифр"),
 });
 export type OtpLoginInput = z.infer<typeof otpLoginInputSchema>;
+
+/**
+ * Регистрация. Перед ней обязателен запрос кода на тот же телефон: код одноразовый,
+ * успешная регистрация его поглощает. Код приглашения делает человека владельцем магазина,
+ * без него получается обычный сотрудник без доступа к кабинету.
+ */
+export const registerInputSchema = z.object({
+  fullName: z.string().trim().min(2, "Введите имя"),
+  email: z.string().trim().min(1, "Введите почту").pipe(z.email("Похоже, в почте опечатка")),
+  password: z.string().min(8, "Не короче 8 символов"),
+  phone: phoneSchema,
+  otp: z.string().trim().regex(/^\d{6}$/, "Код из шести цифр"),
+  inviteCode: z.string().trim().optional(),
+});
+export type RegisterInput = z.infer<typeof registerInputSchema>;
 
 export const changePasswordInputSchema = z
   .object({

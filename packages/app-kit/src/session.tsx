@@ -13,6 +13,8 @@ type SessionState = {
   /** loading — токен есть, профиль ещё тянем; anonymous — токена нет или он протух. */
   status: "loading" | "authenticated" | "anonymous";
   error: unknown;
+  /** Почему сессия закончилась: например, вход с другого устройства. */
+  endedReason: string | null;
   /** Сохранить токен после входа и сразу перечитать профиль. */
   signIn: (accessToken: string) => Promise<void>;
   logout: () => void;
@@ -30,7 +32,17 @@ export function useApi(): ApiClient {
   return useSession().api;
 }
 
-function SessionProvider({ api, children }: { api: ApiClient; children: ReactNode }) {
+function SessionProvider({
+  api,
+  endedReason,
+  clearEndedReason,
+  children,
+}: {
+  api: ApiClient;
+  endedReason: string | null;
+  clearEndedReason: () => void;
+  children: ReactNode;
+}) {
   const queryClient = useQueryClient();
   const [hasToken, setHasToken] = useState(() => Boolean(api.tokens.read()));
 
@@ -44,20 +56,24 @@ function SessionProvider({ api, children }: { api: ApiClient; children: ReactNod
 
   const value = useMemo<SessionState>(() => {
     const signIn = async (accessToken: string) => {
+      clearEndedReason();
       api.tokens.write(accessToken);
       setHasToken(true);
       await queryClient.refetchQueries({ queryKey: ["session"] });
     };
     const logout = () => {
+      clearEndedReason();
       api.tokens.write(null);
       setHasToken(false);
       queryClient.clear();
     };
     const unauthorized = query.error instanceof ApiError && query.error.isUnauthorized;
+    // Токен уже недействителен — держать его в хранилище незачем
+    if (unauthorized && api.tokens.read()) api.tokens.write(null);
     const status: SessionState["status"] =
       !hasToken || unauthorized ? "anonymous" : query.data ? "authenticated" : "loading";
-    return { api, session: query.data ?? null, status, error: query.error, signIn, logout };
-  }, [api, hasToken, query.data, query.error, queryClient]);
+    return { api, session: query.data ?? null, status, error: query.error, endedReason, signIn, logout };
+  }, [api, clearEndedReason, endedReason, hasToken, query.data, query.error, queryClient]);
 
   return <SessionContext value={value}>{children}</SessionContext>;
 }
@@ -75,6 +91,27 @@ export function AppProviders({
   storageKey: string;
   children: ReactNode;
 }) {
+  // Сообщение о том, что аккаунт открыли на другом устройстве, показываем на экране входа.
+  // Держим в хранилище: 401 часто прилетает до перезагрузки, и иначе причина потеряется.
+  const reasonKey = `${storageKey}.ended-reason`;
+  const [endedReason, setEndedReasonState] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(reasonKey);
+    } catch {
+      return null;
+    }
+  });
+
+  const setEndedReason = (reason: string | null) => {
+    setEndedReasonState(reason);
+    try {
+      if (reason === null) localStorage.removeItem(reasonKey);
+      else localStorage.setItem(reasonKey, reason);
+    } catch {
+      /* приватный режим — сообщение покажется только до перезагрузки */
+    }
+  };
+
   const queryClient = useRef<QueryClient>(null);
   queryClient.current ??= new QueryClient({
     defaultOptions: {
@@ -90,16 +127,21 @@ export function AppProviders({
   api.current ??= createApiClient({
     baseUrl,
     tokens: createTokenStore(storageKey),
-    onUnauthorized: () => {
-      // Токен протух — чистим и даём экранам увидеть anonymous
+    onUnauthorized: (error) => {
+      // Токен протух или сессию перебили входом с другого устройства
       createTokenStore(storageKey).write(null);
       queryClient.current?.setQueryData(["session"], undefined);
+      if (error?.isSessionReplaced) {
+        setEndedReason(error.message || "Аккаунт открыт на другом устройстве. Войдите снова.");
+      }
     },
   });
 
   return (
     <QueryClientProvider client={queryClient.current}>
-      <SessionProvider api={api.current}>{children}</SessionProvider>
+      <SessionProvider api={api.current} endedReason={endedReason} clearEndedReason={() => setEndedReason(null)}>
+        {children}
+      </SessionProvider>
     </QueryClientProvider>
   );
 }

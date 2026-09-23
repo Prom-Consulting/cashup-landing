@@ -1,6 +1,6 @@
 import { LoginForm } from "@loal/app-kit";
 import { Logo } from "@loal/ui/logo";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { SITE_URL } from "../../shared/config/env";
 
 export function LoginPage() {
@@ -16,6 +16,12 @@ export function LoginPage() {
           <LoginForm onDone={() => navigate("/", { replace: true })} />
         </div>
         <p className="mt-6 text-base text-slate">
+          Есть код приглашения?{" "}
+          <Link to="/register" className="text-flame-ink underline underline-offset-4">
+            Зарегистрироваться
+          </Link>
+        </p>
+        <p className="mt-2 text-base text-slate">
           Ещё не партнёр?{" "}
           <a href={`${SITE_URL}/become-partner`} className="text-flame-ink underline underline-offset-4">
             Оставить заявку

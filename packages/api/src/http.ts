@@ -35,6 +35,20 @@ export class ApiError extends Error {
   get isTooManyRequests() {
     return this.status === 429;
   }
+
+  /**
+   * Аккаунт открыли на другом устройстве — сессия этого устройства погашена.
+   * Повторять запрос или молча обновлять сессию нельзя: это вернуло бы доступ
+   * старому устройству. Нужно очистить токен и показать сообщение (docs/API.md).
+   */
+  get isSessionReplaced() {
+    return (
+      this.status === 401 &&
+      typeof this.payload === "object" &&
+      this.payload !== null &&
+      (this.payload as { error?: unknown }).error === "SESSION_REPLACED"
+    );
+  }
 }
 
 /** Ответ пришёл, но не совпал со схемой: контракт бэкенда разошёлся с фронтом. */
@@ -124,8 +138,8 @@ export function createApiClient({
 }: {
   baseUrl: string;
   tokens: TokenStore;
-  /** Вызывается один раз на каждый 401 — кабинет чистит сессию и уводит на вход. */
-  onUnauthorized?: () => void;
+  /** Вызывается на каждый 401 — кабинет чистит сессию и уводит на вход. */
+  onUnauthorized?: (error: ApiError) => void;
 }): ApiClient {
   async function request<T>(schema: ZodType<T>, path: string, options: RequestOptions = {}): Promise<T> {
     const { method = "GET", body, query, anonymous, signal } = options;
@@ -145,8 +159,9 @@ export function createApiClient({
 
     if (!response.ok) {
       const { message, payload, issues } = await readError(response);
-      if (response.status === 401) onUnauthorized?.();
-      throw new ApiError(response.status, message, payload, issues);
+      const error = new ApiError(response.status, message, payload, issues);
+      if (response.status === 401) onUnauthorized?.(error);
+      throw error;
     }
 
     if (response.status === 204) return schema.parse(undefined);
