@@ -10,6 +10,10 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm fetch
 
 FROM deps AS build
+# Сборка Next — самая тяжёлая часть. Потолок кучи держит её в рамках: на небольшом
+# сервере иначе процесс убивает система (SIGKILL во время "Creating an optimized build").
+ENV NODE_OPTIONS=--max-old-space-size=2048
+ENV NEXT_TELEMETRY_DISABLED=1
 COPY . .
 RUN pnpm install --frozen-lockfile --offline
 RUN pnpm --filter @loal/landing build
