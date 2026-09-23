@@ -1,5 +1,6 @@
 import { LEAD_STATUS_LABELS } from "@loal/api";
-import { Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/page";
+import { Card, EmptyState, ErrorState, Loading } from "@loal/ui/shadcn";
+import { PageHeader } from "@loal/ui/page";
 import { useLeads } from "../../entities/lead/api";
 import { LeadStatusPicker } from "../../features/lead/status-picker";
 import { formatDateTime, formatPhoneHref } from "../../shared/lib/format";
@@ -37,13 +38,13 @@ export function LeadsPage() {
               <div className="min-w-0">
                 <p className="text-xl font-bold">{lead.name}</p>
                 <p className="mt-1 text-lg">
-                  <a href={formatPhoneHref(lead.phone)} className="text-flame-ink underline-offset-4 hover:underline">
+                  <a href={formatPhoneHref(lead.phone)} className="text-destructive underline-offset-4 hover:underline">
                     {lead.phone}
                   </a>
-                  {lead.company && <span className="text-slate"> · {lead.company}</span>}
+                  {lead.company && <span className="text-muted-foreground"> · {lead.company}</span>}
                 </p>
-                {lead.comment && <p className="mt-3 max-w-[70ch] text-base text-slate">{lead.comment}</p>}
-                <p className="mt-3 text-base text-slate">
+                {lead.comment && <p className="mt-3 max-w-[70ch] text-base text-muted-foreground">{lead.comment}</p>}
+                <p className="mt-3 text-base text-muted-foreground">
                   {formatDateTime(lead.createdAt)} · {LEAD_STATUS_LABELS[lead.status]}
                 </p>
               </div>

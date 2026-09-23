@@ -4,6 +4,7 @@ import { LeadsPage } from "../pages/leads";
 import { LoginPage } from "../pages/login";
 import { NotFoundPage } from "../pages/not-found";
 import { ProfilePage } from "../pages/profile";
+import { StoreCustomersPage } from "../pages/store-customers";
 import { StoreDetailsPage } from "../pages/store-details";
 import { StoresPage } from "../pages/stores";
 import { AppLayout } from "../widgets/app-layout";
@@ -25,6 +26,7 @@ export function AppRouter() {
       >
         <Route index element={<StoresPage />} />
         <Route path="stores/:storeId" element={<StoreDetailsPage />} />
+        <Route path="stores/:storeId/customers" element={<StoreCustomersPage />} />
         <Route path="leads" element={<LeadsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="*" element={<NotFoundPage />} />

@@ -1,5 +1,5 @@
 import { customersApi, type CreateCustomerInput, type CustomerQuery, type IssueCardInput } from "@loal/api";
-import { useApi } from "@loal/app-kit";
+import { useApi } from "./session";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const customerKeys = {

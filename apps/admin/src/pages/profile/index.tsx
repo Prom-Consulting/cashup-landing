@@ -2,8 +2,9 @@ import { ApiError, changePasswordInputSchema, type ChangePasswordInput, authApi 
 import { useApi } from "@loal/app-kit";
 import { fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
-import { Button, Spinner, TextInput } from "@loal/ui/inputs";
-import { Card, PageHeader } from "@loal/ui/page";
+import { Button, Input } from "@loal/ui/shadcn";
+import { Card } from "@loal/ui/shadcn";
+import { PageHeader } from "@loal/ui/page";
 import { Form, Formik } from "formik";
 import { useCurrentUser } from "../../entities/session/model";
 
@@ -20,7 +21,7 @@ export function ProfilePage() {
 
       <Card>
         <h2 className="text-xl font-bold">Доступ</h2>
-        <p className="mt-2 text-lg text-slate">
+        <p className="mt-2 text-lg text-muted-foreground">
           Роль: {session?.role === "super_admin" ? "администратор платформы" : (session?.role ?? "—")}
         </p>
       </Card>
@@ -53,7 +54,7 @@ export function ProfilePage() {
             <Form className="mt-5 flex flex-col gap-5" noValidate>
               <Field label="Текущий пароль" error={fieldError(form, "currentPassword")}>
                 {(parts) => (
-                  <TextInput
+                  <Input
                     {...parts}
                     type="password"
                     name="currentPassword"
@@ -66,7 +67,7 @@ export function ProfilePage() {
               </Field>
               <Field label="Новый пароль" hint="Не короче 8 символов" error={fieldError(form, "newPassword")}>
                 {(parts) => (
-                  <TextInput
+                  <Input
                     {...parts}
                     type="password"
                     name="newPassword"
@@ -79,7 +80,7 @@ export function ProfilePage() {
               </Field>
               <Field label="Повторите новый пароль" error={fieldError(form, "repeatPassword")}>
                 {(parts) => (
-                  <TextInput
+                  <Input
                     {...parts}
                     type="password"
                     name="repeatPassword"
@@ -91,12 +92,12 @@ export function ProfilePage() {
                 )}
               </Field>
               {formError(form) && (
-                <p role="status" className="text-base font-medium text-flame-ink">
+                <p role="status" className="text-base font-medium text-destructive">
                   {formError(form)}
                 </p>
               )}
               <Button type="submit" disabled={form.isSubmitting} className="self-start">
-                {form.isSubmitting ? <Spinner /> : "Сохранить"}
+                {form.isSubmitting ? "Сохраняем…" : "Сохранить"}
               </Button>
             </Form>
           )}

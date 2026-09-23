@@ -264,6 +264,9 @@ importers:
 
   packages/app-kit:
     dependencies:
+      '@hugeicons/core-free-icons':
+        specifier: ^4.3.5
+        version: 4.3.5
       '@loal/api':
         specifier: workspace:*
         version: link:../api

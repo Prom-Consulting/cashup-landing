@@ -8,10 +8,12 @@ import {
 import { fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Form, Formik } from "formik";
-import { TextInput } from "@loal/ui/inputs";
+import { Input } from "@loal/ui/shadcn";
 import { useState } from "react";
-import { Badge, Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/page";
-import { Button } from "@loal/ui/inputs";
+import { Badge, Card, EmptyState, ErrorState, Loading } from "@loal/ui/shadcn";
+import { PageHeader } from "@loal/ui/page";
+import { Button, Icon } from "@loal/ui/shadcn";
+import { UserGroupIcon } from "@hugeicons/core-free-icons";
 import { Link, useParams } from "react-router";
 import {
   useCreateInvite,
@@ -68,19 +70,19 @@ export function StoreDetailsPage() {
         <h2 className="text-xl font-bold">Реквизиты</h2>
         <dl className="mt-4 grid gap-3 sm:grid-cols-2">
           <div>
-            <dt className="text-base text-slate">Стадия работы</dt>
+            <dt className="text-base text-muted-foreground">Стадия работы</dt>
             <dd className="text-lg">{WORKFLOW_STATUS_LABELS[store.data.workflowStatus]}</dd>
           </div>
           <div>
-            <dt className="text-base text-slate">Подписка оплачена до</dt>
+            <dt className="text-base text-muted-foreground">Подписка оплачена до</dt>
             <dd className="text-lg">{formatDate(store.data.subscriptionPaidUntil)}</dd>
           </div>
           <div>
-            <dt className="text-base text-slate">Почта</dt>
+            <dt className="text-base text-muted-foreground">Почта</dt>
             <dd className="text-lg">{store.data.contactEmail ?? "—"}</dd>
           </div>
           <div>
-            <dt className="text-base text-slate">Телефон</dt>
+            <dt className="text-base text-muted-foreground">Телефон</dt>
             <dd className="text-lg">{store.data.contactPhone ?? "—"}</dd>
           </div>
         </dl>
@@ -95,7 +97,7 @@ export function StoreDetailsPage() {
             </Badge>
           )}
         </div>
-        <p className="mt-2 max-w-[70ch] text-base text-slate">
+        <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
           Пока подписка неактивна, магазин не принимает бонусы ни через приложение, ни через 1С. Здесь доступ выдаётся
           без оплаты — обычный путь продления идёт через счёт в кабинете магазина.
         </p>
@@ -120,7 +122,7 @@ export function StoreDetailsPage() {
             <Form className="mt-5 flex flex-wrap items-end gap-4" noValidate>
               <Field label="Месяцев" error={fieldError(form, "months")} className="w-[140px]">
                 {(parts) => (
-                  <TextInput
+                  <Input
                     {...parts}
                     name="months"
                     inputMode="numeric"
@@ -134,7 +136,7 @@ export function StoreDetailsPage() {
                 {form.isSubmitting ? "Выдаём…" : "Выдать доступ"}
               </Button>
               {formError(form) && (
-                <p role="status" className="basis-full text-base font-medium text-flame-ink">
+                <p role="status" className="basis-full text-base font-medium text-destructive">
                   {formError(form)}
                 </p>
               )}
@@ -144,19 +146,35 @@ export function StoreDetailsPage() {
       </Card>
 
       <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-bold">Клиенты и карты</h2>
+          <Button asChild variant="outline" size="sm">
+            <Link to={`/stores/${storeId}/customers`}>
+              <Icon icon={UserGroupIcon} />
+              Открыть
+            </Link>
+          </Button>
+        </div>
+        <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">Список гостей магазина и выпуск новых карт.</p>
+      </Card>
+
+      <Card>
         <h2 className="text-xl font-bold">Последние списания</h2>
         {deductions.isPending && <Loading />}
         {deductions.isSuccess && deductions.data.items.length === 0 && (
-          <p className="mt-3 text-lg text-slate">Списаний ещё не было.</p>
+          <p className="mt-3 text-lg text-muted-foreground">Списаний ещё не было.</p>
         )}
         <ul className="mt-3 flex flex-col gap-3">
           {(deductions.data?.items ?? []).map((row) => (
-            <li key={row.id} className="flex flex-wrap items-baseline justify-between gap-2 border-t border-smoke pt-3">
+            <li
+              key={row.id}
+              className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-3"
+            >
               <span className="text-lg">
                 {row.customerName ?? "Клиент"} · {row.productName ?? "покупка"}
               </span>
               <span className="text-lg tabular-nums">−{row.points}</span>
-              <span className="basis-full text-base text-slate">
+              <span className="basis-full text-base text-muted-foreground">
                 {formatDateTime(row.createdAt)} · {row.channel === "onec" ? "1С" : "приложение"}
               </span>
             </li>
@@ -173,10 +191,10 @@ export function StoreDetailsPage() {
           {(members.data ?? []).map((member) => (
             <li
               key={member.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-t border-smoke pt-3"
+              className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3"
             >
               <span className="text-lg">{MEMBER_ROLE_LABELS[member.role] ?? member.role}</span>
-              <span className="text-base text-slate">
+              <span className="text-base text-muted-foreground">
                 {member.acceptedAt
                   ? `принял приглашение ${formatDateTime(member.acceptedAt)}`
                   : "приглашение не принято"}
@@ -188,7 +206,7 @@ export function StoreDetailsPage() {
 
       <Card>
         <h2 className="text-xl font-bold">Приостановить магазин</h2>
-        <p className="mt-2 max-w-[70ch] text-base text-slate">
+        <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
           Магазин перестаёт обслуживаться платформой. Действие видно всем его сотрудникам.
         </p>
         {suspend.isError && <ErrorState error={suspend.error} />}
@@ -204,7 +222,7 @@ export function StoreDetailsPage() {
             >
               {suspend.isPending ? "Останавливаем…" : "Да, приостановить"}
             </Button>
-            <Button type="button" variant="quiet" onClick={() => setConfirmSuspend(false)}>
+            <Button type="button" variant="ghost" onClick={() => setConfirmSuspend(false)}>
               Отмена
             </Button>
           </div>
@@ -233,7 +251,7 @@ export function StoreDetailsPage() {
             {createInvite.isPending ? "Создаём…" : "Создать код"}
           </Button>
         </div>
-        <p className="mt-2 max-w-[70ch] text-base text-slate">
+        <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
           По коду владелец регистрируется сам и сразу получает права на этот магазин.
         </p>
         {createInvite.isError && <ErrorState error={createInvite.error} />}
@@ -243,10 +261,10 @@ export function StoreDetailsPage() {
           {(invites.data ?? []).map((invite) => (
             <li
               key={invite.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-t border-smoke pt-3"
+              className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3"
             >
-              <code className="rounded-lg bg-cream px-3 py-2 text-lg tracking-wide">{invite.code}</code>
-              <span className="text-base text-slate">
+              <code className="rounded-lg bg-muted px-3 py-2 text-lg tracking-wide">{invite.code}</code>
+              <span className="text-base text-muted-foreground">
                 {invite.redeemedAt ? `использован ${formatDateTime(invite.redeemedAt)}` : "не использован"}
               </span>
             </li>

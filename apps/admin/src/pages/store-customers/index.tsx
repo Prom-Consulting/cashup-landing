@@ -1,4 +1,5 @@
-import { Search01Icon } from "@hugeicons/core-free-icons";
+import { ArrowLeft02Icon, Search01Icon } from "@hugeicons/core-free-icons";
+import { IssueCardDialog, useCustomers } from "@loal/app-kit";
 import {
   Badge,
   Button,
@@ -16,18 +17,19 @@ import {
   TableRow,
 } from "@loal/ui/shadcn";
 import { useState } from "react";
-import { IssueCardDialog, useCustomers } from "@loal/app-kit";
-import { useCurrentStore } from "../../entities/session/model";
+import { Link, useParams } from "react-router";
+import { useStore } from "../../entities/store/api";
 import { formatDate } from "../../shared/lib/format";
 
 const PAGE_SIZE = 20;
 
-/** Гости заведения и выпуск карт для них. */
-export function CustomersPage() {
-  const { storeId } = useCurrentStore();
+/** Клиенты магазина и выпуск карт. Карты выпускает магазин с ролью issuer. */
+export function StoreCustomersPage() {
+  const { storeId = "" } = useParams();
+  const store = useStore(storeId);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const customers = useCustomers(storeId ?? "", { page, pageSize: PAGE_SIZE, search: search.trim() || undefined });
+  const customers = useCustomers(storeId, { page, pageSize: PAGE_SIZE, search: search.trim() || undefined });
 
   const rows = customers.data?.items ?? [];
   const total = customers.data?.total ?? 0;
@@ -35,14 +37,21 @@ export function CustomersPage() {
 
   return (
     <section className="flex flex-col gap-6">
+      <Button asChild variant="ghost" size="sm" className="self-start">
+        <Link to={`/stores/${storeId}`}>
+          <Icon icon={ArrowLeft02Icon} />К магазину
+        </Link>
+      </Button>
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="display text-[clamp(1.75rem,3vw,2.5rem)]">Клиенты</h1>
           <p className="mt-2 text-lg text-muted-foreground">
-            {total > 0 ? `Всего гостей: ${total}` : "Гости, которым выпущена карта Loal."}
+            {store.data?.name ?? "Магазин"}
+            {total > 0 ? ` · всего ${total}` : ""}
           </p>
         </div>
-        {storeId && <IssueCardDialog storeId={storeId} />}
+        <IssueCardDialog storeId={storeId} />
       </div>
 
       <div className="relative max-w-[420px]">
@@ -54,7 +63,7 @@ export function CustomersPage() {
             setPage(1);
           }}
           placeholder="Имя, телефон или почта"
-          aria-label="Поиск по гостям"
+          aria-label="Поиск по клиентам"
           className="pl-12"
         />
       </div>
@@ -63,8 +72,8 @@ export function CustomersPage() {
       {customers.isError && <ErrorState error={customers.error} onRetry={() => customers.refetch()} />}
       {customers.isSuccess && rows.length === 0 && (
         <EmptyState
-          title={search ? "Никого не нашли" : "Гостей пока нет"}
-          description={search ? "Попробуйте другой запрос." : "Выпустите первую карту — гость появится здесь."}
+          title={search ? "Никого не нашли" : "Клиентов пока нет"}
+          description={search ? "Попробуйте другой запрос." : "Выпустите первую карту — клиент появится здесь."}
         />
       )}
 
@@ -73,7 +82,7 @@ export function CustomersPage() {
           <Table className="min-w-[620px]">
             <TableHead>
               <TableRow>
-                <TableHeaderCell>Гость</TableHeaderCell>
+                <TableHeaderCell>Клиент</TableHeaderCell>
                 <TableHeaderCell>Телефон</TableHeaderCell>
                 <TableHeaderCell>Почта</TableHeaderCell>
                 <TableHeaderCell>Заведён</TableHeaderCell>

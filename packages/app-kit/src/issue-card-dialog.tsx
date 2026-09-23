@@ -4,7 +4,7 @@ import { Badge, Button, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, 
 import { CreditCardIcon, UserAdd01Icon } from "@hugeicons/core-free-icons";
 import { Form, Formik } from "formik";
 import { useId, useState } from "react";
-import { useCreateCustomer, useIssueCard, useIssueCatalog } from "../../entities/customer/api";
+import { useCreateCustomer, useIssueCard, useIssueCatalog } from "./customers";
 
 const emptyCustomer: CreateCustomerInput = { firstName: "", lastName: "", phone: "", email: "" };
 

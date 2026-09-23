@@ -10,23 +10,24 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hugeicons/core-free-icons": "^4.3.5",
     "@loal/api": "workspace:*",
     "@loal/forms": "workspace:*",
     "@loal/ui": "workspace:*"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5",
+    "formik": "^2",
     "react": "^19",
-    "react-router": "^7",
-    "formik": "^2"
+    "react-router": "^7"
   },
   "devDependencies": {
     "@loal/tsconfig": "workspace:*",
     "@tanstack/react-query": "^5.103.2",
     "@types/react": "^19",
+    "formik": "^2.4.9",
     "react": "19.2.8",
     "react-router": "^7",
-    "typescript": "^5",
-    "formik": "^2.4.9"
+    "typescript": "^5"
   }
 }

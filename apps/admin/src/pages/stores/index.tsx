@@ -5,8 +5,10 @@ import {
   type Store,
   type StoreKind,
 } from "@loal/api";
-import { Badge, Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/page";
-import { Button, SearchInput } from "@loal/ui/inputs";
+import { Badge, Card, EmptyState, ErrorState, Loading } from "@loal/ui/shadcn";
+import { PageHeader } from "@loal/ui/page";
+import { Search01Icon } from "@hugeicons/core-free-icons";
+import { Button, Icon, Input } from "@loal/ui/shadcn";
 import { CreateStoreForm } from "../../features/store/create-store-form";
 import { useNavigate } from "react-router";
 import { useMemo, useState } from "react";
@@ -40,7 +42,7 @@ export function StoresPage() {
         title="Магазины"
         description="Заведения, подключённые к платформе, и стадия работы по каждому."
         action={
-          <Button type="button" variant={creating ? "quiet" : "primary"} onClick={() => setCreating((value) => !value)}>
+          <Button type="button" variant={creating ? "ghost" : "primary"} onClick={() => setCreating((value) => !value)}>
             {creating ? "Свернуть" : "Новый магазин"}
           </Button>
         }
@@ -72,13 +74,16 @@ export function StoresPage() {
         ))}
       </div>
 
-      <SearchInput
-        value={query}
-        onValueChange={setQuery}
-        label="Поиск по магазинам"
-        placeholder="Название, почта или телефон"
-        className="max-w-[420px]"
-      />
+      <div className="relative max-w-[420px]">
+        <Icon icon={Search01Icon} className="absolute top-1/2 left-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Название, почта или телефон"
+          aria-label="Поиск по магазинам"
+          className="pl-12"
+        />
+      </div>
 
       {stores.isPending && <Loading />}
       {stores.isError && <ErrorState error={stores.error} onRetry={() => stores.refetch()} />}
@@ -97,16 +102,18 @@ export function StoresPage() {
                 </Link>
                 <Badge tone={store.status === "active" ? "good" : "warn"}>{STORE_STATUS_LABELS[store.status]}</Badge>
               </div>
-              <p className="mt-2 text-base text-slate">
+              <p className="mt-2 text-base text-muted-foreground">
                 {store.kind === "issuer" ? "Выпускает карты" : "Принимает карты"} · {store.slug}
               </p>
               <p className="mt-4 text-base">
                 {WORKFLOW_STATUS_LABELS[store.workflowStatus]}{" "}
-                <span className="text-slate">
+                <span className="text-muted-foreground">
                   · шаг {step} из {WORKFLOW_STATUS_ORDER.length}
                 </span>
               </p>
-              <p className="mt-1 text-base text-slate">Оплачен до {formatDate(store.subscriptionPaidUntil)}</p>
+              <p className="mt-1 text-base text-muted-foreground">
+                Оплачен до {formatDate(store.subscriptionPaidUntil)}
+              </p>
             </Card>
           );
         })}
