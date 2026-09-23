@@ -1,19 +1,51 @@
-import { partnerMembership, useSession } from "@loal/app-kit";
+import { useSession } from "@loal/app-kit";
+import { useMemo, useState } from "react";
+
+const STORE_KEY = "loal.partner.store";
+
+/** Роли, которым открыт кабинет магазина. */
+const CABINET_ROLES = ["admin", "staff", "partner", "partner_employee"];
 
 /**
- * Кабинет партнёра работает от одной записи членства: в ней и memberId для
- * запросов, и роль. Владелец видит всё, сотрудник партнёра — только свои экраны.
+ * Кабинет всегда работает в контексте одного магазина. Человек может состоять
+ * в нескольких — выбор запоминаем, чтобы при следующем входе открылся тот же.
  */
-export function useCurrentPartner() {
+export function useCurrentStore() {
   const { session, logout, status } = useSession();
-  const membership = partnerMembership(session);
+
+  const memberships = useMemo(
+    () => session?.stores.filter((membership) => CABINET_ROLES.includes(membership.role)) ?? [],
+    [session],
+  );
+
+  const [chosen, setChosen] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(STORE_KEY);
+    } catch {
+      return null;
+    }
+  });
+
+  const membership = memberships.find((item) => item.storeId === chosen) ?? memberships[0] ?? null;
+
+  const selectStore = (storeId: string) => {
+    setChosen(storeId);
+    try {
+      localStorage.setItem(STORE_KEY, storeId);
+    } catch {
+      /* приватный режим — выбор просто не запомнится */
+    }
+  };
+
   return {
     session,
     status,
     logout,
+    memberships,
     membership,
-    memberId: membership?.memberId ?? null,
-    isEmployee: membership?.role === "partner_employee",
+    storeId: membership?.storeId ?? null,
+    isOwner: membership?.role === "admin" || membership?.role === "partner",
     label: session?.email ?? "",
+    selectStore,
   };
 }

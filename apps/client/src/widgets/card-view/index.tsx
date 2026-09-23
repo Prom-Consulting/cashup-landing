@@ -37,7 +37,8 @@ export function CardView({ pass }: { pass: PublicPassInfo }) {
           <p className="text-lg font-bold">{pass.organizationName}</p>
           {pass.headerFields[0] && (
             <p className="text-right text-base" style={{ color: pass.labelColor }}>
-              {pass.headerFields[0].label}: <span style={{ color: pass.foregroundColor }}>{pass.headerFields[0].value}</span>
+              {pass.headerFields[0].label}:{" "}
+              <span style={{ color: pass.foregroundColor }}>{pass.headerFields[0].value}</span>
             </p>
           )}
         </div>

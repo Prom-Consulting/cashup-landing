@@ -5,14 +5,14 @@ import { Field } from "@loal/ui/field";
 import { Button, Spinner, TextInput } from "@loal/ui/inputs";
 import { Card, PageHeader } from "@loal/ui/page";
 import { Form, Formik } from "formik";
-import { useCurrentPartner } from "../../entities/session/model";
+import { useCurrentStore } from "../../entities/session/model";
 
 const initialValues: ChangePasswordInput = { currentPassword: "", newPassword: "", repeatPassword: "" };
 
 /** Профиль: кто вошёл и смена пароля. */
 export function ProfilePage() {
   const api = useApi();
-  const { label, membership } = useCurrentPartner();
+  const { label, membership } = useCurrentStore();
 
   return (
     <section className="flex max-w-[560px] flex-col gap-6">
@@ -21,9 +21,9 @@ export function ProfilePage() {
       <Card>
         <h2 className="text-xl font-bold">Доступ</h2>
         <p className="mt-2 text-lg text-slate">
-          {membership?.role === "partner" ? "Владелец партнёрского аккаунта" : "Сотрудник партнёра"}
-          {membership?.permissions?.scan_earn ? " · начисляет бонусы" : ""}
-          {membership?.permissions?.scan_redeem ? " · списывает бонусы" : ""}
+          {membership?.role === "admin" || membership?.role === "partner"
+            ? "Владелец магазина: видит оплату и настройки 1С"
+            : "Сотрудник магазина"}
         </p>
       </Card>
 

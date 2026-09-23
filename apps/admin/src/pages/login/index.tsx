@@ -2,7 +2,6 @@ import { LoginForm } from "@loal/app-kit";
 import { Logo } from "@loal/ui/logo";
 import { useNavigate } from "react-router";
 
-
 export function LoginPage() {
   const navigate = useNavigate();
 

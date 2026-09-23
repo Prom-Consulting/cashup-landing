@@ -1,6 +1,6 @@
-import { passesApi } from "@loal/api";
+import { cardsApi, passesApi, type BuyMonthsInput } from "@loal/api";
 import { useApi } from "@loal/app-kit";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { API_URL } from "../../shared/config/env";
 
 export const cardKeys = { info: (serial: string) => ["pass", serial] as const };
@@ -13,6 +13,17 @@ export function usePassInfo(serial: string) {
     queryFn: () => passesApi(api).info(serial),
     enabled: serial.length > 0,
     retry: false,
+  });
+}
+
+/**
+ * Счёт на подписку. Оплата уходит в OctōPAY, баллы включает его колбэк —
+ * поэтому после возврата страницу нужно просто перечитать.
+ */
+export function usePaySubscription(serial: string) {
+  const api = useApi();
+  return useMutation({
+    mutationFn: (input: BuyMonthsInput) => cardsApi(api).paySubscription(serial, input),
   });
 }
 

@@ -1,6 +1,14 @@
-import { STORE_STATUS_LABELS, WORKFLOW_STATUS_LABELS, WORKFLOW_STATUS_ORDER, type Store } from "@loal/api";
+import {
+  STORE_STATUS_LABELS,
+  WORKFLOW_STATUS_LABELS,
+  WORKFLOW_STATUS_ORDER,
+  type Store,
+  type StoreKind,
+} from "@loal/api";
 import { Badge, Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/page";
-import { SearchInput } from "@loal/ui/inputs";
+import { Button, SearchInput } from "@loal/ui/inputs";
+import { CreateStoreForm } from "../../features/store/create-store-form";
+import { useNavigate } from "react-router";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { useStores } from "../../entities/store/api";
@@ -11,15 +19,58 @@ function matches(store: Store, query: string) {
   return haystack.toLowerCase().includes(query.trim().toLowerCase());
 }
 
+const kindFilters: { id: StoreKind | "all"; label: string }[] = [
+  { id: "all", label: "Все" },
+  { id: "merchant", label: "Принимают карты" },
+  { id: "issuer", label: "Выпускают карты" },
+];
+
 export function StoresPage() {
-  const stores = useStores();
+  const [kind, setKind] = useState<StoreKind | "all">("all");
+  const stores = useStores(kind === "all" ? undefined : kind);
   const [query, setQuery] = useState("");
+  const [creating, setCreating] = useState(false);
+  const navigate = useNavigate();
 
   const rows = useMemo(() => (stores.data ?? []).filter((store) => matches(store, query)), [stores.data, query]);
 
   return (
     <section className="flex flex-col gap-6">
-      <PageHeader title="Магазины" description="Заведения, подключённые к платформе, и стадия работы по каждому." />
+      <PageHeader
+        title="Магазины"
+        description="Заведения, подключённые к платформе, и стадия работы по каждому."
+        action={
+          <Button type="button" variant={creating ? "quiet" : "primary"} onClick={() => setCreating((value) => !value)}>
+            {creating ? "Свернуть" : "Новый магазин"}
+          </Button>
+        }
+      />
+
+      {creating && (
+        <Card>
+          <CreateStoreForm
+            onCreated={(storeId) => {
+              setCreating(false);
+              navigate(`/stores/${storeId}`);
+            }}
+          />
+        </Card>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {kindFilters.map((filter) => (
+          <button
+            key={filter.id}
+            type="button"
+            onClick={() => setKind(filter.id)}
+            className={`rounded-full px-4 py-2 text-base transition-colors ${
+              kind === filter.id ? "bg-graphite text-paper" : "bg-paper text-graphite hover:bg-smoke"
+            }`}
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
 
       <SearchInput
         value={query}

@@ -24,7 +24,10 @@ export function LeadsPage() {
       {leads.isPending && <Loading />}
       {leads.isError && <ErrorState error={leads.error} onRetry={() => leads.refetch()} />}
       {leads.isSuccess && rows.length === 0 && (
-        <EmptyState title="Заявок пока нет" description="Как только кто-то оставит телефон на лендинге, он появится здесь." />
+        <EmptyState
+          title="Заявок пока нет"
+          description="Как только кто-то оставит телефон на лендинге, он появится здесь."
+        />
       )}
 
       <div className="flex flex-col gap-4">

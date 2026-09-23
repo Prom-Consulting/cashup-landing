@@ -4,6 +4,7 @@ import { ErrorState, Loading } from "@loal/ui/page";
 import { Link, useParams } from "react-router";
 import { appleWalletUrl, usePassInfo } from "../../entities/card/api";
 import { CardView } from "../../widgets/card-view";
+import { PaySubscriptionForm } from "../../features/subscription/pay-form";
 
 /** Страница карты по ссылке: /c/<серийный номер>. Вход не нужен — ссылка и есть доступ. */
 export function CardPage() {
@@ -40,6 +41,16 @@ export function CardPage() {
       <p className="text-center text-base text-slate">
         Карта обновляется сама: баланс в Wallet меняется после каждой покупки у партнёра.
       </p>
+
+      <section className="rounded-[24px] bg-paper p-6">
+        <h2 className="text-xl font-bold">Продлить подписку</h2>
+        <p className="mt-2 text-base text-slate">
+          Каждый оплаченный месяц на карте снова 100 000 сом бонусами. Остаток прошлого месяца сгорает.
+        </p>
+        <div className="mt-5">
+          <PaySubscriptionForm serial={serial} />
+        </div>
+      </section>
     </div>
   );
 }

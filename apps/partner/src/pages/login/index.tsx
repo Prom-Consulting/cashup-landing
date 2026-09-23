@@ -10,7 +10,7 @@ export function LoginPage() {
     <div className="grid min-h-dvh place-items-center bg-cream px-5 py-10">
       <div className="w-full max-w-[420px] rounded-[28px] bg-paper p-7 sm:p-10">
         <Logo />
-        <h1 className="display mt-6 text-[2rem]">Кабинет партнёра</h1>
+        <h1 className="display mt-6 text-[2rem]">Кабинет магазина</h1>
         <p className="mt-2 text-lg text-slate">Вход для заведений, принимающих бонусы Loal.</p>
         <div className="mt-8">
           <LoginForm onDone={() => navigate("/", { replace: true })} />
