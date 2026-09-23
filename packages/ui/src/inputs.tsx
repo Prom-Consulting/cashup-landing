@@ -9,21 +9,20 @@ type BaseProps = {
   invalid: boolean;
 };
 
-export const TextInput = forwardRef<
-  HTMLInputElement,
-  BaseProps & React.InputHTMLAttributes<HTMLInputElement>
->(function TextInput({ id, describedBy, invalid, className = "", ...rest }, ref) {
-  return (
-    <input
-      ref={ref}
-      id={id}
-      aria-describedby={describedBy}
-      aria-invalid={invalid || undefined}
-      className={controlClass(invalid, className)}
-      {...rest}
-    />
-  );
-});
+export const TextInput = forwardRef<HTMLInputElement, BaseProps & React.InputHTMLAttributes<HTMLInputElement>>(
+  function TextInput({ id, describedBy, invalid, className = "", ...rest }, ref) {
+    return (
+      <input
+        ref={ref}
+        id={id}
+        aria-describedby={describedBy}
+        aria-invalid={invalid || undefined}
+        className={controlClass(invalid, className)}
+        {...rest}
+      />
+    );
+  },
+);
 
 /** Телефон Кыргызстана: ввод превращается в +996 XXX XX XX XX. */
 export function formatPhone(raw: string) {
@@ -181,12 +180,7 @@ export function Checkbox({
 }) {
   return (
     <label className="group flex cursor-pointer items-center gap-3 font-medium select-none">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="peer sr-only"
-      />
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" />
       <span
         aria-hidden="true"
         className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border-2 border-smoke bg-paper transition-colors group-hover:border-graphite/40 peer-checked:border-flame peer-checked:bg-flame peer-checked:[&>svg]:scale-100 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-flame"

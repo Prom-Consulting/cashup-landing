@@ -1,18 +1,31 @@
-import { ApiError, loginInputSchema, type LoginInput } from "@loal/api";
-import { useLogin } from "./session";
+import {
+  ApiError,
+  loginInputSchema,
+  otpLoginInputSchema,
+  otpRequestInputSchema,
+  type LoginInput,
+  type OtpLoginInput,
+} from "@loal/api";
 import { fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
-import { Button, Spinner, TextInput } from "@loal/ui/inputs";
-import { Formik, Form } from "formik";
+import { Button, PhoneInput, Spinner, TextInput } from "@loal/ui/inputs";
+import { Form, Formik } from "formik";
+import { useEffect, useState } from "react";
+import { useLogin, useLoginByOtp, useRequestOtp } from "./session";
 
-const initialValues: LoginInput = { email: "", password: "" };
+/** Одно понятное сообщение вместо технической ошибки шлюза. */
+function loginErrorText(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 401) return "Неверные данные для входа";
+    if (error.isTooManyRequests) return error.message || "Слишком часто. Попробуйте через минуту";
+    return error.message;
+  }
+  return error instanceof Error ? error.message : "Не удалось войти";
+}
 
-/**
- * Вход в кабинет. Проверка полей — той же схемой, что уходит на сервер;
- * ошибку ответа кладём в status формы, чтобы её не стёр следующий ввод.
- */
-export function LoginForm({ onDone }: { onDone?: () => void }) {
+function ByPassword({ onDone }: { onDone?: () => void }) {
   const login = useLogin();
+  const initialValues: LoginInput = { email: "", password: "" };
 
   return (
     <Formik
@@ -24,13 +37,7 @@ export function LoginForm({ onDone }: { onDone?: () => void }) {
           await login.mutateAsync(values);
           onDone?.();
         } catch (error) {
-          const message =
-            error instanceof ApiError && error.status === 401
-              ? "Неверная почта или пароль"
-              : error instanceof Error
-                ? error.message
-                : "Не удалось войти";
-          helpers.setStatus(message);
+          helpers.setStatus(loginErrorText(error));
         } finally {
           helpers.setSubmitting(false);
         }
@@ -78,5 +85,156 @@ export function LoginForm({ onDone }: { onDone?: () => void }) {
         </Form>
       )}
     </Formik>
+  );
+}
+
+/** Код живёт 5 минут, повторить можно раз в минуту — отсюда обратный отсчёт. */
+function useCooldown() {
+  const [left, setLeft] = useState(0);
+  useEffect(() => {
+    if (left <= 0) return;
+    const timer = setTimeout(() => setLeft((value) => value - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [left]);
+  return { left, start: () => setLeft(60) };
+}
+
+function ByPhone({ onDone }: { onDone?: () => void }) {
+  const requestOtp = useRequestOtp();
+  const loginByOtp = useLoginByOtp();
+  const cooldown = useCooldown();
+  const [sent, setSent] = useState(false);
+  const initialValues: OtpLoginInput = { phone: "", otp: "" };
+
+  return (
+    <Formik
+      initialValues={initialValues}
+      // Пока код не запрошен, проверяем только телефон
+      validate={zodValidate(sent ? otpLoginInputSchema : otpRequestInputSchema)}
+      onSubmit={async (values, helpers) => {
+        helpers.setStatus(undefined);
+        try {
+          if (!sent) {
+            await requestOtp.mutateAsync({ phone: values.phone });
+            setSent(true);
+            cooldown.start();
+            helpers.setStatus("Код отправлен в WhatsApp");
+          } else {
+            await loginByOtp.mutateAsync(values);
+            onDone?.();
+          }
+        } catch (error) {
+          helpers.setStatus(loginErrorText(error));
+        } finally {
+          helpers.setSubmitting(false);
+        }
+      }}
+    >
+      {(form) => (
+        <Form className="flex flex-col gap-6" noValidate>
+          <Field label="Телефон" hint="Код придёт в WhatsApp" error={fieldError(form, "phone")}>
+            {(parts) => (
+              <PhoneInput
+                {...parts}
+                value={form.values.phone}
+                onValueChange={(value) => form.setFieldValue("phone", value)}
+                onBlur={() => form.setFieldTouched("phone", true)}
+              />
+            )}
+          </Field>
+
+          {sent && (
+            <Field label="Код из сообщения" error={fieldError(form, "otp")}>
+              {(parts) => (
+                <TextInput
+                  {...parts}
+                  name="otp"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={form.values.otp}
+                  onChange={form.handleChange}
+                  onBlur={form.handleBlur}
+                />
+              )}
+            </Field>
+          )}
+
+          {formError(form) && (
+            <p role="status" className="text-base font-medium text-flame-ink">
+              {formError(form)}
+            </p>
+          )}
+
+          <Button type="submit" disabled={form.isSubmitting}>
+            {form.isSubmitting ? <Spinner /> : sent ? "Войти" : "Получить код"}
+          </Button>
+
+          {sent && (
+            <button
+              type="button"
+              disabled={cooldown.left > 0 || form.isSubmitting}
+              onClick={async () => {
+                form.setStatus(undefined);
+                try {
+                  await requestOtp.mutateAsync({ phone: form.values.phone });
+                  cooldown.start();
+                  form.setStatus("Код отправлен повторно");
+                } catch (error) {
+                  form.setStatus(loginErrorText(error));
+                }
+              }}
+              className="text-base text-slate underline-offset-4 hover:underline disabled:no-underline disabled:opacity-60"
+            >
+              {cooldown.left > 0 ? `Запросить код снова через ${cooldown.left} с` : "Запросить код снова"}
+            </button>
+          )}
+        </Form>
+      )}
+    </Formik>
+  );
+}
+
+const tabClass = (active: boolean) =>
+  `rounded-full px-4 py-2 text-base transition-colors ${active ? "bg-graphite text-paper" : "text-slate hover:text-graphite"}`;
+
+/**
+ * Вход в кабинет двумя способами: почта с паролем и телефон с кодом. Оба отправляют
+ * deviceId — у аккаунта одна активная сессия, вход с другого устройства гасит эту.
+ */
+export function LoginForm({
+  onDone,
+  defaultMode = "password",
+}: {
+  onDone?: () => void;
+  defaultMode?: "password" | "phone";
+}) {
+  const [mode, setMode] = useState(defaultMode);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex gap-1" role="tablist" aria-label="Способ входа">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "password"}
+          className={tabClass(mode === "password")}
+          onClick={() => setMode("password")}
+        >
+          По почте
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "phone"}
+          className={tabClass(mode === "phone")}
+          onClick={() => setMode("phone")}
+        >
+          По телефону
+        </button>
+      </div>
+
+      {mode === "password" ? <ByPassword onDone={onDone} /> : <ByPhone onDone={onDone} />}
+    </div>
   );
 }

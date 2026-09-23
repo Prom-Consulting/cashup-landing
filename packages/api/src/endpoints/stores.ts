@@ -1,12 +1,36 @@
 import { z } from "zod";
 import type { ApiClient } from "../http";
-import { storeInviteSchema, storeMemberSchema, storeSchema } from "../schemas/store";
+import {
+  createStoreInputSchema,
+  storeInviteSchema,
+  storeMemberSchema,
+  storeSchema,
+  updateStoreInputSchema,
+  type CreateStoreInput,
+  type StoreKind,
+  type UpdateStoreInput,
+} from "../schemas/store";
 
-/** Магазины и их сотрудники. Доступно платформе (super_admin) и владельцу магазина. */
+/**
+ * Магазины. Доступ к /admin/v1/stores/{id}/... есть у сотрудников этого магазина
+ * и у super_admin; создание, приостановка и удаление — только у платформы.
+ */
 export const storesApi = (api: ApiClient) => ({
-  list: () => api.request(z.array(storeSchema), "/admin/v1/stores"),
+  list: (kind?: StoreKind) => api.request(z.array(storeSchema), "/admin/v1/stores", { query: { kind } }),
 
   get: (storeId: string) => api.request(storeSchema, `/admin/v1/stores/${storeId}`),
+
+  create: (input: CreateStoreInput) =>
+    api.request(storeSchema, "/admin/v1/stores", { method: "POST", body: createStoreInputSchema.parse(input) }),
+
+  update: (storeId: string, input: UpdateStoreInput) =>
+    api.request(storeSchema, `/admin/v1/stores/${storeId}`, {
+      method: "PATCH",
+      body: updateStoreInputSchema.parse(input),
+    }),
+
+  suspend: (storeId: string) =>
+    api.request(storeSchema, `/admin/v1/stores/${storeId}/suspend`, { method: "POST", body: {} }),
 
   members: (storeId: string) => api.request(z.array(storeMemberSchema), `/admin/v1/stores/${storeId}/members`),
 

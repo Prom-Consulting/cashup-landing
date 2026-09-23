@@ -52,6 +52,22 @@ export const loginInputSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginInputSchema>;
 
+/** Телефон бэкенд ждёт без плюса и пробелов: 996700000001. */
+export const phoneSchema = z
+  .string()
+  .trim()
+  .transform((value) => value.replace(/\D/g, ""))
+  .refine((digits) => digits.length >= 9, "Введите номер телефона");
+
+export const otpRequestInputSchema = z.object({ phone: phoneSchema });
+export type OtpRequestInput = z.infer<typeof otpRequestInputSchema>;
+
+export const otpLoginInputSchema = z.object({
+  phone: phoneSchema,
+  otp: z.string().trim().regex(/^\d{6}$/, "Код из шести цифр"),
+});
+export type OtpLoginInput = z.infer<typeof otpLoginInputSchema>;
+
 export const changePasswordInputSchema = z
   .object({
     currentPassword: z.string().min(1, "Введите текущий пароль"),

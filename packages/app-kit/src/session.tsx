@@ -104,11 +104,27 @@ export function AppProviders({
   );
 }
 
-/** Вход: сохранили токен — сразу подтянули профиль. */
+/** Вход по почте и паролю: сохранили токен — сразу подтянули профиль. */
 export function useLogin() {
   const { api, signIn } = useSession();
   return useMutation({
     mutationFn: (input: { email: string; password: string }) => authApi(api).login(input),
+    onSuccess: (tokens) => signIn(tokens.accessToken),
+  });
+}
+
+/** Запрос кода в WhatsApp. Повтор раньше минуты — 429 с текстом, сколько ждать. */
+export function useRequestOtp() {
+  const { api } = useSession();
+  return useMutation({
+    mutationFn: (input: { phone: string }) => authApi(api).requestOtp(input),
+  });
+}
+
+export function useLoginByOtp() {
+  const { api, signIn } = useSession();
+  return useMutation({
+    mutationFn: (input: { phone: string; otp: string }) => authApi(api).loginByOtp(input),
     onSuccess: (tokens) => signIn(tokens.accessToken),
   });
 }

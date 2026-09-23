@@ -1,15 +1,20 @@
 import type { ZodType } from "zod";
 
 /** Ошибка запроса: статус нужен экранам, чтобы отличить 401 от 422 и от сети. */
+export type FieldIssue = { path: (string | number)[]; message: string };
+
 export class ApiError extends Error {
   readonly status: number;
   readonly payload: unknown;
+  /** Ошибки проверки полей с сервера: путь до поля и текст (см. docs/API.md). */
+  readonly issues: FieldIssue[];
 
-  constructor(status: number, message: string, payload?: unknown) {
+  constructor(status: number, message: string, payload?: unknown, issues: FieldIssue[] = []) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.payload = payload;
+    this.issues = issues;
   }
 
   /** Токен протух или его нет — кабинет должен отправить на вход. */
@@ -19,6 +24,16 @@ export class ApiError extends Error {
 
   get isForbidden() {
     return this.status === 403;
+  }
+
+  /** Состояние не позволяет: не хватает баллов, карта не активна, подписка уже есть. */
+  get isConflict() {
+    return this.status === 409;
+  }
+
+  /** Слишком часто: у запроса кода подтверждения окно в 60 секунд. */
+  get isTooManyRequests() {
+    return this.status === 429;
   }
 }
 
@@ -88,16 +103,17 @@ function buildUrl(baseUrl: string, path: string, query: RequestOptions["query"])
 }
 
 /** Бэкенд отдаёт ошибки по-разному: {message} у Nest, {error} у шлюза, иногда просто текст. */
-async function readError(response: Response): Promise<{ message: string; payload: unknown }> {
+async function readError(response: Response): Promise<{ message: string; payload: unknown; issues: FieldIssue[] }> {
   const text = await response.text().catch(() => "");
-  if (!text) return { message: `Ошибка ${response.status}`, payload: undefined };
+  if (!text) return { message: `Ошибка ${response.status}`, payload: undefined, issues: [] };
   try {
     const payload = JSON.parse(text) as Record<string, unknown>;
     const raw = payload.message ?? payload.error ?? payload.detail;
     const message = Array.isArray(raw) ? raw.join(", ") : typeof raw === "string" ? raw : `Ошибка ${response.status}`;
-    return { message, payload };
+    const issues = Array.isArray(payload.issues) ? (payload.issues as FieldIssue[]) : [];
+    return { message, payload, issues };
   } catch {
-    return { message: text.slice(0, 300), payload: text };
+    return { message: text.slice(0, 300), payload: text, issues: [] };
   }
 }
 
@@ -128,9 +144,9 @@ export function createApiClient({
     });
 
     if (!response.ok) {
-      const { message, payload } = await readError(response);
+      const { message, payload, issues } = await readError(response);
       if (response.status === 401) onUnauthorized?.();
-      throw new ApiError(response.status, message, payload);
+      throw new ApiError(response.status, message, payload, issues);
     }
 
     if (response.status === 204) return schema.parse(undefined);

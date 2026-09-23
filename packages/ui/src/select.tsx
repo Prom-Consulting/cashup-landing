@@ -30,7 +30,12 @@ export function Select({
 }) {
   const listId = useId();
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(() => Math.max(0, options.findIndex((o) => o.id === value)));
+  const [active, setActive] = useState(() =>
+    Math.max(
+      0,
+      options.findIndex((o) => o.id === value),
+    ),
+  );
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLUListElement>(null);
@@ -148,7 +153,14 @@ export function Select({
           className={`h-5 w-5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
           aria-hidden="true"
         >
-          <path d="m5 8 5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="m5 8 5 5 5-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
 

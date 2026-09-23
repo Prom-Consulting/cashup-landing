@@ -40,4 +40,18 @@ export const publicPassInfoSchema = z.looseObject({
 });
 export type PublicPassInfo = z.infer<typeof publicPassInfoSchema>;
 
+/** Карта как её отдаёт GET /v1/cards/{serial}. */
+export const cardSchema = z.looseObject({
+  serialNumber: z.string(),
+  storeId: z.string(),
+  customerId: z.string().nullish(),
+  status: z.enum(["active", "suspended", "revoked"]),
+  pointsBalance: z.number(),
+  punchCount: z.number().nullish(),
+  barcodeValue: z.string().nullish(),
+  platform: z.string().nullish(),
+  createdAt: z.string().nullish(),
+});
+export type Card = z.infer<typeof cardSchema>;
+
 export const googleSaveLinkSchema = z.looseObject({ url: z.string() });

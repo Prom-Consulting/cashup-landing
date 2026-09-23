@@ -58,6 +58,28 @@ export const storeMemberSchema = z.looseObject({
 });
 export type StoreMember = z.infer<typeof storeMemberSchema>;
 
+/** Создаёт магазин платформа: slug и название обязательны, остальное потом. */
+export const createStoreInputSchema = z.object({
+  slug: z
+    .string()
+    .trim()
+    .min(2, "Минимум 2 символа")
+    .regex(/^[a-z0-9-]+$/, "Латиница, цифры и дефис"),
+  name: z.string().trim().min(2, "Введите название"),
+  kind: storeKindSchema.default("merchant"),
+  contactEmail: z.union([z.literal(""), z.email("Похоже, в почте опечатка")]).optional(),
+  contactPhone: z.string().trim().optional(),
+});
+export type CreateStoreInput = z.infer<typeof createStoreInputSchema>;
+
+export const updateStoreInputSchema = z.object({
+  name: z.string().trim().min(2, "Введите название").optional(),
+  contactEmail: z.union([z.literal(""), z.email("Похоже, в почте опечатка")]).optional(),
+  contactPhone: z.string().trim().optional(),
+  workflowStatus: storeWorkflowStatusSchema.optional(),
+});
+export type UpdateStoreInput = z.infer<typeof updateStoreInputSchema>;
+
 export const storeInviteSchema = z.looseObject({
   id: z.string(),
   storeId: z.string(),
