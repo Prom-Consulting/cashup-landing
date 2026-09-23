@@ -33,6 +33,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# шаблоны переменных нужны в репозитории — по ним заполняют .env на сервере
+!.env.example
 
 # vercel
 .vercel
