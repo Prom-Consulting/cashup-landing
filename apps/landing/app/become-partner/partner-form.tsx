@@ -7,7 +7,7 @@ import { Field } from "@loal/ui/field";
 import { Button, ChoiceCards, PhoneInput, Spinner, Textarea, TextInput } from "@loal/ui/inputs";
 import { Select } from "@loal/ui/select";
 import { createApiClient, createTokenStore, leadsApi } from "@loal/api";
-import { categories } from "../_data/partners";
+import { categories } from "../_data/categories";
 import { API_URL, EMAIL, PARTNER_APP_URL } from "../_data/site";
 
 gsap.registerPlugin(useGSAP);
