@@ -4,6 +4,7 @@ import { Badge, Button, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, 
 import { CreditCardIcon, UserAdd01Icon } from "@hugeicons/core-free-icons";
 import { Form, Formik } from "formik";
 import { useId, useState } from "react";
+import { CardLink } from "./card-link";
 import { useCreateCustomer, useIssueCard, useIssueCatalog } from "./customers";
 
 const emptyCustomer: CreateCustomerInput = { firstName: "", lastName: "", phone: "", email: "" };
@@ -13,9 +14,9 @@ const emptyCustomer: CreateCustomerInput = { firstName: "", lastName: "", phone:
  * по выбранному шаблону. Шаблон и программа приходят из настроек магазина — если их
  * нет, выпускать нечего, и мы честно об этом говорим.
  */
-export function IssueCardDialog() {
+export function IssueCardDialog({ cardUrl }: { cardUrl?: (serial: string) => string } = {}) {
   const [open, setOpen] = useState(false);
-  const [issued, setIssued] = useState<{ serial: string; name: string } | null>(null);
+  const [issued, setIssued] = useState<{ serial: string; name: string; phone?: string } | null>(null);
   const [templateId, setTemplateId] = useState("");
 
   const catalog = useIssueCatalog(open);
@@ -54,9 +55,18 @@ export function IssueCardDialog() {
             <p className="text-lg">
               {issued.name}: номер <span className="font-bold tabular-nums">{issued.serial}</span>
             </p>
-            <p className="text-base text-muted-foreground">
-              Отправьте гостю ссылку на карту — по ней он добавит её в Apple Wallet.
-            </p>
+            {cardUrl ? (
+              <>
+                <p className="text-base text-muted-foreground">
+                  Отправьте ссылку: по ней человек добавит карту в Apple или Google Wallet.
+                </p>
+                <CardLink url={cardUrl(issued.serial)} phone={issued.phone} name={issued.name} />
+              </>
+            ) : (
+              <p className="text-base text-muted-foreground">
+                Отправьте гостю ссылку на карту — по ней он добавит её в Apple Wallet.
+              </p>
+            )}
             <div className="flex flex-wrap gap-3">
               <Button
                 variant="outline"
@@ -85,14 +95,11 @@ export function IssueCardDialog() {
               }
               try {
                 const customer = await createCustomer.mutateAsync(values);
-                const card = await issueCard.mutateAsync({
-                  customerId: customer.id,
-                  templateId: chosen.id,
-                  programId,
-                });
+                const card = await issueCard.mutateAsync({ customerId: customer.id, templateId: chosen.id, programId });
                 setIssued({
                   serial: card.serialNumber,
                   name: [values.firstName, values.lastName].filter(Boolean).join(" ") || "Гость",
+                  phone: values.phone,
                 });
                 helpers.resetForm();
               } catch (error) {

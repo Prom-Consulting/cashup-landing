@@ -22,6 +22,7 @@ import {
 import { useState } from "react";
 import { BulkIssueDialog } from "../../features/customer/bulk-issue-dialog";
 import { CustomerDialog } from "../../features/customer/customer-dialog";
+import { cardPageUrl } from "../../shared/config/env";
 import { formatDate } from "../../shared/lib/format";
 
 const PAGE_SIZE = 20;
@@ -46,7 +47,7 @@ export function CustomersPage() {
       <PageHeader
         title="Клиенты"
         description={total > 0 ? `Всего держателей карт: ${total}` : "Держатели карт Loal и их карты."}
-        action={<IssueCardDialog />}
+        action={<IssueCardDialog cardUrl={cardPageUrl} />}
       />
 
       <div className="relative max-w-[420px]">

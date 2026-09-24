@@ -54,6 +54,7 @@ services:
         APP: admin
         VITE_API_URL: ${API_URL:-https://loal.promconsult.pro}
         VITE_SITE_URL: https://${LANDING_HOST:-loal.kg}
+        VITE_CLIENT_APP_URL: https://${CLIENT_HOST:-client.loal.kg}
     image: loal-admin:latest
     labels:
       - traefik.enable=true

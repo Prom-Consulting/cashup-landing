@@ -1,5 +1,5 @@
 import { buyMonthsInputSchema, type Card, type Customer } from "@loal/api";
-import { useCustomerCards, useRevokeCard } from "@loal/app-kit";
+import { CardLink, useCustomerCards, useRevokeCard } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import {
   Badge,
@@ -21,12 +21,13 @@ import {
   useArchiveCustomer,
   useCancelCardSubscription,
   useCardSubscription,
-  useIssueDefaultCard,
   useSetCardTier,
   useStartCardSubscription,
 } from "../../entities/card/api";
 import { useTiers } from "../../entities/platform/api";
+import { cardPageUrl } from "../../shared/config/env";
 import { formatDate } from "../../shared/lib/format";
+import { IssueCardPanel } from "./issue-card-panel";
 
 const money = new Intl.NumberFormat("ru-RU");
 const CARD_STATUS: Record<string, string> = { active: "действует", suspended: "приостановлена", revoked: "отозвана" };
@@ -121,7 +122,7 @@ function Subscription({ serial }: { serial: string }) {
   );
 }
 
-function CardRow({ card }: { card: Card }) {
+function CardRow({ card, customer }: { card: Card; customer: Customer }) {
   const revoke = useRevokeCard();
   const tiers = useTiers(card.programId ?? null);
   const setTier = useSetCardTier();
@@ -152,6 +153,13 @@ function CardRow({ card }: { card: Card }) {
           />
         )}
       </div>
+      {active && (
+        <CardLink
+          url={cardPageUrl(card.serialNumber)}
+          phone={customer.phone}
+          name={[customer.firstName, customer.lastName].filter(Boolean).join(" ") || undefined}
+        />
+      )}
       {active && (tiers.data?.length ?? 0) > 0 && (
         <FormField label="Уровень" hint="Обычно считается сам по сумме покупок; здесь — поставить руками.">
           {(parts) => (
@@ -177,7 +185,7 @@ function CardRow({ card }: { card: Card }) {
 /** Всё о держателе: его карты, подписка, уровень, выдача новой карты и архив. */
 export function CustomerDialog({ customer, onClose }: { customer: Customer | null; onClose: () => void }) {
   const cards = useCustomerCards(customer?.id ?? null);
-  const issue = useIssueDefaultCard();
+  const [issuing, setIssuing] = useState(false);
   const archive = useArchiveCustomer();
   const name = customer ? [customer.firstName, customer.lastName].filter(Boolean).join(" ") || "Без имени" : "";
   const hasActive = cards.data?.some((card) => card.status === "active");
@@ -196,24 +204,25 @@ export function CustomerDialog({ customer, onClose }: { customer: Customer | nul
             {cards.isSuccess && cards.data.length === 0 && <EmptyState title="Карт ещё не выдавали" />}
             <ul className="flex flex-col gap-3">
               {(cards.data ?? []).map((card) => (
-                <CardRow key={card.serialNumber} card={card} />
+                <CardRow key={card.serialNumber} card={card} customer={customer} />
               ))}
             </ul>
 
             {!customer.archivedAt && (
               <div className="flex flex-wrap gap-3 border-t border-border pt-5">
-                <ConfirmDialog
-                  trigger={<Button variant="outline">{hasActive ? "Перевыпустить карту" : "Выдать карту"}</Button>}
-                  title={hasActive ? "Перевыпустить карту?" : "Выдать карту платформы?"}
-                  tone="primary"
-                  description={
-                    hasActive
-                      ? "У человека одна действующая карта: текущая будет отозвана, весь баланс переедет на новую. Подписку это не трогает."
-                      : "Человек получит карту платформы по умолчанию."
-                  }
-                  confirmLabel={hasActive ? "Перевыпустить" : "Выдать"}
-                  onConfirm={() => issue.mutateAsync(customer.id)}
-                />
+                {issuing ? (
+                  <div className="basis-full">
+                    <IssueCardPanel
+                      customerId={customer.id}
+                      reissue={Boolean(hasActive)}
+                      onDone={() => setIssuing(false)}
+                    />
+                  </div>
+                ) : (
+                  <Button variant="outline" onClick={() => setIssuing(true)}>
+                    {hasActive ? "Перевыпустить карту" : "Выдать карту"}
+                  </Button>
+                )}
                 <ConfirmDialog
                   trigger={<Button variant="ghost">В архив</Button>}
                   title="Отправить клиента в архив?"

@@ -26,6 +26,11 @@ export function TemplatesPage() {
         action={<CreateTemplateDialog />}
       />
 
+      {templates.isSuccess && templates.data.length > 0 && !templates.data.some((item) => item.isDefault) && (
+        <p role="status" className="rounded-2xl border-2 border-primary/40 bg-primary/10 px-5 py-4 text-base">
+          <b>Карта платформы не выбрана.</b> Пока её нет, не сработают самостоятельная выдача по QR и выдача «карты по умолчанию» в кабинете. Откройте опубликованную карту → «Настройки» → «Сделать картой платформы».
+        </p>
+      )}
       {templates.isPending && <Loading rows={3} />}
       {templates.isError && <ErrorState error={templates.error} onRetry={() => templates.refetch()} />}
       {templates.isSuccess && templates.data.length === 0 && (

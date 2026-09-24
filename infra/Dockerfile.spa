@@ -14,7 +14,8 @@ ARG APP
 # Адрес API попадает в бандл на этапе сборки
 ARG VITE_API_URL
 ARG VITE_SITE_URL
-ENV VITE_API_URL=$VITE_API_URL VITE_SITE_URL=$VITE_SITE_URL
+ARG VITE_CLIENT_APP_URL
+ENV VITE_API_URL=$VITE_API_URL VITE_SITE_URL=$VITE_SITE_URL VITE_CLIENT_APP_URL=$VITE_CLIENT_APP_URL
 COPY . .
 RUN pnpm install --frozen-lockfile --offline
 # Только сборка: проверка типов уже прошла локально и в pnpm typecheck,
