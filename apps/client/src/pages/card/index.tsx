@@ -1,16 +1,16 @@
 import { ApiError } from "@loal/api";
-import { AppleIcon, ArrowLeft02Icon, GoogleIcon, RefreshIcon } from "@hugeicons/core-free-icons";
+import { ArrowLeft02Icon, RefreshIcon } from "@hugeicons/core-free-icons";
 import { Button, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
 import { Link, useParams } from "react-router";
-import { appleWalletUrl, useGoogleSaveLink, usePassInfo } from "../../entities/card/api";
+import { appleWalletUrl, usePassInfo } from "../../entities/card/api";
 import { PaySubscriptionForm } from "../../features/subscription/pay-form";
 import { CardView } from "../../widgets/card-view";
+import { WalletButtons } from "../../widgets/wallet-buttons";
 
 /** Страница карты по ссылке: /c/<серийный номер>. Вход не нужен — ссылка и есть доступ. */
 export function CardPage() {
   const { serial = "" } = useParams();
   const pass = usePassInfo(serial);
-  const google = useGoogleSaveLink(serial);
 
   if (pass.isPending) return <Loading label="Открываем карту…" rows={2} />;
 
@@ -40,21 +40,7 @@ export function CardPage() {
       <CardView pass={pass.data} />
 
       <div className="flex flex-col gap-3">
-        <Button asChild variant="secondary" size="lg">
-          <a href={appleWalletUrl(serial)}>
-            <Icon icon={AppleIcon} />
-            Добавить в Apple Wallet
-          </a>
-        </Button>
-
-        {google.data?.url && (
-          <Button asChild variant="outline" size="lg">
-            <a href={google.data.url} target="_blank" rel="noreferrer">
-              <Icon icon={GoogleIcon} />
-              Добавить в Google Wallet
-            </a>
-          </Button>
-        )}
+        <WalletButtons serial={serial} appleUrl={appleWalletUrl(serial)} />
 
         <Dialog>
           <DialogTrigger asChild>

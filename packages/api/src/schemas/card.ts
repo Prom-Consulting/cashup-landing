@@ -67,4 +67,5 @@ export const cardSchema = z.looseObject({
 });
 export type Card = z.infer<typeof cardSchema>;
 
-export const googleSaveLinkSchema = z.looseObject({ url: z.string() });
+/** Google Wallet: ссылки нет, если на платформе не настроен сертификат Google. */
+export const googleSaveLinkSchema = z.looseObject({ available: z.boolean().nullish(), saveUrl: z.string().nullish() });

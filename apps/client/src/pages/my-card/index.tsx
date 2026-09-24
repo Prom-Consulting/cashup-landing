@@ -1,6 +1,7 @@
 import { ApiError } from "@loal/api";
-import { AppleIcon, RefreshIcon } from "@hugeicons/core-free-icons";
+import { RefreshIcon } from "@hugeicons/core-free-icons";
 import { useSession } from "@loal/app-kit";
+import { WalletButtons } from "../../widgets/wallet-buttons";
 import { Button, Card, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
@@ -96,14 +97,7 @@ export function MyCardPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        {walletUrl && (
-          <Button asChild variant="secondary" size="lg">
-            <a href={walletUrl}>
-              <Icon icon={AppleIcon} />
-              Добавить в Apple Wallet
-            </a>
-          </Button>
-        )}
+        {walletUrl && <WalletButtons serial={serialNumber} appleUrl={walletUrl} />}
 
         <Dialog>
           <DialogTrigger asChild>
