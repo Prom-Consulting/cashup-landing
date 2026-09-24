@@ -1,5 +1,5 @@
 import { ApiError, authApi, registerInputSchema, type RegisterInput } from "@loal/api";
-import { fieldError, formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Button, PhoneInput, Spinner, TextInput } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
@@ -46,7 +46,7 @@ export function RegisterForm({ onDone }: { onDone?: () => void }) {
           await signIn(tokens.accessToken);
           onDone?.();
         } catch (error) {
-          helpers.setStatus(errorText(error));
+          applyServerIssues(error, helpers, errorText(error));
         } finally {
           helpers.setSubmitting(false);
         }
@@ -54,6 +54,7 @@ export function RegisterForm({ onDone }: { onDone?: () => void }) {
     >
       {(form) => (
         <Form className="flex flex-col gap-5" noValidate>
+          <FocusFirstError form={form} />
           <Field label="Телефон" hint="На него придёт код в WhatsApp" error={fieldError(form, "phone")}>
             {(parts) => (
               <PhoneInput

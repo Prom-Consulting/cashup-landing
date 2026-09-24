@@ -11,9 +11,13 @@ export const programSchema = z.looseObject({
 export type Program = z.infer<typeof programSchema>;
 
 export const createProgramInputSchema = z.object({
-  name: z.string().trim().min(2, "Введите название"),
+  name: z.string().trim().min(2, "Введите название").max(120, "Слишком длинное название"),
   /** Сколько баллов даёт подписка за месяц. */
-  pointsPerPeriod: z.coerce.number().int().min(1, "Больше нуля"),
+  pointsPerPeriod: z.coerce
+    .number({ error: "Введите число" })
+    .int("Целое число")
+    .min(1, "Больше нуля")
+    .max(10_000_000, "Слишком много для одного месяца"),
 });
 export type CreateProgramInput = z.infer<typeof createProgramInputSchema>;
 
@@ -30,10 +34,13 @@ export const tierSchema = z.looseObject({
 export type Tier = z.infer<typeof tierSchema>;
 
 export const createTierInputSchema = z.object({
-  name: z.string().trim().min(1, "Введите название"),
-  threshold: z.coerce.number().min(0, "Не меньше нуля"),
+  name: z.string().trim().min(1, "Введите название").max(60, "Слишком длинное название"),
+  /** Порог считается по накопленной сумме покупок, а не по остатку на карте. */
+  threshold: z.coerce.number({ error: "Введите число" }).min(0, "Не меньше нуля").max(1_000_000_000, "Слишком много"),
   sortOrder: z.coerce.number().int().min(0).default(0),
-  earnPercent: z.union([z.literal(""), z.coerce.number().min(0).max(100)]).optional(),
+  earnPercent: z
+    .union([z.literal(""), z.coerce.number().min(0, "Не меньше нуля").max(100, "Не больше 100%")])
+    .optional(),
 });
 export type CreateTierInput = z.infer<typeof createTierInputSchema>;
 
@@ -102,7 +109,7 @@ export const issueCardByPhoneInputSchema = z.object({
     .trim()
     .transform((value) => value.replace(/\D/g, ""))
     .refine((digits) => digits.length >= 9, "Введите номер телефона"),
-  firstName: z.string().trim().min(1, "Введите имя"),
-  lastName: z.string().trim().optional(),
+  firstName: z.string().trim().min(2, "Введите имя").max(60, "Слишком длинное имя"),
+  lastName: z.string().trim().max(60, "Слишком длинная фамилия").optional(),
 });
 export type IssueCardByPhoneInput = z.infer<typeof issueCardByPhoneInputSchema>;

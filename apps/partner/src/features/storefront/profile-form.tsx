@@ -1,5 +1,5 @@
 import { ApiError, merchantProfileFormSchema, type MerchantProfile, type MerchantProfileForm } from "@loal/api";
-import { fieldError, formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Delete02Icon, ImageAdd01Icon } from "@hugeicons/core-free-icons";
 import { Button, Icon, Input, Label, Textarea } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
@@ -62,7 +62,7 @@ export function ProfileForm({ merchantId, profile }: { merchantId: string; profi
           });
           helpers.setStatus("Витрина сохранена");
         } catch (error) {
-          helpers.setStatus(error instanceof ApiError ? error.message : "Не удалось сохранить витрину");
+          applyServerIssues(error, helpers);
         } finally {
           helpers.setSubmitting(false);
         }
@@ -70,6 +70,7 @@ export function ProfileForm({ merchantId, profile }: { merchantId: string; profi
     >
       {(form) => (
         <Form className="flex flex-col gap-6" noValidate>
+          <FocusFirstError form={form} />
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <Label htmlFor="category">Категория</Label>

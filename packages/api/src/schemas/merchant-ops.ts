@@ -15,8 +15,17 @@ export const createBranchInputSchema = z.object({
 export type CreateBranchInput = z.infer<typeof createBranchInputSchema>;
 
 /** Сотрудника подключают по уже существующему userId: он сначала регистрируется сам. */
+const userIdSchema = z
+  .string()
+  .trim()
+  .min(1, "Укажите пользователя")
+  .refine(
+    (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value),
+    "Это должен быть идентификатор пользователя, а не имя или телефон",
+  );
+
 export const addMemberInputSchema = z.object({
-  userId: z.string().trim().min(1, "Укажите пользователя"),
+  userId: userIdSchema,
   role: z.enum(["admin", "staff"]),
   branchId: z.string().trim().optional(),
 });
@@ -24,7 +33,7 @@ export type AddMemberInput = z.infer<typeof addMemberInputSchema>;
 
 /** Партнёру выбирают одну операцию на всю жизнь: начислять или списывать. */
 export const addPartnerInputSchema = z.object({
-  userId: z.string().trim().min(1, "Укажите пользователя"),
+  userId: userIdSchema,
   scanOperation: z.enum(["earn", "redeem"]),
   branchId: z.string().trim().optional(),
 });
@@ -99,7 +108,12 @@ export const createWebhookInputSchema = z.object({
     .string()
     .trim()
     .min(1, "Введите адрес")
-    .refine((value) => /^https?:\/\//i.test(value), "Адрес должен начинаться с http:// или https://"),
+    .max(500, "Слишком длинный адрес")
+    .refine((value) => /^https?:\/\/\S+\.\S+/i.test(value), "Нужен полный адрес, например https://example.kg/hook")
+    .refine(
+      (value) => !/^http:\/\//i.test(value) || /localhost|127\.0\.0\.1/.test(value),
+      "Для боевого адреса нужен https",
+    ),
   events: z.array(z.string()).min(1, "Выберите хотя бы одно событие"),
 });
 export type CreateWebhookInput = z.infer<typeof createWebhookInputSchema>;

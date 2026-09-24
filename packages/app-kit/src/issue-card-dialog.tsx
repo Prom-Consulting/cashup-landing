@@ -1,5 +1,5 @@
 import { ApiError, createCustomerInputSchema, type CreateCustomerInput } from "@loal/api";
-import { fieldError, formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Badge, Button, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, Input, Label } from "@loal/ui/shadcn";
 import { CreditCardIcon, UserAdd01Icon } from "@hugeicons/core-free-icons";
 import { Form, Formik } from "formik";
@@ -96,12 +96,12 @@ export function IssueCardDialog() {
                 });
                 helpers.resetForm();
               } catch (error) {
-                helpers.setStatus(
+                applyServerIssues(
+                  error,
+                  helpers,
                   error instanceof ApiError && error.status === 400
-                    ? "Карту выпустить не удалось: проверьте, что у платформы есть шаблон карты и программа."
-                    : error instanceof Error
-                      ? error.message
-                      : "Не удалось выпустить карту",
+                    ? "Карту выпустить не удалось: проверьте, что у платформы есть опубликованный шаблон и программа."
+                    : undefined,
                 );
               } finally {
                 helpers.setSubmitting(false);
@@ -110,6 +110,7 @@ export function IssueCardDialog() {
           >
             {(form) => (
               <Form className="flex flex-col gap-5" noValidate>
+                <FocusFirstError form={form} />
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="firstName">Имя</Label>

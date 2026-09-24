@@ -1,5 +1,5 @@
 import { WEBHOOK_EVENTS, createWebhookInputSchema, type CreateWebhookInput } from "@loal/api";
-import { fieldError, formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Badge, Button, Card, EmptyState, ErrorState, Input, Label, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useState } from "react";
@@ -51,7 +51,7 @@ export function WebhooksPage() {
                 helpers.resetForm();
                 if (created.secret) setFreshSecret(created.secret);
               } catch (error) {
-                helpers.setStatus(error instanceof Error ? error.message : "Не удалось создать вебхук");
+                applyServerIssues(error, helpers);
               } finally {
                 helpers.setSubmitting(false);
               }
@@ -59,6 +59,7 @@ export function WebhooksPage() {
           >
             {(form) => (
               <Form className="mt-5 flex flex-col gap-5" noValidate>
+                <FocusFirstError form={form} />
                 <div>
                   <Label htmlFor="url">Адрес</Label>
                   <Input

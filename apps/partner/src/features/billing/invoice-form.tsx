@@ -1,5 +1,5 @@
 import { ApiError, createInvoiceInputSchema, type CreateInvoiceInput } from "@loal/api";
-import { fieldError, formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Button, Input, Label } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useCreateInvoice } from "../../entities/merchant/api";
@@ -24,7 +24,7 @@ export function InvoiceForm({ merchantId }: { merchantId: string }) {
           helpers.resetForm();
           helpers.setStatus("Счёт выставлен — ссылка на оплату в списке ниже");
         } catch (error) {
-          helpers.setStatus(error instanceof ApiError ? error.message : "Не удалось выставить счёт");
+          applyServerIssues(error, helpers);
         } finally {
           helpers.setSubmitting(false);
         }
@@ -34,6 +34,7 @@ export function InvoiceForm({ merchantId }: { merchantId: string }) {
         const months = String(form.values.months ?? "");
         return (
           <Form className="flex flex-col gap-5" noValidate>
+            <FocusFirstError form={form} />
             <div className="grid gap-5 sm:grid-cols-[minmax(0,240px)_1fr]">
               <div>
                 <Label htmlFor="amount">Сумма, сом</Label>

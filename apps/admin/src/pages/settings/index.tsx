@@ -1,5 +1,5 @@
 import { platformSettingsInputSchema, type PlatformSettingsInput } from "@loal/api";
-import { fieldError, formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Button, Card, ErrorState, Input, Label, Loading, PageHeader, Textarea } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useAuditLogs, usePlatformSettings, useSavePlatformSettings } from "../../entities/platform/api";
@@ -37,7 +37,7 @@ export function SettingsPage() {
                 await save.mutateAsync(values);
                 helpers.setStatus("Сохранено");
               } catch (error) {
-                helpers.setStatus(error instanceof Error ? error.message : "Не удалось сохранить");
+                applyServerIssues(error, helpers);
               } finally {
                 helpers.setSubmitting(false);
               }
@@ -45,6 +45,7 @@ export function SettingsPage() {
           >
             {(form) => (
               <Form className="flex flex-col gap-5" noValidate>
+                <FocusFirstError form={form} />
                 <div>
                   <Label htmlFor="infoText">О компании</Label>
                   <Textarea

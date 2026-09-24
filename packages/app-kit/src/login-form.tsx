@@ -6,7 +6,7 @@ import {
   type LoginInput,
   type OtpLoginInput,
 } from "@loal/api";
-import { fieldError, formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Button, PhoneInput, Spinner, TextInput } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
@@ -37,7 +37,7 @@ function ByPassword({ onDone }: { onDone?: () => void }) {
           await login.mutateAsync(values);
           onDone?.();
         } catch (error) {
-          helpers.setStatus(loginErrorText(error));
+          applyServerIssues(error, helpers, loginErrorText(error));
         } finally {
           helpers.setSubmitting(false);
         }
@@ -45,6 +45,7 @@ function ByPassword({ onDone }: { onDone?: () => void }) {
     >
       {(form) => (
         <Form className="flex flex-col gap-6" noValidate>
+          <FocusFirstError form={form} />
           <Field label="Почта" error={fieldError(form, "email")}>
             {(parts) => (
               <TextInput
@@ -124,7 +125,7 @@ function ByPhone({ onDone }: { onDone?: () => void }) {
             onDone?.();
           }
         } catch (error) {
-          helpers.setStatus(loginErrorText(error));
+          applyServerIssues(error, helpers, loginErrorText(error));
         } finally {
           helpers.setSubmitting(false);
         }
@@ -132,6 +133,7 @@ function ByPhone({ onDone }: { onDone?: () => void }) {
     >
       {(form) => (
         <Form className="flex flex-col gap-6" noValidate>
+          <FocusFirstError form={form} />
           <Field label="Телефон" hint="Код придёт в WhatsApp" error={fieldError(form, "phone")}>
             {(parts) => (
               <PhoneInput

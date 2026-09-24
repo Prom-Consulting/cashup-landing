@@ -9,5 +9,8 @@
     "build": "pnpm -r --filter './apps/*' build",
     "typecheck": "pnpm -r typecheck",
     "dev:admin": "pnpm --filter @loal/admin dev"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
   }
 }

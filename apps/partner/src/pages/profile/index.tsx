@@ -1,6 +1,6 @@
 import { ApiError, changePasswordInputSchema, type ChangePasswordInput, authApi } from "@loal/api";
 import { useApi } from "@loal/app-kit";
-import { fieldError, formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { TextInput } from "@loal/ui/inputs";
 import { Button, Card, PageHeader } from "@loal/ui/shadcn";
@@ -39,12 +39,10 @@ export function ProfilePage() {
               helpers.resetForm();
               helpers.setStatus("Пароль изменён");
             } catch (error) {
-              helpers.setStatus(
-                error instanceof ApiError && error.status === 400
-                  ? "Текущий пароль не подошёл"
-                  : error instanceof Error
-                    ? error.message
-                    : "Не удалось сменить пароль",
+              applyServerIssues(
+                error,
+                helpers,
+                error instanceof ApiError && error.status === 400 ? "Текущий пароль не подошёл" : undefined,
               );
             } finally {
               helpers.setSubmitting(false);
@@ -53,6 +51,7 @@ export function ProfilePage() {
         >
           {(form) => (
             <Form className="mt-5 flex flex-col gap-5" noValidate>
+              <FocusFirstError form={form} />
               <Field label="Текущий пароль" error={fieldError(form, "currentPassword")}>
                 {(parts) => (
                   <TextInput

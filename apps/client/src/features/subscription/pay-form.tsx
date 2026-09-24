@@ -1,5 +1,5 @@
 import { ApiError, buyMonthsInputSchema, type BuyMonthsInput } from "@loal/api";
-import { formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, formError, zodValidate } from "@loal/forms";
 import { Button, Label } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { usePaySubscription } from "../../entities/me/api";
@@ -29,7 +29,13 @@ export function PaySubscriptionForm({ serial }: { serial: string }) {
           }
           helpers.setStatus("Счёт создан, но ссылка на оплату не пришла. Напишите нам.");
         } catch (error) {
-          helpers.setStatus(error instanceof ApiError ? error.message : "Не удалось создать счёт");
+          applyServerIssues(
+            error,
+            helpers,
+            error instanceof ApiError && error.isConflict
+              ? "Подписка уже активна — оплачивать повторно не нужно."
+              : undefined,
+          );
         } finally {
           helpers.setSubmitting(false);
         }
@@ -37,6 +43,7 @@ export function PaySubscriptionForm({ serial }: { serial: string }) {
     >
       {(form) => (
         <Form className="flex flex-col gap-4" noValidate>
+          <FocusFirstError form={form} />
           <div>
             <Label>На сколько месяцев</Label>
             <div className="mt-2 flex flex-wrap gap-2">

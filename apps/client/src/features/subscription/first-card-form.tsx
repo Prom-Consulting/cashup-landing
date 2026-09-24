@@ -1,5 +1,5 @@
 import { ApiError, paySubscriptionByPhoneInputSchema, type PaySubscriptionByPhoneInput } from "@loal/api";
-import { fieldError, formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Button, Input, Label } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { usePaySubscriptionByPhone } from "../../entities/me/api";
@@ -29,7 +29,7 @@ export function FirstCardForm({ phone }: { phone?: string | null }) {
           }
           helpers.setStatus("Счёт создан, но ссылка на оплату не пришла. Напишите нам.");
         } catch (error) {
-          helpers.setStatus(error instanceof ApiError ? error.message : "Не удалось создать счёт");
+          applyServerIssues(error, helpers);
         } finally {
           helpers.setSubmitting(false);
         }
@@ -37,6 +37,7 @@ export function FirstCardForm({ phone }: { phone?: string | null }) {
     >
       {(form) => (
         <Form className="flex flex-col gap-4" noValidate>
+          <FocusFirstError form={form} />
           <div>
             <Label htmlFor="firstName">Как вас зовут</Label>
             <Input

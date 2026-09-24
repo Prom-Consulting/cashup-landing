@@ -5,7 +5,7 @@ import {
   buyMonthsInputSchema,
   type BuyMonthsInput,
 } from "@loal/api";
-import { fieldError, formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Form, Formik } from "formik";
 import { Input, PageHeader } from "@loal/ui/shadcn";
@@ -107,7 +107,7 @@ export function MerchantDetailsPage() {
               await grant.mutateAsync(values);
               helpers.setStatus("Доступ выдан");
             } catch (error) {
-              helpers.setStatus(error instanceof ApiError ? error.message : "Не удалось выдать доступ");
+              applyServerIssues(error, helpers);
             } finally {
               helpers.setSubmitting(false);
             }
@@ -115,6 +115,7 @@ export function MerchantDetailsPage() {
         >
           {(form) => (
             <Form className="mt-5 flex flex-wrap items-end gap-4" noValidate>
+              <FocusFirstError form={form} />
               <Field label="Месяцев" error={fieldError(form, "months")} className="w-[140px]">
                 {(parts) => (
                   <Input

@@ -1,5 +1,5 @@
 import { MEMBER_ROLE_LABELS, addMemberInputSchema, createBranchInputSchema, type AddMemberInput } from "@loal/api";
-import { fieldError, formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Badge, Button, Card, EmptyState, ErrorState, Input, Label, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useAddMember, useBranches, useCreateBranch, useMembers, useRemoveMember } from "../../entities/merchant/api";
@@ -47,7 +47,7 @@ export function TeamPage() {
                 await createBranch.mutateAsync(values);
                 helpers.resetForm();
               } catch (error) {
-                helpers.setStatus(error instanceof Error ? error.message : "Не удалось добавить точку");
+                applyServerIssues(error, helpers);
               } finally {
                 helpers.setSubmitting(false);
               }
@@ -55,6 +55,7 @@ export function TeamPage() {
           >
             {(form) => (
               <Form className="mt-5 flex flex-wrap items-end gap-4" noValidate>
+                <FocusFirstError form={form} />
                 <div className="min-w-[240px] flex-1">
                   <Label htmlFor="branch-name">Новая точка</Label>
                   <Input
@@ -138,7 +139,7 @@ function AddMemberForm({ add }: ReturnType<typeof useAddMemberForm>) {
           helpers.resetForm();
           helpers.setStatus("Сотрудник подключён");
         } catch (error) {
-          helpers.setStatus(error instanceof Error ? error.message : "Не удалось подключить сотрудника");
+          applyServerIssues(error, helpers);
         } finally {
           helpers.setSubmitting(false);
         }
@@ -146,6 +147,7 @@ function AddMemberForm({ add }: ReturnType<typeof useAddMemberForm>) {
     >
       {(form) => (
         <Form className="mt-6 flex flex-wrap items-end gap-4 border-t border-border pt-5" noValidate>
+          <FocusFirstError form={form} />
           <div className="min-w-[240px] flex-1">
             <Label htmlFor="userId">Идентификатор пользователя</Label>
             <Input

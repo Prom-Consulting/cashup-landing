@@ -88,14 +88,18 @@ export function planLabel(plan: string | null | undefined) {
   return PLAN_LABELS[plan] ?? plan;
 }
 
+/** Бэкенд принимает от одного месяца до двух лет. */
 export const buyMonthsInputSchema = z.object({
-  months: z.coerce.number().int().min(1, "Минимум месяц").max(12, "Не больше года"),
+  months: z.coerce.number().int("Целое число месяцев").min(1, "Минимум месяц").max(24, "Не больше двух лет"),
 });
 export type BuyMonthsInput = z.infer<typeof buyMonthsInputSchema>;
 
 export const createInvoiceInputSchema = z.object({
-  amount: z.coerce.number().positive("Сумма больше нуля"),
-  months: z.coerce.number().int().min(1, "Минимум месяц").max(12, "Не больше года"),
+  amount: z.coerce
+    .number({ error: "Введите сумму числом" })
+    .positive("Сумма больше нуля")
+    .max(100_000_000, "Слишком большая сумма"),
+  months: z.coerce.number().int("Целое число месяцев").min(1, "Минимум месяц").max(24, "Не больше двух лет"),
 });
 export type CreateInvoiceInput = z.infer<typeof createInvoiceInputSchema>;
 

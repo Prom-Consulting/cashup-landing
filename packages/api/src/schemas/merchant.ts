@@ -69,9 +69,13 @@ export const createMerchantInputSchema = z.object({
     .trim()
     .min(2, "Минимум 2 символа")
     .regex(/^[a-z0-9-]+$/, "Латиница, цифры и дефис"),
-  name: z.string().trim().min(2, "Введите название"),
+  name: z.string().trim().min(2, "Введите название").max(120, "Слишком длинное название"),
   contactEmail: z.union([z.literal(""), z.email("Похоже, в почте опечатка")]).optional(),
-  contactPhone: z.string().trim().optional(),
+  contactPhone: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || value.replace(/\D/g, "").length >= 9, "Проверьте номер телефона")
+    .optional(),
 });
 export type CreateMerchantInput = z.infer<typeof createMerchantInputSchema>;
 
@@ -97,18 +101,22 @@ export const merchantProfileSchema = z.object({
 });
 export type MerchantProfile = z.infer<typeof merchantProfileSchema>;
 
+/** Пустая строка допустима: это «поле не заполнено», при отправке станет null. */
 const optionalUrl = z
   .string()
   .trim()
   .max(500, "Слишком длинный адрес")
-  .refine((value) => value === "" || /^https?:\/\//i.test(value), "Адрес должен начинаться с http:// или https://");
+  .refine((value) => value === "" || /^https?:\/\/\S+\.\S+/i.test(value), "Похоже на неполный адрес: нужен https://…");
 
 /** То, что заполняет сам магазин в кабинете: пустые строки превращаем в null при отправке. */
 export const merchantProfileFormSchema = z.object({
   category: z.string().trim().max(60, "Не длиннее 60 символов"),
   description: z.string().trim().max(2000, "Не длиннее 2000 символов"),
-  instagramUrl: optionalUrl,
-  twogisUrl: optionalUrl,
+  instagramUrl: optionalUrl.refine(
+    (value) => value === "" || /instagram\.com/i.test(value),
+    "Это не похоже на ссылку в Instagram",
+  ),
+  twogisUrl: optionalUrl.refine((value) => value === "" || /2gis\./i.test(value), "Это не похоже на ссылку в 2ГИС"),
 });
 export type MerchantProfileForm = z.infer<typeof merchantProfileFormSchema>;
 

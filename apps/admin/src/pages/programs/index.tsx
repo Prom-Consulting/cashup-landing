@@ -4,7 +4,7 @@ import {
   type CreateProgramInput,
   type CreateTierInput,
 } from "@loal/api";
-import { fieldError, formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Badge, Button, Card, EmptyState, ErrorState, Input, Label, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useState } from "react";
@@ -51,7 +51,7 @@ export function ProgramsPage() {
               await createProgram.mutateAsync(values);
               helpers.resetForm();
             } catch (error) {
-              helpers.setStatus(error instanceof Error ? error.message : "Не удалось создать программу");
+              applyServerIssues(error, helpers);
             } finally {
               helpers.setSubmitting(false);
             }
@@ -59,6 +59,7 @@ export function ProgramsPage() {
         >
           {(form) => (
             <Form className="mt-5 flex flex-wrap items-end gap-4" noValidate>
+              <FocusFirstError form={form} />
               <div className="min-w-[220px] flex-1">
                 <Label htmlFor="name">Название</Label>
                 <Input
@@ -153,7 +154,7 @@ export function ProgramsPage() {
                         await createTier.mutateAsync(values);
                         helpers.resetForm();
                       } catch (error) {
-                        helpers.setStatus(error instanceof Error ? error.message : "Не удалось добавить уровень");
+                        applyServerIssues(error, helpers);
                       } finally {
                         helpers.setSubmitting(false);
                       }
@@ -161,6 +162,7 @@ export function ProgramsPage() {
                   >
                     {(form) => (
                       <Form className="mt-5 flex flex-wrap items-end gap-3" noValidate>
+                        <FocusFirstError form={form} />
                         <div className="w-[200px]">
                           <Label htmlFor="tier-name">Уровень</Label>
                           <Input

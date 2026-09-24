@@ -1,5 +1,5 @@
 import { ApiError, createMerchantInputSchema, type CreateMerchantInput } from "@loal/api";
-import { fieldError, formError, zodValidate } from "@loal/forms";
+import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Button, Input, Label } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useCreateMerchant } from "../../entities/merchant/api";
@@ -21,12 +21,10 @@ export function CreateMerchantForm({ onCreated }: { onCreated?: (merchantId: str
           helpers.resetForm();
           onCreated?.(merchant.id);
         } catch (error) {
-          helpers.setStatus(
-            error instanceof ApiError && error.isConflict
-              ? "Заведение с таким адресом уже есть"
-              : error instanceof Error
-                ? error.message
-                : "Не удалось создать заведение",
+          applyServerIssues(
+            error,
+            helpers,
+            error instanceof ApiError && error.isConflict ? "Заведение с таким адресом уже есть" : undefined,
           );
         } finally {
           helpers.setSubmitting(false);
@@ -35,6 +33,7 @@ export function CreateMerchantForm({ onCreated }: { onCreated?: (merchantId: str
     >
       {(form) => (
         <Form className="flex flex-col gap-5" noValidate>
+          <FocusFirstError form={form} />
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <Label htmlFor="name">Название</Label>

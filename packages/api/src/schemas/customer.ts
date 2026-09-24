@@ -30,7 +30,11 @@ export const createCustomerInputSchema = z
   .object({
     firstName: z.string().trim().max(60, "Слишком длинное имя").optional(),
     lastName: z.string().trim().max(60, "Слишком длинная фамилия").optional(),
-    phone: z.string().trim().optional(),
+    phone: z
+      .string()
+      .trim()
+      .refine((value) => value === "" || value.replace(/\D/g, "").length >= 9, "Проверьте номер телефона")
+      .optional(),
     email: z.union([z.literal(""), z.email("Похоже, в почте опечатка")]).optional(),
   })
   .refine((v) => Boolean(v.firstName || v.lastName || v.phone || v.email), {

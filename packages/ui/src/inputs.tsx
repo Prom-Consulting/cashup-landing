@@ -26,7 +26,9 @@ export const TextInput = forwardRef<HTMLInputElement, BaseProps & React.InputHTM
 
 /** Телефон Кыргызстана: ввод превращается в +996 XXX XX XX XX. */
 export function formatPhone(raw: string) {
-  const digits = raw.replace(/\D/g, "").replace(/^996/, "").slice(0, 9);
+  // Поле уже показывает +996, но люди по привычке набирают 0700… — ноль отбрасываем,
+  // иначе номер уезжает на цифру вправо и становится чужим
+  const digits = raw.replace(/\D/g, "").replace(/^996/, "").replace(/^0/, "").slice(0, 9);
   const parts = [digits.slice(0, 3), digits.slice(3, 5), digits.slice(5, 7), digits.slice(7, 9)].filter(Boolean);
   return digits ? `+996 ${parts.join(" ")}` : "";
 }
