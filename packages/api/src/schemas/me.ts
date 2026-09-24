@@ -11,11 +11,7 @@ export const myCardSchema = z.looseObject({
   /** Готовый адрес страницы добавления карты в Wallet — собирать самим не надо. */
   walletUrl: z.string().nullish(),
   customer: z
-    .looseObject({
-      firstName: z.string().nullish(),
-      lastName: z.string().nullish(),
-      phone: z.string().nullish(),
-    })
+    .looseObject({ firstName: z.string().nullish(), lastName: z.string().nullish(), phone: z.string().nullish() })
     .nullish(),
   /** null — подписку ни разу не покупали или она закончилась. */
   subscription: z
@@ -29,13 +25,14 @@ export const myCardSchema = z.looseObject({
 });
 export type MyCard = z.infer<typeof myCardSchema>;
 
-/** Что было с баллами: трата, выдача подписки, сгорание остатка. */
-export const historyKindSchema = z.enum(["spend", "grant", "burn", "other"]);
+/** Что было с баллами: трата, выдача подписки, приветственные при выдаче карты, сгорание. */
+export const historyKindSchema = z.enum(["spend", "grant", "welcome", "burn", "other"]);
 export type HistoryKind = z.infer<typeof historyKindSchema>;
 
 export const HISTORY_KIND_LABELS: Record<HistoryKind, string> = {
   spend: "Потрачено",
   grant: "Начислено по подписке",
+  welcome: "Приветственные баллы",
   burn: "Сгорело",
   other: "Изменение",
 };
@@ -50,11 +47,7 @@ export const historyEntrySchema = z.looseObject({
   merchantName: z.string().nullish(),
   items: z
     .array(
-      z.looseObject({
-        productName: z.string().nullish(),
-        price: z.number().nullish(),
-        points: z.number().nullish(),
-      }),
+      z.looseObject({ productName: z.string().nullish(), price: z.number().nullish(), points: z.number().nullish() }),
     )
     .default([]),
 });

@@ -214,18 +214,28 @@ export const platformApi = (api: ApiClient) => ({
 
   /** Программа Loal — тип onec: своей математики нет, баллы выдаёт подписка. */
   createProgram: (input: CreateProgramInput) => {
-    const { name, pointsPerPeriod } = createProgramInputSchema.parse(input);
+    const { name, pointsPerPeriod, welcomePoints } = createProgramInputSchema.parse(input);
     return api.request(programSchema, "/admin/v1/loyalty-programs", {
       method: "POST",
-      body: { name, programType: "onec", config: { pointsPerPeriod } },
+      body: {
+        name,
+        programType: "onec",
+        config: { pointsPerPeriod },
+        welcomePoints: welcomePoints === "" || welcomePoints === undefined ? 0 : welcomePoints,
+      },
     });
   },
 
   updateProgram: (programId: string, input: UpdateProgramInput) => {
-    const { name, pointsPerPeriod, active } = updateProgramInputSchema.parse(input);
+    const { name, pointsPerPeriod, active, welcomePoints } = updateProgramInputSchema.parse(input);
     return api.request(programSchema, `/admin/v1/loyalty-programs/${programId}`, {
       method: "PATCH",
-      body: { name, active, config: { pointsPerPeriod } },
+      body: {
+        name,
+        active,
+        config: { pointsPerPeriod },
+        welcomePoints: welcomePoints === "" || welcomePoints === undefined ? 0 : welcomePoints,
+      },
     });
   },
 

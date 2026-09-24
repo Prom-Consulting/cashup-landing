@@ -127,6 +127,7 @@ function ProgramCard({ program, open, onToggle }: { program: Program; open: bool
           <span className="mt-1 block text-base text-muted-foreground">
             {PROGRAM_TYPE_LABELS[program.programType] ?? program.programType}
             {points ? ` · ${money.format(points)} бонусов за месяц` : ""}
+            {program.welcomePoints ? ` · ${money.format(program.welcomePoints)} приветственных` : ""}
           </span>
         </span>
         <span className="text-base text-muted-foreground">{open ? "Свернуть" : "Открыть"}</span>

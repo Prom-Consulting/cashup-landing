@@ -10,7 +10,7 @@ import { Button, ConfirmDialog, FormField, FormStatus, Input, Switch } from "@lo
 import { Form, Formik } from "formik";
 import { useCreateProgram, useDeleteProgram, useUpdateProgram } from "../../entities/platform/api";
 
-const newProgram: CreateProgramInput = { name: "", pointsPerPeriod: 100000 };
+const newProgram: CreateProgramInput = { name: "", pointsPerPeriod: 100000, welcomePoints: 0 };
 
 export function CreateProgramForm() {
   const create = useCreateProgram();
@@ -57,6 +57,24 @@ export function CreateProgramForm() {
               />
             )}
           </FormField>
+          <FormField
+            label="Приветственных"
+            hint="Сразу при выдаче карты"
+            className="w-[200px]"
+            error={fieldError(form, "welcomePoints")}
+          >
+            {(parts) => (
+              <Input
+                {...parts}
+                name="welcomePoints"
+                inputMode="numeric"
+                className="tabular-nums"
+                value={String(form.values.welcomePoints ?? "")}
+                onChange={form.handleChange}
+                onBlur={form.handleBlur}
+              />
+            )}
+          </FormField>
           <Button type="submit" variant="outline" className="mt-8" disabled={form.isSubmitting}>
             Создать
           </Button>
@@ -77,6 +95,7 @@ export function EditProgramForm({ program }: { program: Program }) {
     name: program.name,
     pointsPerPeriod: Number((program.config as { pointsPerPeriod?: number } | null)?.pointsPerPeriod ?? 100000),
     active: program.active ?? true,
+    welcomePoints: program.welcomePoints ?? 0,
   };
 
   return (
@@ -129,6 +148,24 @@ export function EditProgramForm({ program }: { program: Program }) {
               )}
             </FormField>
           </div>
+          <FormField
+            label="Приветственные баллы"
+            hint="Начисляются сразу при выдаче карты, в истории клиента — отдельной строкой. 0 — без них."
+            className="max-w-[320px]"
+            error={fieldError(form, "welcomePoints")}
+          >
+            {(parts) => (
+              <Input
+                {...parts}
+                name="welcomePoints"
+                inputMode="numeric"
+                className="tabular-nums"
+                value={String(form.values.welcomePoints ?? "")}
+                onChange={form.handleChange}
+                onBlur={form.handleBlur}
+              />
+            )}
+          </FormField>
           <Switch
             checked={form.values.active}
             onCheckedChange={(checked) => form.setFieldValue("active", checked)}

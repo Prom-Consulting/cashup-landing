@@ -6,6 +6,8 @@ export const programSchema = z.looseObject({
   name: z.string(),
   programType: z.string(),
   config: z.record(z.string(), z.unknown()).nullish(),
+  /** Сколько баллов человек получает сразу при выдаче карты; 0 — без приветственных. */
+  welcomePoints: z.number().nullish(),
   currency: z.string().nullish(),
   active: z.boolean().nullish(),
   bonusItemEnabled: z.boolean().nullish(),
@@ -37,10 +39,21 @@ const pointsPerPeriod = z.coerce
   .min(1, "Больше нуля")
   .max(10_000_000, "Слишком много для одного месяца");
 
+/** Приветственные баллы при выдаче карты: целое ≥ 0, пустое поле — 0. */
+const welcomePoints = z.union([
+  z.literal(""),
+  z.coerce
+    .number({ error: "Введите число" })
+    .int("Целое число")
+    .min(0, "Не меньше нуля")
+    .max(10_000_000, "Слишком много"),
+]);
+
 export const createProgramInputSchema = z.object({
   name: z.string().trim().min(2, "Введите название").max(120, "Слишком длинное название"),
   /** Сколько баллов даёт подписка за месяц. */
   pointsPerPeriod,
+  welcomePoints: welcomePoints.optional(),
 });
 export type CreateProgramInput = z.infer<typeof createProgramInputSchema>;
 
