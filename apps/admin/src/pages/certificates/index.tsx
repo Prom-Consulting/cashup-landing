@@ -1,13 +1,50 @@
 import { CERTIFICATE_TYPE_LABELS } from "@loal/api";
 import { Badge, Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
-import { useCertificates } from "../../entities/platform/api";
+import { useCertificateHealthQuery, useCertificates } from "../../entities/platform/api";
 import { CertificateActions } from "../../features/certificate/certificate-actions";
 import { IssueCertificateDialog } from "../../features/certificate/issue-certificate-dialog";
 import { formatDate } from "../../shared/lib/format";
 
 /** Сертификаты подписи карт. Платформенные: Loal подписывает всё своим Pass Type ID. */
+/**
+ * Если у карты нет рабочего сертификата Apple, сервер не падает, а молча подписывает её
+ * тестовой заглушкой — и iPhone отвечает «Safari cannot download this file». Поэтому
+ * основной сертификат проверяем сами при каждом открытии страницы.
+ */
+function SigningHealth({ certificateId, hasAny }: { certificateId: string | null; hasAny: boolean }) {
+  const health = useCertificateHealthQuery(certificateId);
+  const broken = !certificateId || health.data?.ok === false || health.isError;
+  if (certificateId && health.isPending) return null;
+  if (!broken) {
+    return (
+      <p role="status" className="rounded-2xl bg-surface px-5 py-4 text-base">
+        <b>Карты подписываются основным сертификатом Apple.</b> Ключ и сертификат сходятся — iPhone примет карту.
+      </p>
+    );
+  }
+  return (
+    <div role="alert" className="rounded-2xl border-2 border-destructive/50 bg-destructive/5 px-5 py-4 text-base">
+      <p className="font-bold text-destructive">Карты сейчас не установятся на iPhone.</p>
+      <p className="mt-1">
+        {!certificateId
+          ? hasAny
+            ? "Ни один сертификат Apple не отмечен основным. "
+            : "Сертификата Apple нет. "
+          : `Основной сертификат не работает: ${health.data?.error ?? (health.error as Error | null)?.message ?? "ключ не читается"}. `}
+        Сервер подписывает карты тестовой заглушкой, и Safari отвечает «cannot download this file».
+      </p>
+      <p className="mt-1 text-muted-foreground">
+        Нажмите «Проверить» у каждого сертификата Apple и сделайте основным тот, где ключ и сертификат сходятся. Если у
+        шаблона карты сертификат выбран явно — проверьте и его: «Карты» → карта → «Настройки» → «Подпись».
+      </p>
+    </div>
+  );
+}
+
 export function CertificatesPage() {
   const certificates = useCertificates();
+  const apple = (certificates.data ?? []).filter((item) => item.type === "apple_pass");
+  const defaultApple = apple.find((item) => item.isDefault && item.status !== "pending_csr") ?? null;
 
   return (
     <section className="flex flex-col gap-6">
@@ -17,6 +54,7 @@ export function CertificatesPage() {
         action={<IssueCertificateDialog />}
       />
 
+      {certificates.isSuccess && <SigningHealth certificateId={defaultApple?.id ?? null} hasAny={apple.length > 0} />}
       {certificates.isPending && <Loading rows={2} />}
       {certificates.isError && <ErrorState error={certificates.error} onRetry={() => certificates.refetch()} />}
       {certificates.isSuccess && certificates.data.length === 0 && (

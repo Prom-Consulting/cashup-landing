@@ -387,3 +387,17 @@ export function useBonusItems(query: BonusItemQuery) {
     placeholderData: (previous) => previous,
   });
 }
+
+/**
+ * Проверка ключа сертификата как запрос, а не действие: страница сама проверяет
+ * основной сертификат Apple при открытии.
+ */
+export function useCertificateHealthQuery(certificateId: string | null) {
+  const api = useApi();
+  return useQuery({
+    queryKey: [...platformKeys.certificates, certificateId ?? "", "health"],
+    queryFn: () => platformApi(api).certificateHealth(certificateId!),
+    enabled: Boolean(certificateId),
+    retry: false,
+  });
+}
