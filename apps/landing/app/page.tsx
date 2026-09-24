@@ -6,6 +6,7 @@ import { HeroCards } from "./_components/hero-cards";
 import { JsonLd } from "./_components/json-ld";
 import { MonthSteps } from "./_components/month-steps";
 import { PageMotion } from "./_components/page-motion";
+import { PartnerWall } from "./_components/partner-wall";
 import { SiteFooter } from "./_components/site-footer";
 import { SiteHeader } from "./_components/site-header";
 import { CLIENT_APP_URL, OCTOPAY_URL } from "./_data/site";
@@ -112,10 +113,14 @@ export default function Home() {
       <JsonLd data={subscriptionLd} />
 
       <main id="top" className="flex-1 overflow-x-clip">
-        {/* Первый экран: серая подложка со скруглённым низом, шапка внутри неё */}
+        <SiteHeader />
+
+        {/* Первым делом — где уже принимают бонусы: это отвечает на первый вопрос гостя */}
+        <PartnerWall />
+
+        {/* Обещание продукта: серая подложка со скруглённым низом */}
         <section className="relative overflow-hidden rounded-b-[48px] bg-cream sm:rounded-b-[100px]">
-          <SiteHeader />
-          <div className="relative z-10 mx-auto flex max-w-[1005px] flex-col items-center px-5 pt-12 text-center sm:pt-24">
+          <div className="relative z-10 mx-auto flex max-w-[1005px] flex-col items-center px-5 pt-14 text-center sm:pt-24">
             <h1 data-hero-item className="display uppercase">
               <span
                 data-hero-number

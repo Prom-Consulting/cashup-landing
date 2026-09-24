@@ -46,13 +46,8 @@ export function models(partnerUrl: string): Model[] {
       title: "Только OctōPAY",
       price: "%",
       priceNote: "комиссия с оборота",
-      points: [
-        "Приём QR-платежей в Кыргызстане",
-        "Деньги зачисляются на ваш счёт",
-        "Без участия в программе Loal",
-      ],
+      points: ["Приём QR-платежей в Кыргызстане", "Деньги зачисляются на ваш счёт", "Без участия в программе Loal"],
       cta: { label: "Узнать об OctōPAY", href: OCTOPAY_URL },
     },
   ];
 }
-
