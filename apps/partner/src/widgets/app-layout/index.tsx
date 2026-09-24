@@ -1,5 +1,7 @@
 import {
   Chart01Icon,
+  CoinsSwapIcon,
+  Agreement02Icon,
   CreditCardIcon,
   Invoice01Icon,
   LinkSquare02Icon,
@@ -17,6 +19,7 @@ import { useCurrentMerchant } from "../../entities/session/model";
 
 const nav: (NavItem & { icon: IconSvg })[] = [
   { to: "/", label: "Обзор", icon: Chart01Icon },
+  { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
   { to: "/storefront", label: "Витрина", icon: Store01Icon },
   { to: "/deductions", label: "Списания", icon: CreditCardIcon },
   { to: "/billing", label: "Оплата", icon: Invoice01Icon },
@@ -26,8 +29,13 @@ const nav: (NavItem & { icon: IconSvg })[] = [
   { to: "/onec", label: "Обмен с 1С", icon: Settings02Icon },
 ];
 
+/** Раздел партнёра виден только партнёрам и их сотрудникам. */
+const partnerNav: NavItem & { icon: IconSvg } = { to: "/partner", label: "Я партнёр", icon: Agreement02Icon };
+
 export function AppLayout() {
-  const { label, logout, memberships, merchantId, selectMerchant } = useCurrentMerchant();
+  const { label, logout, memberships, merchantId, selectMerchant, membership } = useCurrentMerchant();
+  const isPartner = membership?.role === "partner" || membership?.role === "partner_employee";
+  const items = isPartner ? [nav[0], partnerNav, ...nav.slice(1)] : nav;
   const location = useLocation();
   const selectId = useId();
 
@@ -36,11 +44,11 @@ export function AppLayout() {
   return (
     <AppShell
       title="Кабинет магазина"
-      nav={nav}
+      nav={items}
       userLabel={label}
       onLogout={logout}
       renderLink={(item) => {
-        const withIcon = nav.find((entry) => entry.to === item.to);
+        const withIcon = items.find((entry) => entry.to === item.to);
         return (
           <Link key={item.to} to={item.to} className={`${navLinkClass(isActive(item.to))} flex items-center gap-3`}>
             {withIcon && <Icon icon={withIcon.icon} />}

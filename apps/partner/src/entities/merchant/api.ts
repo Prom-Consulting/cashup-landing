@@ -1,13 +1,14 @@
 import {
   merchantCabinetApi,
   merchantsApi,
+  redemptionsApi,
+  type RedemptionForm,
   type AddMemberInput,
   type AddPartnerInput,
   type CreateBranchInput,
   type CreateInvoiceInput,
   type CreateWebhookInput,
   type DeductionQuery,
-  type MerchantProfile,
 } from "@loal/api";
 import { useApi } from "@loal/app-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,7 +19,6 @@ export const merchantKeys = {
   deductions: (id: string, query: DeductionQuery) => ["merchant", id, "deductions", query] as const,
   invoices: (id: string) => ["merchant", id, "invoices"] as const,
   onec: (id: string) => ["merchant", id, "onec"] as const,
-  profile: (id: string) => ["merchant", id, "profile"] as const,
   branches: (id: string) => ["merchant", id, "branches"] as const,
   members: (id: string) => ["merchant", id, "members"] as const,
   pos: (id: string) => ["merchant", id, "pos"] as const,
@@ -184,33 +184,6 @@ export function useCreateInvoice(merchantId: string) {
   });
 }
 
-export function useProfile(merchantId: string) {
-  const api = useApi();
-  return useQuery({
-    queryKey: merchantKeys.profile(merchantId),
-    queryFn: () => merchantCabinetApi(api).profile(merchantId),
-    enabled: Boolean(merchantId),
-  });
-}
-
-/** PUT заменяет профиль целиком — отправляем все шесть полей. */
-export function useSaveProfile(merchantId: string) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (profile: MerchantProfile) => merchantCabinetApi(api).saveProfile(merchantId, profile),
-    onSuccess: (saved) => queryClient.setQueryData(merchantKeys.profile(merchantId), saved),
-  });
-}
-
-export function useUploadAsset(merchantId: string) {
-  const api = useApi();
-  return useMutation({
-    mutationFn: ({ slot, file }: { slot: "merchantLogo" | "merchantPhoto"; file: File }) =>
-      merchantCabinetApi(api).uploadAsset(merchantId, slot, file),
-  });
-}
-
 export function useOnecIntegration(merchantId: string) {
   const api = useApi();
   return useQuery({
@@ -227,5 +200,57 @@ export function useRegenerateOnecToken(merchantId: string) {
   return useMutation({
     mutationFn: () => merchantCabinetApi(api).regenerateOnecToken(merchantId),
     onSuccess: (data) => queryClient.setQueryData(merchantKeys.onec(merchantId), data),
+  });
+}
+
+/** Подтвердить приглашённого: до этого он в списке, но доступа не имеет. */
+export function useAcceptMember(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (memberId: string) => merchantCabinetApi(api).acceptMember(merchantId, memberId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
+  });
+}
+
+/** Точка, с которой человек сканирует: по ней в «Продажах» видно, где прошла операция. */
+export function useUpdateMember(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ memberId, branchId }: { memberId: string; branchId: string | null }) =>
+      merchantCabinetApi(api).updateMember(merchantId, memberId, { branchId }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
+  });
+}
+
+/** Приветственный бонус партнёра: обе величины вместе, null очищает. */
+export function useUpdatePartnerBonus(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      memberId,
+      amount,
+      maxPerCustomer,
+    }: {
+      memberId: string;
+      amount: number | null;
+      maxPerCustomer: number | null;
+    }) => merchantCabinetApi(api).updatePartnerBonus(merchantId, memberId, { amount, maxPerCustomer }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
+  });
+}
+
+/**
+ * Списание бонусов за покупку. merchantId шлём, только если человек работает в
+ * нескольких заведениях: с одним местом работы сервер определяет его сам и
+ * лишнее поле отклоняет.
+ */
+export function useRedeem() {
+  const api = useApi();
+  return useMutation({
+    mutationFn: ({ input, maxPercent }: { input: RedemptionForm & { merchantId?: string }; maxPercent: number }) =>
+      redemptionsApi(api).redeem(input, maxPercent),
   });
 }

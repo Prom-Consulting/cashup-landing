@@ -8,7 +8,9 @@ import { NotFoundPage } from "../pages/not-found";
 import { RegisterPage } from "../pages/register";
 import { OnecPage } from "../pages/onec";
 import { ProfilePage } from "../pages/profile";
+import { PartnerPage } from "../pages/partner";
 import { PosPage } from "../pages/pos";
+import { RedeemPage } from "../pages/redeem";
 import { StorefrontPage } from "../pages/storefront";
 import { TeamPage } from "../pages/team";
 import { WebhooksPage } from "../pages/webhooks";
@@ -31,6 +33,8 @@ export function AppRouter() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="redeem" element={<RedeemPage />} />
+        <Route path="partner" element={<PartnerPage />} />
         <Route path="deductions" element={<DeductionsPage />} />
         <Route path="storefront" element={<StorefrontPage />} />
         <Route path="billing" element={<BillingPage />} />

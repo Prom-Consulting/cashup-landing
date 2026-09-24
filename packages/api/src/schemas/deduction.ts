@@ -9,7 +9,10 @@ export const deductionSchema = z.looseObject({
   price: z.number().nullish(),
   coveragePercent: z.number().nullish(),
   points: z.number(),
-  /** onec — списание пришло из 1С магазина, scanner — из нашего приложения. */
+  /**
+   * onec — списание пришло из 1С магазина, scanner — из нашего приложения,
+   * octopay — клиент оплатил счёт партнёра, и баллы списались сами.
+   */
   channel: z.string().nullish(),
   createdAt: z.string(),
 });
@@ -22,3 +25,9 @@ export const deductionPageSchema = z.looseObject({
   pageSize: z.number(),
 });
 export type DeductionPage = z.infer<typeof deductionPageSchema>;
+
+export const DEDUCTION_CHANNEL_LABELS: Record<string, string> = {
+  onec: "1С",
+  scanner: "Приложение",
+  octopay: "Оплата через OctōPAY",
+};

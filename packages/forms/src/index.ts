@@ -34,7 +34,10 @@ export function toFormikErrors<Values>(issues: readonly { path: PropertyKey[]; m
  * <Formik validate={zodValidate(loginInputSchema)} ... />
  * ```
  */
-export function zodValidate<Values>(schema: ZodType<Values>) {
+// Схема описывает тело запроса, а форма держит строки из полей: вход и выход схемы
+// разные (coerce, пустое → null), поэтому тип значений берём из формы, а не из схемы.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function zodValidate<Values>(schema: ZodType<any, any>) {
   return (values: Values): FormikErrors<Values> | void => {
     const result = schema.safeParse(values);
     if (result.success) return;

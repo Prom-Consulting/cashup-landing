@@ -24,16 +24,17 @@ import {
   type CreateBranchInput,
   type CreateWebhookInput,
 } from "../schemas/merchant-ops";
-import { merchantMemberSchema } from "../schemas/merchant";
-import { merchantProfileSchema, uploadedAssetSchema, type MerchantProfile } from "../schemas/merchant";
+import {
+  coverageLimitInputSchema,
+  coverageLimitSchema,
+  merchantMemberSchema,
+  merchantProfileSchema,
+  uploadedAssetSchema,
+  type CoverageLimitInput,
+  type MerchantProfile,
+} from "../schemas/merchant";
 
-export type DeductionQuery = {
-  page?: number;
-  pageSize?: number;
-  search?: string;
-  from?: string;
-  to?: string;
-};
+export type DeductionQuery = { page?: number; pageSize?: number; search?: string; from?: string; to?: string };
 
 /**
  * Кабинет заведения: журнал списаний, подписка, счета, витрина и обмен с 1С.
@@ -81,6 +82,19 @@ export const merchantCabinetApi = (api: ApiClient) => ({
     });
   },
 
+  /** Потолок процента на позицию; каталог показывает его клиенту как «до N%». */
+  coverageLimit: (merchantId: string) =>
+    api.request(coverageLimitSchema, `/admin/v1/merchants/${merchantId}/coverage-limit`),
+
+  /** Магазину — не чаще раза в месяц (иначе 409 с датой); агентство этим не связано. */
+  saveCoverageLimit: (merchantId: string, input: CoverageLimitInput) => {
+    const { maxCoveragePercent } = coverageLimitInputSchema.parse(input);
+    return api.request(coverageLimitSchema, `/admin/v1/merchants/${merchantId}/coverage-limit`, {
+      method: "PUT",
+      body: { maxCoveragePercent: maxCoveragePercent === "" ? null : maxCoveragePercent },
+    });
+  },
+
   branches: (merchantId: string) => api.request(z.array(branchSchema), `/admin/v1/merchants/${merchantId}/branches`),
 
   createBranch: (merchantId: string, input: CreateBranchInput) =>
@@ -106,7 +120,11 @@ export const merchantCabinetApi = (api: ApiClient) => ({
       body: addPartnerInputSchema.parse(input),
     }),
 
-  updateMember: (merchantId: string, memberId: string, input: { branchId?: string | null }) =>
+  updateMember: (
+    merchantId: string,
+    memberId: string,
+    input: { branchId?: string | null; defaultTemplateId?: string | null; defaultProgramId?: string | null },
+  ) =>
     api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members/${memberId}`, {
       method: "PATCH",
       body: input,
@@ -121,6 +139,13 @@ export const merchantCabinetApi = (api: ApiClient) => ({
     api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members/${memberId}/bonus`, {
       method: "PATCH",
       body: input,
+    }),
+
+  /** Подтвердить приглашённого: до этого он в списке, но доступа не имеет. */
+  acceptMember: (merchantId: string, memberId: string) =>
+    api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members/${memberId}/accept`, {
+      method: "POST",
+      body: {},
     }),
 
   removeMember: (merchantId: string, memberId: string) =>

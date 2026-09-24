@@ -125,6 +125,13 @@ export function PartnersCatalog({ partners }: { partners: PublicPartner[] }) {
                     loading="lazy"
                   />
                 )}
+
+                {partner.maxCoveragePercent ? (
+                  // Главное, что человек хочет знать о месте: какую часть чека закроют бонусы
+                  <span className="absolute top-4 right-4 rounded-full bg-graphite px-4 py-2 text-base font-medium text-paper">
+                    бонусами до {partner.maxCoveragePercent}%
+                  </span>
+                ) : null}
               </div>
 
               <div className="flex flex-1 flex-col p-6">

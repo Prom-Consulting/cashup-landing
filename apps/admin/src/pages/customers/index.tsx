@@ -1,9 +1,11 @@
 import { Search01Icon } from "@hugeicons/core-free-icons";
+import type { Customer } from "@loal/api";
 import { IssueCardDialog, useCustomers } from "@loal/app-kit";
 import {
   Badge,
   Button,
   Card,
+  Checkbox,
   EmptyState,
   ErrorState,
   Icon,
@@ -18,6 +20,8 @@ import {
   TableRow,
 } from "@loal/ui/shadcn";
 import { useState } from "react";
+import { BulkIssueDialog } from "../../features/customer/bulk-issue-dialog";
+import { CustomerDialog } from "../../features/customer/customer-dialog";
 import { formatDate } from "../../shared/lib/format";
 
 const PAGE_SIZE = 20;
@@ -30,6 +34,8 @@ export function CustomersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const customers = useCustomers({ page, pageSize: PAGE_SIZE, search: search.trim() || undefined });
+  const [selected, setSelected] = useState<string[]>([]);
+  const [opened, setOpened] = useState<Customer | null>(null);
 
   const rows = customers.data?.items ?? [];
   const total = customers.data?.total ?? 0;
@@ -67,10 +73,34 @@ export function CustomersPage() {
       )}
 
       {rows.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          <BulkIssueDialog customerIds={selected} onDone={() => setSelected([])} />
+          {selected.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={() => setSelected([])}>
+              Снять выбор
+            </Button>
+          )}
+        </div>
+      )}
+
+      {rows.length > 0 && (
         <Card className="p-0">
           <Table className="min-w-[620px]">
             <TableHead>
               <TableRow>
+                <TableHeaderCell className="w-12">
+                  <Checkbox
+                    aria-label="Выбрать всех на странице"
+                    checked={rows.length > 0 && rows.every((row) => selected.includes(row.id))}
+                    onChange={(event) =>
+                      setSelected((current) =>
+                        event.target.checked
+                          ? [...new Set([...current, ...rows.filter((row) => !row.archivedAt).map((row) => row.id)])]
+                          : current.filter((id) => !rows.some((row) => row.id === id)),
+                      )
+                    }
+                  />
+                </TableHeaderCell>
                 <TableHeaderCell>Клиент</TableHeaderCell>
                 <TableHeaderCell>Телефон</TableHeaderCell>
                 <TableHeaderCell>Почта</TableHeaderCell>
@@ -81,7 +111,25 @@ export function CustomersPage() {
               {rows.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell>
-                    {[customer.firstName, customer.lastName].filter(Boolean).join(" ") || "Без имени"}
+                    <Checkbox
+                      aria-label="Выбрать клиента"
+                      disabled={Boolean(customer.archivedAt)}
+                      checked={selected.includes(customer.id)}
+                      onChange={(event) =>
+                        setSelected((current) =>
+                          event.target.checked ? [...current, customer.id] : current.filter((id) => id !== customer.id),
+                        )
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <button
+                      type="button"
+                      onClick={() => setOpened(customer)}
+                      className="text-left font-medium underline-offset-4 hover:underline"
+                    >
+                      {[customer.firstName, customer.lastName].filter(Boolean).join(" ") || "Без имени"}
+                    </button>
                     {customer.archivedAt && (
                       <Badge tone="quiet" className="ml-2">
                         в архиве
@@ -97,6 +145,8 @@ export function CustomersPage() {
           </Table>
         </Card>
       )}
+
+      <CustomerDialog customer={opened} onClose={() => setOpened(null)} />
 
       {lastPage > 1 && (
         <div className="flex items-center gap-4">

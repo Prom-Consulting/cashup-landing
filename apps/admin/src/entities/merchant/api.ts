@@ -4,6 +4,7 @@ import {
   type BuyMonthsInput,
   type CreateMerchantInput,
   type DeductionQuery,
+  type UpdateMerchantInput,
 } from "@loal/api";
 import { useApi } from "@loal/app-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,6 +17,7 @@ export const merchantKeys = {
   invites: (id: string) => ["merchants", id, "invites"] as const,
   subscription: (id: string) => ["merchants", id, "subscription"] as const,
   deductions: (id: string, query: DeductionQuery) => ["merchants", id, "deductions", query] as const,
+  invoices: (id: string) => ["merchants", id, "invoices"] as const,
 };
 
 export function useMerchants() {
@@ -95,5 +97,54 @@ export function useMerchantDeductions(merchantId: string, query: DeductionQuery)
     queryFn: () => merchantCabinetApi(api).deductions(merchantId, query),
     enabled: Boolean(merchantId),
     placeholderData: (previous) => previous,
+  });
+}
+
+export function useUpdateMerchant(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateMerchantInput) => merchantsApi(api).update(merchantId, input),
+    onSuccess: (merchant) => {
+      queryClient.setQueryData(merchantKeys.detail(merchantId), merchant);
+      return queryClient.invalidateQueries({ queryKey: merchantKeys.all, exact: true });
+    },
+  });
+}
+
+/** Клиенты, карты и баланс остаются — они принадлежат платформе, а не заведению. */
+export function useDeleteMerchant() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (merchantId: string) => merchantsApi(api).remove(merchantId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.all }),
+  });
+}
+
+export function useAcceptMember(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (memberId: string) => merchantCabinetApi(api).acceptMember(merchantId, memberId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
+  });
+}
+
+export function useRemoveMember(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (memberId: string) => merchantCabinetApi(api).removeMember(merchantId, memberId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
+  });
+}
+
+export function useMerchantInvoices(merchantId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: merchantKeys.invoices(merchantId),
+    queryFn: () => merchantCabinetApi(api).invoices(merchantId),
+    enabled: Boolean(merchantId),
   });
 }

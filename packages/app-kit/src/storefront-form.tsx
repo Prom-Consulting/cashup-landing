@@ -4,7 +4,39 @@ import { Delete02Icon, ImageAdd01Icon } from "@hugeicons/core-free-icons";
 import { Button, Icon, Input, Label, Textarea } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useRef, useState } from "react";
-import { useSaveProfile, useUploadAsset } from "../../entities/merchant/api";
+import { merchantCabinetApi } from "@loal/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useApi } from "./session";
+
+const profileKey = (merchantId: string) => ["merchants", merchantId, "profile"] as const;
+
+/** Витрина заведения. Читать может любой его сотрудник, менять — владелец, партнёр и агентство. */
+export function useMerchantProfile(merchantId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: profileKey(merchantId),
+    queryFn: () => merchantCabinetApi(api).profile(merchantId),
+    enabled: Boolean(merchantId),
+  });
+}
+
+/** PUT заменяет профиль целиком — отправляем все шесть полей. */
+function useSaveProfile(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (profile: MerchantProfile) => merchantCabinetApi(api).saveProfile(merchantId, profile),
+    onSuccess: (saved) => queryClient.setQueryData(profileKey(merchantId), saved),
+  });
+}
+
+function useUploadAsset(merchantId: string) {
+  const api = useApi();
+  return useMutation({
+    mutationFn: ({ slot, file }: { slot: "merchantLogo" | "merchantPhoto"; file: File }) =>
+      merchantCabinetApi(api).uploadAsset(merchantId, slot, file),
+  });
+}
 
 const MAX_PHOTOS = 10;
 
@@ -15,7 +47,7 @@ const orNull = (value: string) => (value.trim() === "" ? null : value.trim());
  * Витрина заведения: то, что клиент видит в каталоге. Картинки грузятся отдельно
  * и до сохранения, а сам профиль уходит целиком — бэкенд заменяет его одним PUT.
  */
-export function ProfileForm({ merchantId, profile }: { merchantId: string; profile: MerchantProfile }) {
+export function StorefrontForm({ merchantId, profile }: { merchantId: string; profile: MerchantProfile }) {
   const save = useSaveProfile(merchantId);
   const upload = useUploadAsset(merchantId);
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl);

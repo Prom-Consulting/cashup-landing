@@ -117,3 +117,18 @@ export const createWebhookInputSchema = z.object({
   events: z.array(z.string()).min(1, "Выберите хотя бы одно событие"),
 });
 export type CreateWebhookInput = z.infer<typeof createWebhookInputSchema>;
+
+/** Приветственный бонус партнёра. Пустое «сколько раз» — без ограничения. */
+export const partnerBonusInputSchema = z.object({
+  amount: z.union([
+    z.literal(""),
+    z.coerce.number({ error: "Введите число" }).positive("Больше нуля").max(10_000_000, "Слишком много"),
+  ]),
+  maxPerCustomer: z.union([
+    z.literal(""),
+    z.coerce.number({ error: "Введите число" }).int("Целое число").min(1, "Хотя бы один раз"),
+  ]),
+});
+export type PartnerBonusInput = { amount: number | string; maxPerCustomer: number | string };
+
+export const SCAN_OPERATION_LABELS = { earn: "Начисляет", redeem: "Списывает" } as const;

@@ -50,6 +50,14 @@ export const merchantMemberSchema = z.looseObject({
   branchId: z.string().nullish(),
   invitedAt: z.string().nullish(),
   acceptedAt: z.string().nullish(),
+  /** У сотрудника партнёра — запись партнёра, который его завёл. */
+  parentMemberId: z.string().nullish(),
+  /** Приветственный бонус партнёра; null — не настроен, а не «ноль». */
+  partnerBonusAmount: z.number().nullish(),
+  /** Сколько раз одному клиенту; null — без ограничения. */
+  partnerBonusMaxPerCustomer: z.number().nullish(),
+  defaultTemplateId: z.string().nullish(),
+  defaultProgramId: z.string().nullish(),
 });
 export type MerchantMember = z.infer<typeof merchantMemberSchema>;
 
@@ -57,8 +65,11 @@ export const merchantInviteSchema = z.looseObject({
   id: z.string(),
   merchantId: z.string().nullish(),
   code: z.string(),
+  role: z.string().nullish(),
   createdAt: z.string().nullish(),
-  redeemedAt: z.string().nullish(),
+  /** Код одноразовый: после регистрации здесь дата и кто им воспользовался. */
+  usedAt: z.string().nullish(),
+  usedByUserId: z.string().nullish(),
 });
 export type MerchantInvite = z.infer<typeof merchantInviteSchema>;
 
@@ -127,5 +138,36 @@ export const publicPartnerSchema = merchantProfileSchema.extend({
   id: z.string(),
   name: z.string(),
   contactPhone: z.string().nullable(),
+  /** Потолок процента — «до N%» на карточке; null — магазин его не задал. */
+  maxCoveragePercent: z.number().nullish(),
 });
 export type PublicPartner = z.infer<typeof publicPartnerSchema>;
+
+/**
+ * Потолок процента: сколько процентов цены одной позиции магазин готов покрыть
+ * баллами. Магазин меняет его не чаще раза в месяц — до nextChangeAt сервер ответит 409.
+ */
+export const coverageLimitSchema = z.looseObject({
+  maxCoveragePercent: z.number().nullable(),
+  /** Когда потолок менял сам магазин; правка агентства эту дату не трогает. */
+  changedAt: z.string().nullish(),
+  /** Когда магазин сможет поменять снова; null — прямо сейчас. */
+  nextChangeAt: z.string().nullish(),
+});
+export type CoverageLimit = z.infer<typeof coverageLimitSchema>;
+
+/** Пустое поле — «потолок не задан»: в приложении действует общий предел 30%, в 1С — 100%. */
+export const coverageLimitInputSchema = z.object({
+  maxCoveragePercent: z.union([
+    z.literal(""),
+    z.coerce
+      .number({ error: "Введите число" })
+      .int("Целое число процентов")
+      .min(1, "Не меньше 1%")
+      .max(100, "Не больше 100%"),
+  ]),
+});
+export type CoverageLimitInput = z.infer<typeof coverageLimitInputSchema>;
+
+/** Предел приложения-кассы, общий для всех магазинов (docs/API.md). */
+export const SCANNER_MAX_COVERAGE_PERCENT = 30;

@@ -1,5 +1,7 @@
 import {
   CreditCardIcon,
+  GiftIcon,
+  Wallet01Icon,
   Settings02Icon,
   ShieldKeyIcon,
   Store01Icon,
@@ -15,7 +17,9 @@ import { useCurrentUser } from "../../entities/session/model";
 const nav: (NavItem & { icon: IconSvg })[] = [
   { to: "/", label: "Заведения", icon: Store01Icon },
   { to: "/customers", label: "Клиенты", icon: UserGroupIcon },
+  { to: "/templates", label: "Карты", icon: Wallet01Icon },
   { to: "/programs", label: "Программы", icon: CreditCardIcon },
+  { to: "/bonus-items", label: "Бонусные товары", icon: GiftIcon },
   { to: "/leads", label: "Заявки", icon: WorkflowSquare02Icon },
   { to: "/certificates", label: "Сертификаты", icon: ShieldKeyIcon },
   { to: "/settings", label: "Настройки", icon: Settings02Icon },

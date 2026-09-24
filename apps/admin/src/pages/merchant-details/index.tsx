@@ -1,39 +1,55 @@
 import {
-  ApiError,
+  DEDUCTION_CHANNEL_LABELS,
+  MEMBER_ROLE_LABELS,
   MERCHANT_STATUS_LABELS,
-  WORKFLOW_STATUS_LABELS,
   buyMonthsInputSchema,
+  invoiceState,
   type BuyMonthsInput,
 } from "@loal/api";
+import { CoverageLimitForm, StorefrontForm, useMerchantProfile } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Form, Formik } from "formik";
-import { Input, PageHeader } from "@loal/ui/shadcn";
-import { useState } from "react";
-import { Badge, Card, EmptyState, ErrorState, Loading } from "@loal/ui/shadcn";
-import { Button, Icon } from "@loal/ui/shadcn";
-import { UserGroupIcon } from "@hugeicons/core-free-icons";
-import { Link, useParams } from "react-router";
 import {
+  Badge,
+  Button,
+  Card,
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  Input,
+  Loading,
+  PageHeader,
+} from "@loal/ui/shadcn";
+import { Link, useNavigate, useParams } from "react-router";
+import {
+  useAcceptMember,
   useCreateInvite,
+  useDeleteMerchant,
   useGrantSubscription,
   useMerchant,
   useMerchantDeductions,
   useMerchantInvites,
+  useMerchantInvoices,
   useMerchantMembers,
   useMerchantSubscription,
+  useRemoveMember,
   useSuspendMerchant,
 } from "../../entities/merchant/api";
+import { EditMerchantForm } from "../../features/merchant/edit-merchant-form";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
 
-const MEMBER_ROLE_LABELS: Record<string, string> = {
-  admin: "Владелец",
-  staff: "Сотрудник",
-  partner: "Партнёр",
-  partner_employee: "Сотрудник партнёра",
-};
+const money = new Intl.NumberFormat("ru-RU");
 
-/** Карточка заведениеа: реквизиты, команда и коды приглашения владельца. */
+/** Витрина заведения: агентство может поправить её за заведение. */
+function Storefront({ merchantId }: { merchantId: string }) {
+  const profile = useMerchantProfile(merchantId);
+  if (profile.isPending) return <Loading rows={2} />;
+  if (profile.isError) return <ErrorState error={profile.error} onRetry={() => profile.refetch()} />;
+  return <StorefrontForm merchantId={merchantId} profile={profile.data} />;
+}
+
+/** Карточка заведения: реквизиты, команда и коды приглашения владельца. */
 export function MerchantDetailsPage() {
   const { merchantId = "" } = useParams();
   const merchant = useMerchant(merchantId);
@@ -44,7 +60,11 @@ export function MerchantDetailsPage() {
   const grant = useGrantSubscription(merchantId);
   const suspend = useSuspendMerchant(merchantId);
   const deductions = useMerchantDeductions(merchantId, { page: 1, pageSize: 5 });
-  const [confirmSuspend, setConfirmSuspend] = useState(false);
+  const invoices = useMerchantInvoices(merchantId);
+  const accept = useAcceptMember(merchantId);
+  const removeMember = useRemoveMember(merchantId);
+  const remove = useDeleteMerchant();
+  const navigate = useNavigate();
 
   if (merchant.isPending) return <Loading />;
   if (merchant.isError) return <ErrorState error={merchant.error} onRetry={() => merchant.refetch()} />;
@@ -52,7 +72,7 @@ export function MerchantDetailsPage() {
   return (
     <section className="flex flex-col gap-6">
       <Link to="/" className="text-base text-slate underline-offset-4 hover:underline">
-        ← К списку заведениеов
+        ← К списку заведений
       </Link>
 
       <PageHeader
@@ -67,25 +87,29 @@ export function MerchantDetailsPage() {
 
       <Card>
         <h2 className="text-xl font-bold">Реквизиты</h2>
-        <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div>
-            <dt className="text-base text-muted-foreground">Стадия работы</dt>
-            <dd className="text-lg">{WORKFLOW_STATUS_LABELS[merchant.data.workflowStatus]}</dd>
-          </div>
-          <div>
-            <dt className="text-base text-muted-foreground">Почта</dt>
-            <dd className="text-lg">{merchant.data.contactEmail ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-base text-muted-foreground">Телефон</dt>
-            <dd className="text-lg">{merchant.data.contactPhone ?? "—"}</dd>
-          </div>
-        </dl>
+        <div className="mt-5">
+          <EditMerchantForm merchant={merchant.data} />
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="text-xl font-bold">Витрина</h2>
+        <p className="mt-1 mb-5 max-w-[62ch] text-base text-muted-foreground">
+          Что клиент видит о заведении в каталоге. Обычно её заполняет само заведение.
+        </p>
+        <Storefront merchantId={merchantId} />
+      </Card>
+
+      <Card>
+        <h2 className="text-xl font-bold">Потолок процента</h2>
+        <div className="mt-4">
+          <CoverageLimitForm merchantId={merchantId} asAgency />
+        </div>
       </Card>
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-xl font-bold">Подписка заведениеа</h2>
+          <h2 className="text-xl font-bold">Подписка заведения</h2>
           {subscription.data && (
             <Badge tone={subscription.data.isActive ? "good" : "warn"}>
               {subscription.data.isActive ? `активна до ${formatDate(subscription.data.expiresAt)}` : "не активна"}
@@ -94,7 +118,7 @@ export function MerchantDetailsPage() {
         </div>
         <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
           Пока подписка неактивна, заведение не принимает бонусы ни через приложение, ни через 1С. Здесь доступ выдаётся
-          без оплаты — обычный путь продления идёт через счёт в кабинете заведениеа.
+          без оплаты — обычный путь продления идёт через счёт в кабинете заведения.
         </p>
         {subscription.isPending && <Loading />}
         {subscription.isError && <ErrorState error={subscription.error} onRetry={() => subscription.refetch()} />}
@@ -158,7 +182,7 @@ export function MerchantDetailsPage() {
               </span>
               <span className="text-lg tabular-nums">−{row.points}</span>
               <span className="basis-full text-base text-muted-foreground">
-                {formatDateTime(row.createdAt)} · {row.channel === "onec" ? "1С" : "приложение"}
+                {formatDateTime(row.createdAt)} · {DEDUCTION_CHANNEL_LABELS[row.channel ?? ""] ?? row.channel ?? "—"}
               </span>
             </li>
           ))}
@@ -169,57 +193,108 @@ export function MerchantDetailsPage() {
         <h2 className="text-xl font-bold">Команда</h2>
         {members.isPending && <Loading />}
         {members.isError && <ErrorState error={members.error} onRetry={() => members.refetch()} />}
-        {members.isSuccess && members.data.length === 0 && <EmptyState title="В заведениее пока нет сотрудников" />}
+        {members.isSuccess && members.data.length === 0 && <EmptyState title="В заведении пока нет сотрудников" />}
         <ul className="mt-4 flex flex-col gap-3">
           {(members.data ?? []).map((member) => (
             <li
               key={member.id}
               className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3"
             >
-              <span className="text-lg">{MEMBER_ROLE_LABELS[member.role] ?? member.role}</span>
-              <span className="text-base text-muted-foreground">
-                {member.acceptedAt
-                  ? `принял приглашение ${formatDateTime(member.acceptedAt)}`
-                  : "приглашение не принято"}
+              <span>
+                <span className="text-lg">{MEMBER_ROLE_LABELS[member.role] ?? member.role}</span>
+                <span className="block text-sm text-muted-foreground tabular-nums">{member.userId}</span>
+              </span>
+              <span className="flex flex-wrap items-center gap-2">
+                {member.acceptedAt ? (
+                  <span className="text-base text-muted-foreground">в команде с {formatDate(member.acceptedAt)}</span>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={accept.isPending}
+                    onClick={() => accept.mutate(member.id)}
+                  >
+                    Подтвердить
+                  </Button>
+                )}
+                <ConfirmDialog
+                  trigger={
+                    <Button variant="ghost" size="sm">
+                      Убрать
+                    </Button>
+                  }
+                  title="Убрать из команды?"
+                  description="Человек потеряет доступ к кабинету заведения. Его аккаунт останется."
+                  confirmLabel="Убрать"
+                  onConfirm={() => removeMember.mutateAsync(member.id)}
+                />
               </span>
             </li>
           ))}
         </ul>
+        {accept.isError && <ErrorState error={accept.error} />}
       </Card>
 
       <Card>
-        <h2 className="text-xl font-bold">Приостановить заведение</h2>
+        <h2 className="text-xl font-bold">Счета</h2>
+        {invoices.isPending && <Loading rows={2} />}
+        {invoices.isError && <ErrorState error={invoices.error} onRetry={() => invoices.refetch()} />}
+        {invoices.isSuccess && invoices.data.length === 0 && (
+          <p className="mt-3 text-lg text-muted-foreground">Счетов ещё не выставляли.</p>
+        )}
+        <ul className="mt-3 flex flex-col gap-3">
+          {(invoices.data ?? []).map((invoice) => {
+            const state = invoiceState(invoice);
+            return (
+              <li
+                key={invoice.id}
+                className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-3"
+              >
+                <span className="text-lg tabular-nums">
+                  {invoice.amount != null ? `${money.format(invoice.amount)} сом` : "—"}
+                  {invoice.months ? ` · ${invoice.months} мес.` : ""}
+                </span>
+                <Badge tone={state.tone}>{state.label}</Badge>
+                <span className="basis-full text-base text-muted-foreground">
+                  {invoice.createdAt ? formatDateTime(invoice.createdAt) : ""}
+                  {invoice.paidAt ? ` · оплачен ${formatDateTime(invoice.paidAt)}` : ""}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+
+      <Card>
+        <h2 className="text-xl font-bold">Приостановить или удалить</h2>
         <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
-          Заведение перестаёт обслуживаться платформой. Действие видно всем его сотрудникам.
+          Приостановленное заведение перестаёт обслуживаться платформой. Удаление убирает его насовсем — клиенты, карты
+          и их баланс остаются: они принадлежат платформе, а не заведению.
         </p>
         {suspend.isError && <ErrorState error={suspend.error} />}
-        {confirmSuspend ? (
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Button
-              type="button"
-              disabled={suspend.isPending}
-              onClick={() => {
-                suspend.mutate();
-                setConfirmSuspend(false);
-              }}
-            >
-              {suspend.isPending ? "Останавливаем…" : "Да, приостановить"}
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => setConfirmSuspend(false)}>
-              Отмена
-            </Button>
-          </div>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-4"
-            disabled={merchant.data.status === "suspended"}
-            onClick={() => setConfirmSuspend(true)}
-          >
-            {merchant.data.status === "suspended" ? "Уже приостановлен" : "Приостановить"}
-          </Button>
-        )}
+        <div className="mt-4 flex flex-wrap gap-3">
+          <ConfirmDialog
+            trigger={
+              <Button variant="outline" disabled={merchant.data.status === "suspended"}>
+                {merchant.data.status === "suspended" ? "Уже приостановлено" : "Приостановить"}
+              </Button>
+            }
+            title="Приостановить заведение?"
+            description="Оно перестанет принимать бонусы. Это увидят все его сотрудники."
+            confirmLabel="Приостановить"
+            onConfirm={() => suspend.mutateAsync()}
+          />
+          <ConfirmDialog
+            trigger={<Button variant="danger">Удалить заведение</Button>}
+            title={`Удалить «${merchant.data.name}»?`}
+            description="Заведение, его сотрудники, витрина и журнал исчезнут из кабинетов. Держатели карт ничего не потеряют. Отменить нельзя."
+            confirmLabel="Удалить"
+            onConfirm={async () => {
+              await remove.mutateAsync(merchantId);
+              navigate("/");
+            }}
+          />
+        </div>
       </Card>
 
       <Card>
@@ -235,7 +310,7 @@ export function MerchantDetailsPage() {
           </Button>
         </div>
         <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
-          По коду владелец регистрируется сам и сразу получает права на этот заведение.
+          По коду владелец регистрируется сам и сразу получает права на это заведение.
         </p>
         {createInvite.isError && <ErrorState error={createInvite.error} />}
         {invites.isPending && <Loading />}
@@ -248,7 +323,7 @@ export function MerchantDetailsPage() {
             >
               <code className="rounded-lg bg-muted px-3 py-2 text-lg tracking-wide">{invite.code}</code>
               <span className="text-base text-muted-foreground">
-                {invite.redeemedAt ? `использован ${formatDateTime(invite.redeemedAt)}` : "не использован"}
+                {invite.usedAt ? `использован ${formatDateTime(invite.usedAt)}` : "не использован"}
               </span>
             </li>
           ))}

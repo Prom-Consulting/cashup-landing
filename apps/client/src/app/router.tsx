@@ -1,6 +1,7 @@
 import { RequireAuth } from "@loal/app-kit";
 import { Route, Routes } from "react-router";
 import { CardPage } from "../pages/card";
+import { EnrollPage } from "../pages/enroll";
 import { HistoryPage } from "../pages/history";
 import { LoginPage } from "../pages/login";
 import { MyCardPage } from "../pages/my-card";
@@ -18,6 +19,8 @@ export function AppRouter() {
       <Route element={<PageFrame />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="c/:serial" element={<CardPage />} />
+        <Route path="enroll" element={<EnrollPage />} />
+        <Route path="enroll/:templateId/:programId" element={<EnrollPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 

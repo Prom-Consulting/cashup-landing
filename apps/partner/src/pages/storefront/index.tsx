@@ -1,12 +1,11 @@
+import { CoverageLimitForm, StorefrontForm, useMerchantProfile } from "@loal/app-kit";
 import { Card, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { useCurrentMerchant } from "../../entities/session/model";
-import { useProfile } from "../../entities/merchant/api";
-import { ProfileForm } from "../../features/storefront/profile-form";
 
 /** Витрина: то, что клиент видит о заведении в каталоге до того, как зайдёт. */
 export function StorefrontPage() {
   const { merchantId, canManage } = useCurrentMerchant();
-  const profile = useProfile(merchantId ?? "");
+  const profile = useMerchantProfile(merchantId ?? "");
 
   return (
     <section className="flex flex-col gap-6">
@@ -21,7 +20,7 @@ export function StorefrontPage() {
       {profile.isSuccess && (
         <Card>
           {canManage ? (
-            <ProfileForm merchantId={merchantId!} profile={profile.data} />
+            <StorefrontForm merchantId={merchantId!} profile={profile.data} />
           ) : (
             <>
               <p className="text-lg">
@@ -32,6 +31,16 @@ export function StorefrontPage() {
               </p>
             </>
           )}
+        </Card>
+      )}
+
+      {merchantId && (
+        <Card>
+          <h2 className="text-xl font-bold">Сколько закрывают бонусы</h2>
+          <p className="mt-1 mb-5 max-w-[62ch] text-base text-muted-foreground">
+            Потолок процента на одну позицию. Клиент видит его в каталоге как «до N%», касса и 1С не дают его превысить.
+          </p>
+          <CoverageLimitForm merchantId={merchantId} canEdit={canManage} />
         </Card>
       )}
     </section>

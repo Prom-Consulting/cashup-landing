@@ -22,12 +22,25 @@ export function usePassInfo(serial: string) {
  */
 export function usePaySubscription(serial: string) {
   const api = useApi();
-  return useMutation({
-    mutationFn: (input: BuyMonthsInput) => cardsApi(api).paySubscription(serial, input),
-  });
+  return useMutation({ mutationFn: (input: BuyMonthsInput) => cardsApi(api).paySubscription(serial, input) });
 }
 
 /** Ссылка на файл .pkpass: по ней браузер сам предлагает добавить карту в Wallet. */
 export function appleWalletUrl(serial: string) {
   return `${API_URL.replace(/\/$/, "")}/v1/public/passes/${encodeURIComponent(serial)}`;
+}
+
+/**
+ * Ссылка «Добавить в Google Wallet». Если Google-сертификат на платформе не настроен,
+ * сервер ответит ошибкой — тогда кнопку просто не показываем.
+ */
+export function useGoogleSaveLink(serial: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["pass", serial, "google"],
+    queryFn: () => passesApi(api).googleSaveLink(serial),
+    enabled: serial.length > 0,
+    retry: false,
+    staleTime: Infinity,
+  });
 }

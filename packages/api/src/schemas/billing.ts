@@ -14,10 +14,13 @@ export const merchantSubscriptionSchema = z.looseObject({
 });
 export type MerchantSubscription = z.infer<typeof merchantSubscriptionSchema>;
 
-/** Подписка клиента: пачка баллов на период, остаток в конце месяца сгорает. */
+/**
+ * Подписка клиента: пачка баллов на период, остаток в конце месяца сгорает.
+ * Принадлежит человеку, а не карте: перевыпуск карты её не трогает.
+ */
 export const cardSubscriptionSchema = z.looseObject({
   id: z.string(),
-  cardId: z.string(),
+  customerId: z.string().nullish(),
   status: z.enum(["active", "canceled", "expired"]),
   pointsPerPeriod: z.number(),
   periodsTotal: z.number(),

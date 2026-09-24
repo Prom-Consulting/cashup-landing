@@ -1,3 +1,4 @@
+import { DEDUCTION_CHANNEL_LABELS } from "@loal/api";
 import { Button, Icon, Input, PageHeader } from "@loal/ui/shadcn";
 import { Search01Icon } from "@hugeicons/core-free-icons";
 import {
@@ -83,7 +84,7 @@ export function DeductionsPage() {
                   </td>
                   <td className="px-6 py-4 text-lg tabular-nums">{money.format(row.points)}</td>
                   <td className="px-6 py-4 text-base text-muted-foreground">
-                    {row.channel === "onec" ? "1С" : "приложение"}
+                    {DEDUCTION_CHANNEL_LABELS[row.channel ?? ""] ?? row.channel ?? "—"}
                   </td>
                   <td className="px-6 py-4 text-base text-muted-foreground">{formatDateTime(row.createdAt)}</td>
                 </tr>

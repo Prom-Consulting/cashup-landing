@@ -1,9 +1,12 @@
 import { z } from "zod";
 
-/** Клиент магазина. Почти все поля необязательны: иногда известен только телефон. */
+/**
+ * Клиент платформы. Почти все поля необязательны: иногда известен только телефон.
+ * userId — аккаунт клиента, если он заходил в свой кабинет, иначе null.
+ */
 export const customerSchema = z.looseObject({
   id: z.string(),
-  storeId: z.string(),
+  userId: z.string().nullish(),
   firstName: z.string().nullish(),
   lastName: z.string().nullish(),
   email: z.string().nullish(),
@@ -43,6 +46,13 @@ export const createCustomerInputSchema = z
   });
 export type CreateCustomerInput = z.infer<typeof createCustomerInputSchema>;
 
+/**
+ * Выпуск карты существующему клиенту. Шаблон и программу можно не называть —
+ * тогда выдаётся карта платформы по умолчанию.
+ */
+export const issueExistingCardInputSchema = z.object({ customerId: z.string().min(1, "Выберите клиента") });
+export type IssueExistingCardInput = z.infer<typeof issueExistingCardInputSchema>;
+
 /** Выпуск карты: клиент, шаблон карты и программа лояльности. */
 export const issueCardInputSchema = z.object({
   customerId: z.string().min(1, "Выберите клиента"),
@@ -63,6 +73,6 @@ export type PassTemplate = z.infer<typeof passTemplateSchema>;
 export const loyaltyProgramSchema = z.looseObject({
   id: z.string(),
   name: z.string(),
-  type: z.string().nullish(),
+  programType: z.string().nullish(),
 });
 export type LoyaltyProgram = z.infer<typeof loyaltyProgramSchema>;

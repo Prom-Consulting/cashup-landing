@@ -1,10 +1,11 @@
-import { MEMBER_ROLE_LABELS, addMemberInputSchema, createBranchInputSchema, type AddMemberInput } from "@loal/api";
+import { createBranchInputSchema } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
-import { Badge, Button, Card, EmptyState, ErrorState, Input, Label, Loading, PageHeader } from "@loal/ui/shadcn";
+import { Button, Card, EmptyState, ErrorState, Input, Label, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
-import { useAddMember, useBranches, useCreateBranch, useMembers, useRemoveMember } from "../../entities/merchant/api";
+import { useBranches, useCreateBranch, useMembers } from "../../entities/merchant/api";
 import { useCurrentMerchant } from "../../entities/session/model";
-import { formatDateTime } from "../../shared/lib/format";
+import { AddMemberForm } from "../../features/team/add-member-form";
+import { MemberRow } from "../../features/team/member-row";
 
 /** Команда заведения: точки и люди, которые в них работают. */
 export function TeamPage() {
@@ -12,8 +13,6 @@ export function TeamPage() {
   const branches = useBranches(merchantId ?? "");
   const members = useMembers(merchantId ?? "");
   const createBranch = useCreateBranch(merchantId ?? "");
-  const addMember = useAddMemberForm(merchantId ?? "");
-  const removeMember = useRemoveMember(merchantId ?? "");
 
   return (
     <section className="flex flex-col gap-6">
@@ -88,108 +87,20 @@ export function TeamPage() {
         {members.isError && <ErrorState error={members.error} onRetry={() => members.refetch()} />}
         {members.isSuccess && members.data.length === 0 && <EmptyState title="Сотрудников пока нет" />}
 
-        <ul className="mt-4 flex flex-col gap-3">
+        <ul className="mt-2 flex flex-col gap-4">
           {(members.data ?? []).map((member) => (
-            <li
+            <MemberRow
               key={member.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3"
-            >
-              <div className="min-w-0">
-                <p className="text-lg">{member.userId}</p>
-                <p className="mt-1 text-base text-muted-foreground">
-                  {MEMBER_ROLE_LABELS[member.role] ?? member.role} ·{" "}
-                  {member.acceptedAt ? `работает с ${formatDateTime(member.acceptedAt)}` : "приглашение не принято"}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                {!member.acceptedAt && <Badge tone="quiet">ждёт</Badge>}
-                {canManage && member.role !== "admin" && (
-                  <Button variant="ghost" size="sm" onClick={() => removeMember.mutate(member.id)}>
-                    Убрать
-                  </Button>
-                )}
-              </div>
-            </li>
+              merchantId={merchantId ?? ""}
+              member={member}
+              branches={branches.data ?? []}
+              canManage={canManage}
+            />
           ))}
         </ul>
 
-        {canManage && <AddMemberForm {...addMember} />}
+        {canManage && <AddMemberForm merchantId={merchantId ?? ""} branches={branches.data ?? []} />}
       </Card>
     </section>
-  );
-}
-
-/** Отдельно от разметки, чтобы форма не разрасталась внутри карточки. */
-function useAddMemberForm(merchantId: string) {
-  const add = useAddMember(merchantId);
-  return { add };
-}
-
-function AddMemberForm({ add }: ReturnType<typeof useAddMemberForm>) {
-  const initialValues: AddMemberInput = { userId: "", role: "staff" };
-
-  return (
-    <Formik
-      initialValues={initialValues}
-      validate={zodValidate(addMemberInputSchema)}
-      onSubmit={async (values, helpers) => {
-        helpers.setStatus(undefined);
-        try {
-          await add.mutateAsync(values);
-          helpers.resetForm();
-          helpers.setStatus("Сотрудник подключён");
-        } catch (error) {
-          applyServerIssues(error, helpers);
-        } finally {
-          helpers.setSubmitting(false);
-        }
-      }}
-    >
-      {(form) => (
-        <Form className="mt-6 flex flex-wrap items-end gap-4 border-t border-border pt-5" noValidate>
-          <FocusFirstError form={form} />
-          <div className="min-w-[240px] flex-1">
-            <Label htmlFor="userId">Идентификатор пользователя</Label>
-            <Input
-              id="userId"
-              name="userId"
-              className="mt-2"
-              value={form.values.userId}
-              onChange={form.handleChange}
-              onBlur={form.handleBlur}
-              invalid={Boolean(fieldError(form, "userId"))}
-            />
-            {fieldError(form, "userId") && (
-              <p className="mt-2 text-base text-destructive">{fieldError(form, "userId")}</p>
-            )}
-          </div>
-          <div className="flex gap-2">
-            {(["staff", "admin"] as const).map((role) => (
-              <button
-                key={role}
-                type="button"
-                aria-pressed={form.values.role === role}
-                onClick={() => form.setFieldValue("role", role)}
-                className={`h-12 rounded-2xl border-2 px-5 text-lg transition-colors ${
-                  form.values.role === role
-                    ? "border-secondary bg-secondary text-secondary-foreground"
-                    : "border-border bg-surface hover:border-foreground"
-                }`}
-              >
-                {MEMBER_ROLE_LABELS[role]}
-              </button>
-            ))}
-          </div>
-          <Button type="submit" variant="outline" disabled={form.isSubmitting}>
-            Подключить
-          </Button>
-          {formError(form) && (
-            <p role="status" className="basis-full text-base text-muted-foreground">
-              {formError(form)}
-            </p>
-          )}
-        </Form>
-      )}
-    </Formik>
   );
 }

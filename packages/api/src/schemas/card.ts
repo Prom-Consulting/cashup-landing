@@ -5,6 +5,11 @@ export const passFieldSchema = z.looseObject({
   key: z.string(),
   label: z.string().optional(),
   value: z.union([z.string(), z.number()]),
+  textAlignment: z
+    .enum(["PKTextAlignmentLeft", "PKTextAlignmentCenter", "PKTextAlignmentRight", "PKTextAlignmentNatural"])
+    .optional(),
+  /** Текст уведомления на телефон, когда значение меняется; %@ — новое значение. */
+  changeMessage: z.string().optional(),
 });
 export type PassField = z.infer<typeof passFieldSchema>;
 
@@ -14,6 +19,7 @@ export const barcodeFormatSchema = z.enum([
   "PKBarcodeFormatAztec",
   "PKBarcodeFormatCode128",
 ]);
+export type BarcodeFormat = z.infer<typeof barcodeFormatSchema>;
 
 /**
  * Что отдаёт публичная ручка карты по серийному номеру. Показывается
@@ -40,11 +46,18 @@ export const publicPassInfoSchema = z.looseObject({
 });
 export type PublicPassInfo = z.infer<typeof publicPassInfoSchema>;
 
-/** Карта как её отдаёт GET /v1/cards/{serial}. */
+/**
+ * Карта как её отдаёт GET /v1/cards/{serial}. Магазина в ней нет: карта принадлежит
+ * платформе (docs/API.md, «Что изменилось 23 сентября 2026»).
+ */
 export const cardSchema = z.looseObject({
+  id: z.string().nullish(),
   serialNumber: z.string(),
-  storeId: z.string(),
   customerId: z.string().nullish(),
+  templateId: z.string().nullish(),
+  programId: z.string().nullish(),
+  tierId: z.string().nullish(),
+  passVersion: z.number().nullish(),
   status: z.enum(["active", "suspended", "revoked"]),
   pointsBalance: z.number(),
   punchCount: z.number().nullish(),

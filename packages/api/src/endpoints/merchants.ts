@@ -10,6 +10,10 @@ import {
   type UpdateMerchantInput,
 } from "../schemas/merchant";
 
+/** Пустое поле формы — «не указано»: сервер принимает null, но не пустую строку. */
+const orNull = (value: string | undefined) =>
+  value === undefined ? undefined : value.trim() === "" ? null : value.trim();
+
 /**
  * Заведения. Список и создание — только у агентства; карточку заведения видит и оно
  * само. Клиенты, карты и шаблоны сюда больше не входят: они принадлежат платформе.
@@ -22,14 +26,23 @@ export const merchantsApi = (api: ApiClient) => ({
   create: (input: CreateMerchantInput) =>
     api.request(merchantSchema, "/admin/v1/merchants", {
       method: "POST",
-      body: createMerchantInputSchema.parse(input),
+      body: (() => {
+        const parsed = createMerchantInputSchema.parse(input);
+        return { ...parsed, contactEmail: orNull(parsed.contactEmail), contactPhone: orNull(parsed.contactPhone) };
+      })(),
     }),
 
   update: (merchantId: string, input: UpdateMerchantInput) =>
     api.request(merchantSchema, `/admin/v1/merchants/${merchantId}`, {
       method: "PATCH",
-      body: updateMerchantInputSchema.parse(input),
+      body: (() => {
+        const parsed = updateMerchantInputSchema.parse(input);
+        return { ...parsed, contactEmail: orNull(parsed.contactEmail), contactPhone: orNull(parsed.contactPhone) };
+      })(),
     }),
+
+  /** Убирает заведение. Клиенты, карты и их баланс остаются — они принадлежат платформе. */
+  remove: (merchantId: string) => api.request(z.unknown(), `/admin/v1/merchants/${merchantId}`, { method: "DELETE" }),
 
   suspend: (merchantId: string) =>
     api.request(merchantSchema, `/admin/v1/merchants/${merchantId}/suspend`, { method: "POST", body: {} }),
