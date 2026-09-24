@@ -1,35 +1,32 @@
 import type { Metadata } from "next";
-import { Google_Sans, Jost } from "next/font/google";
+import { Nunito, Nunito_Sans } from "next/font/google";
 import "./globals.css";
 import { JsonLd } from "./_components/json-ld";
 import { EMAIL, PHONE, SITE_URL } from "./_data/site";
 
-// Шрифт макета главной (Figma «loal»): весь текст — Google Sans.
-const googleSans = Google_Sans({
-  variable: "--font-google-sans",
-  subsets: ["latin", "latin-ext", "cyrillic"],
-  weight: ["400", "500", "700"],
+// Шрифты брендбука Loal 2026: Nunito Sans — заголовки, Nunito — основной текст.
+// cyrillic-ext нужен кыргызскому: Ң, Ө, Ү.
+const heading = Nunito_Sans({
+  variable: "--font-heading",
+  subsets: ["latin", "cyrillic", "cyrillic-ext"],
+  weight: ["600", "700", "800", "900"],
 });
 
-// Jost остаётся только в логотипе и метке OctōPAY, как в макете.
-const jost = Jost({
-  variable: "--font-jost",
-  subsets: ["latin", "latin-ext", "cyrillic"],
-  weight: ["700"],
+const body = Nunito({
+  variable: "--font-body",
+  subsets: ["latin", "cyrillic", "cyrillic-ext"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const MOTION_PENDING_SCRIPT = `(function(){var d=document.documentElement;if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;d.classList.add("motion-pending");setTimeout(function(){d.classList.remove("motion-pending")},4000)})();`;
 
 const DESCRIPTION =
-  "Подписка Loal за 10 $ в месяц: карта в Apple Wallet с балансом 100 000 сом бонусами, который обновляется каждый оплаченный месяц. Платите бонусами у партнёров.";
+  "Loal — бонусы по подписке. 10 $ в месяц: карта в Apple Wallet и 100 000 бонусов на каждый оплаченный период. Бонусами закрывается часть покупки у партнёров в Бишкеке.";
 
 // Картинка превью (opengraph-image.png) и иконки лежат в app/ и подключаются по соглашению Next.
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: {
-    default: "Loal — 100 000 сом бонусами каждый месяц",
-    template: "%s — Loal",
-  },
+  title: { default: "Loal — бонусы по подписке", template: "%s — Loal" },
   description: DESCRIPTION,
   applicationName: "Loal",
   openGraph: {
@@ -37,14 +34,10 @@ export const metadata: Metadata = {
     locale: "ru_RU",
     siteName: "Loal",
     url: "/",
-    title: "Loal — 100 000 сом бонусами каждый месяц",
+    title: "Loal — бонусы по подписке",
     description: DESCRIPTION,
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "Loal — 100 000 сом бонусами каждый месяц",
-    description: DESCRIPTION,
-  },
+  twitter: { card: "summary_large_image", title: "Loal — бонусы по подписке", description: DESCRIPTION },
 };
 
 const organizationLd = {
@@ -73,7 +66,7 @@ const organizationLd = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ru" suppressHydrationWarning className={`${googleSans.variable} ${jost.variable} h-full antialiased`}>
+    <html lang="ru" suppressHydrationWarning className={`${heading.variable} ${body.variable} h-full antialiased`}>
       <head>
         {/* Hide hero content only while the GSAP intro is expected, with a failsafe if scripts never run. */}
         <script dangerouslySetInnerHTML={{ __html: MOTION_PENDING_SCRIPT }} />

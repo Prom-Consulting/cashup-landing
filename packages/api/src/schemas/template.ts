@@ -224,62 +224,79 @@ export const brandTextInputSchema = z.object({
 export type BrandTextInput = z.infer<typeof brandTextInputSchema>;
 
 /** Поле карты в редакторе: ключ латиницей — по нему Wallet узнаёт поле при обновлении. */
-export const passFieldInputSchema = z.object({
-  key: z
-    .string()
-    .trim()
-    .min(1, "Нужен ключ")
-    .regex(/^[A-Za-z][A-Za-z0-9_]*$/, "Латиница, цифры и _"),
-  label: z.string().max(40, "Не длиннее 40 символов").optional(),
-  value: z.union([z.string().min(1, "Введите значение"), z.number()]),
+/**
+ * Поле карты в редакторе. Проверяем только то, что проверяют сервер и Apple: ключ есть,
+ * значение — строка или число. Пустое значение допустимо — у живого поля его всё равно
+ * подменит сервер, а у заготовок из библиотеки такие поля встречаются.
+ */
+export const passFieldInputSchema = z.looseObject({
+  key: z.string().trim().min(1, "Нужен ключ поля"),
+  label: z.string().optional(),
+  value: z.union([z.string(), z.number()], { error: "Нужно значение" }),
   textAlignment: passFieldSchema.shape.textAlignment,
-  changeMessage: z.string().max(120, "Не длиннее 120 символов").optional(),
+  changeMessage: z.string().optional(),
 });
 
-const rgbColor = z.string().regex(/^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/, "Цвет в виде rgb(r,g,b)");
+const rgbColor = z
+  .string()
+  .regex(/^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/, "Цвет в виде rgb(r, g, b) — например rgb(255, 93, 52)");
 
-/** Проверка дизайна перед сохранением — те же правила, что у сервера, но по-русски. */
-export const passDesignInputSchema = z.looseObject({
-  organizationName: z.string().trim().min(1, "Нужно название организации").max(60, "Не длиннее 60 символов"),
-  description: z.string().trim().min(1, "Нужно описание карты").max(120, "Не длиннее 120 символов"),
-  logoText: z.string().max(40, "Не длиннее 40 символов").optional(),
-  backgroundColor: rgbColor,
-  foregroundColor: rgbColor,
-  labelColor: rgbColor,
-  barcodeFormat: barcodeFormatSchema,
-  barcodeAltText: z.string().max(60, "Не длиннее 60 символов").optional(),
-  headerFields: z.array(passFieldInputSchema),
-  primaryFields: z.array(passFieldInputSchema),
-  secondaryFields: z.array(passFieldInputSchema),
-  auxiliaryFields: z.array(passFieldInputSchema),
-  backFields: z.array(passFieldInputSchema),
-  hoursBeforeExpiration: z
-    .union([z.literal(""), z.number({ error: "Введите число" }).int("Целое число часов").positive("Больше нуля")])
-    .optional(),
-  punchIcons: z
-    .looseObject({
-      target: z
-        .number({ error: "Введите число" })
-        .int("Целое число")
-        .min(1, "Хотя бы один штамп")
-        .max(30, "Не больше 30"),
-      iconUrl: z.string().min(1, "Загрузите картинку штампа"),
-    })
-    .optional(),
-  locations: z
-    .array(
-      z.object({
-        latitude: z.number({ error: "Введите число" }).min(-90, "Широта от −90 до 90").max(90, "Широта от −90 до 90"),
-        longitude: z
-          .number({ error: "Введите число" })
-          .min(-180, "Долгота от −180 до 180")
-          .max(180, "Долгота от −180 до 180"),
-        relevantText: z.string().max(60, "Не длиннее 60 символов").optional(),
-      }),
-    )
-    .max(10, "Не больше 10 точек")
-    .optional(),
-});
+const GROUP_KEYS = ["headerFields", "primaryFields", "secondaryFields", "auxiliaryFields", "backFields"] as const;
+
+/** Проверка дизайна перед сохранением — те же правила, что у сервера и Apple, но по-русски. */
+export const passDesignInputSchema = z
+  .looseObject({
+    organizationName: z.string().trim().min(1, "Нужно название организации"),
+    description: z.string().trim().min(1, "Нужно описание карты"),
+    logoText: z.string().optional(),
+    backgroundColor: rgbColor,
+    foregroundColor: rgbColor,
+    labelColor: rgbColor,
+    barcodeFormat: barcodeFormatSchema,
+    barcodeAltText: z.string().optional(),
+    headerFields: z.array(passFieldInputSchema),
+    primaryFields: z.array(passFieldInputSchema),
+    secondaryFields: z.array(passFieldInputSchema),
+    auxiliaryFields: z.array(passFieldInputSchema),
+    backFields: z.array(passFieldInputSchema),
+    hoursBeforeExpiration: z
+      .union([z.literal(""), z.number({ error: "Введите число" }).int("Целое число часов").positive("Больше нуля")])
+      .optional(),
+    punchIcons: z
+      .looseObject({
+        target: z.number({ error: "Введите число" }).int("Целое число").min(1, "Хотя бы один штамп"),
+        iconUrl: z.string().min(1, "Загрузите картинку штампа"),
+      })
+      .optional(),
+    locations: z
+      .array(
+        z.object({
+          latitude: z.number({ error: "Введите число" }).min(-90, "Широта от −90 до 90").max(90, "Широта от −90 до 90"),
+          longitude: z
+            .number({ error: "Введите число" })
+            .min(-180, "Долгота от −180 до 180")
+            .max(180, "Долгота от −180 до 180"),
+          relevantText: z.string().optional(),
+        }),
+      )
+      .max(10, "Не больше 10 точек")
+      .optional(),
+  })
+  // Apple отвергает карту, где два поля с одним ключом, — ловим это до сервера
+  .superRefine((design, ctx) => {
+    const seen = new Map<string, string>();
+    for (const group of GROUP_KEYS) {
+      (design[group] ?? []).forEach((field, index) => {
+        const key = String(field.key ?? "").trim();
+        if (!key) return;
+        if (seen.has(key)) {
+          ctx.addIssue({ code: "custom", path: [group, index, "key"], message: `Ключ «${key}» уже есть на карте` });
+        } else {
+          seen.set(key, group);
+        }
+      });
+    }
+  });
 
 /** rgb(r,g,b) ↔ #rrggbb: палитра браузера говорит на hex, сервер — на rgb(). */
 export function rgbToHex(value: string | undefined): string {
@@ -339,7 +356,8 @@ export function cleanDesign(design: PassDesign): PassDesign {
         delete next.dateStyle;
         delete next.timeStyle;
       }
-      return drop(next) as (typeof list)[number];
+      // value не выбрасываем даже пустым: сервер требует его у каждого поля
+      return { ...drop(next), value: field.value ?? "" } as (typeof list)[number];
     });
 
   const result: PassDesign = {

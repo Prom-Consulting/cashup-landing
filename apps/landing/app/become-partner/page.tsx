@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import partnerPhoto from "@/public/images/partner-barista.jpg";
+import { Logo } from "@loal/ui/logo";
 import { Coin } from "../_components/illustrations";
 import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
@@ -10,19 +11,19 @@ import { CITY, EMAIL, OCTOPAY_URL, PARTNER_MAIL, PHONE, PHONE_HREF } from "../_d
 import { PartnerForm } from "./partner-form";
 
 export const metadata: Metadata = {
-  title: "Стать партнёром",
+  title: "Loal Corporate — для бизнеса",
   description:
-    "Подключите заведение к Loal: клиенты с балансом 100 000 сом бонусами, свой процент оплаты бонусами, кабинет партнёра и место в каталоге.", // Своё превью в мессенджерах; картинка берётся из app/opengraph-image.png.
+    "Loal Corporate — программы лояльности для бизнеса. Подключите компанию к бонусной сети Loal: сами задаёте долю покупки, которую закрывают бонусы, даёте доступ сотрудникам и видите все операции.", // Своё превью в мессенджерах; картинка берётся из app/opengraph-image.png.
   alternates: { canonical: "/become-partner" },
   openGraph: {
     url: "/become-partner",
     type: "website",
     locale: "ru_RU",
     siteName: "Loal",
-    images: { url: "/opengraph-image.png", width: 1200, height: 630, alt: "Loal — 100 000 сом бонусами каждый месяц" },
-    title: "Стать партнёром — Loal",
+    images: { url: "/opengraph-image.png", width: 1200, height: 630, alt: "Loal — бонусы по подписке" },
+    title: "Loal Corporate — программы лояльности для бизнеса",
     description:
-      "Подключите заведение к Loal: клиенты с балансом 100 000 сом бонусами, свой процент оплаты бонусами, кабинет партнёра и место в каталоге.",
+      "Loal Corporate — программы лояльности для бизнеса. Подключите компанию к бонусной сети Loal: сами задаёте долю покупки, которую закрывают бонусы, даёте доступ сотрудникам и видите все операции.",
   },
 };
 
@@ -47,8 +48,8 @@ const steps = [
 
 const gains = [
   {
-    title: "Клиенты с деньгами на карте",
-    text: "У каждого подписчика 100 000 сом бонусами в начале оплаченного месяца. Потратить их можно только у партнёров.",
+    title: "Покупатели с бонусами Loal",
+    text: "У каждого подписчика 100 000 бонусов на оплаченный месяц, и потратить их можно только у партнёров сети.",
   },
   {
     title: "Вы решаете, сколько отдать",
@@ -87,16 +88,16 @@ export default function BecomePartnerPage() {
       <main className="flex-1 overflow-x-clip">
         <section className="mx-auto grid max-w-[1440px] items-center gap-14 px-5 pt-6 pb-20 sm:px-10 xl:grid-cols-[1.15fr_1fr] xl:pt-10 xl:pb-28">
           <div>
-            <p className="text-lg font-medium">Для бизнеса в Бишкеке</p>
-            <h1 className="display mt-4 text-[clamp(2.43rem,5.9vw,5.17rem)] text-flame">Станьте партнёром Loal</h1>
-            <p className="mt-8 max-w-[50ch] text-lg leading-relaxed sm:text-xl">
-              Подписчики Loal ищут, где потратить бонусы. Подключите заведение, задайте свой процент — и получайте
-              гостей из каталога.
+            <Logo size="lg" direction="corporate" />
+            <h1 className="display mt-6 text-[clamp(2.43rem,5.9vw,5.17rem)]">Программы лояльности для бизнеса</h1>
+            <p className="mt-8 max-w-[52ch] text-lg leading-relaxed text-slate sm:text-xl">
+              Loal Corporate подключает компанию к бонусной сети. Подписчики ищут, где потратить бонусы, — вы сами
+              решаете, какую долю покупки они закроют, и видите каждую операцию в кабинете.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
               <Link
                 href="#form"
-                className="inline-flex items-center justify-center rounded-[10px] bg-flame-ink px-7 py-4 font-bold text-paper transition-colors hover:bg-graphite"
+                className="inline-flex items-center justify-center rounded-full bg-flame px-7 py-4 text-[1.1875rem] font-bold text-white transition-colors hover:bg-graphite"
               >
                 Оставить заявку
               </Link>
@@ -123,7 +124,7 @@ export default function BecomePartnerPage() {
             </div>
             <div className="absolute -bottom-6 -left-4 w-[min(280px,80%)] rounded-3xl bg-graphite p-5 text-paper sm:-left-10">
               <p className="text-sm opacity-80">Гость оплатил</p>
-              <p className="display mt-1 text-4xl text-amber">400 сом бонусами</p>
+              <p className="display mt-1 text-4xl text-amber">400 бонусами</p>
               <p className="mt-2 text-sm opacity-80">Остальное — деньгами на ваш счёт</p>
             </div>
             <div className="absolute -top-6 -right-4 w-20" aria-hidden="true">
@@ -134,7 +135,7 @@ export default function BecomePartnerPage() {
 
         <section className="bg-cream/50">
           <div className="mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-24">
-            <h2 className="display max-w-[16ch] text-[clamp(2.08rem,4.86vw,4.14rem)] text-flame">
+            <h2 className="display max-w-[16ch] text-[clamp(2.08rem,4.86vw,4.14rem)] brand-gradient-text">
               Что это даёт заведению
             </h2>
             <div className="mt-12 grid gap-6 md:grid-cols-2">
@@ -149,7 +150,7 @@ export default function BecomePartnerPage() {
         </section>
 
         <section className="mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-24">
-          <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)] text-flame">Как подключиться</h2>
+          <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)] brand-gradient-text">Как подключиться</h2>
           <ol className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {steps.map((s, i) => (
               <li key={s.title} className="border-t-2 border-graphite pt-5">
@@ -228,7 +229,7 @@ export default function BecomePartnerPage() {
         <section id="form" className="scroll-mt-6">
           <div className="mx-auto grid max-w-[1440px] gap-12 px-5 py-20 sm:px-10 lg:grid-cols-[1fr_1.2fr] lg:py-28">
             <div>
-              <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)] text-flame">Заявка</h2>
+              <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)] brand-gradient-text">Заявка</h2>
               <p className="mt-6 max-w-[42ch] text-lg leading-relaxed">
                 Заполните форму — перезвоним, поможем выбрать модель и настроить процент. Или напишите нам напрямую.
               </p>
@@ -252,7 +253,7 @@ export default function BecomePartnerPage() {
 
         <section className="mx-auto max-w-[1440px] px-5 pb-16 sm:px-10 sm:pb-20 xl:pb-28">
           <div className="grid gap-10 lg:grid-cols-[1fr_1.6fr]">
-            <h2 className="display text-[clamp(1.92rem,4.17vw,3.45rem)] text-flame">Вопросы</h2>
+            <h2 className="display text-[clamp(1.92rem,4.17vw,3.45rem)] brand-gradient-text">Вопросы</h2>
             <dl>
               {faq.map((item) => (
                 <div key={item.q} className="border-b-2 border-cream py-6">

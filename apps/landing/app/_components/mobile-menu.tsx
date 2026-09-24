@@ -97,19 +97,19 @@ export function MobileMenu({ nav, cta }: { nav: NavItem[]; cta: NavItem }) {
           role="dialog"
           aria-modal="true"
           aria-label="Меню"
-          className="fixed inset-0 z-40 flex flex-col overflow-y-auto bg-cream px-5 pt-28 pb-10 sm:px-12 lg:hidden"
+          className="brand-gradient fixed inset-0 z-40 flex flex-col overflow-y-auto px-5 pt-28 pb-10 text-graphite sm:px-12 lg:hidden"
         >
           <nav aria-label="Разделы">
             <ul className="flex flex-col">
               {nav.map((item) => (
-                <li key={item.href} data-menu-item className="border-b border-slate-soft/30">
+                <li key={item.href} data-menu-item className="border-b border-graphite/15">
                   <Link
                     href={item.href}
                     onClick={() => setOpen(false)}
-                    className="display flex items-center justify-between py-5 text-[clamp(2rem,9vw,3rem)] transition-colors hover:text-flame"
+                    className="display flex items-center justify-between py-5 text-[clamp(2rem,9vw,3rem)] transition-colors hover:text-white"
                   >
                     {item.label}
-                    <svg viewBox="0 0 24 24" className="h-6 w-6 shrink-0 text-flame" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" className="h-6 w-6 shrink-0 text-graphite" aria-hidden="true">
                       <path
                         d="M7 17 17 7M9 7h8v8"
                         fill="none"
@@ -129,7 +129,7 @@ export function MobileMenu({ nav, cta }: { nav: NavItem[]; cta: NavItem }) {
             <Link
               href={cta.href}
               onClick={() => setOpen(false)}
-              className="flex w-full items-center justify-center rounded-full bg-flame px-7 py-4 text-lg font-medium text-white transition-colors hover:bg-graphite"
+              className="flex w-full items-center justify-center rounded-full bg-graphite px-7 py-4 text-lg font-bold text-white transition-colors hover:bg-white hover:text-graphite"
             >
               {cta.label}
             </Link>
@@ -143,10 +143,10 @@ export function MobileMenu({ nav, cta }: { nav: NavItem[]; cta: NavItem }) {
           </div>
 
           <div data-menu-item className="mt-auto flex flex-col gap-2 pt-10 text-lg">
-            <a href={PHONE_HREF} className="text-flame-ink underline-offset-4 hover:underline">
+            <a href={PHONE_HREF} className="font-bold underline-offset-4 hover:underline">
               {PHONE}
             </a>
-            <a href={`mailto:${EMAIL}`} className="text-flame-ink underline-offset-4 hover:underline">
+            <a href={`mailto:${EMAIL}`} className="font-bold underline-offset-4 hover:underline">
               {EMAIL}
             </a>
           </div>

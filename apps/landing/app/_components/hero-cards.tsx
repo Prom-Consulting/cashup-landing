@@ -7,21 +7,21 @@ type Tone = "amber" | "coal" | "paper";
 
 const tones: Record<Tone, { card: string; text: string; muted: string; number: string; mark: "brand" | "solid" }> = {
   amber: {
-    card: "bg-[linear-gradient(150deg,#ffb04d_0%,#ff9720_45%,#ff6a10_100%)]",
+    card: "bg-[linear-gradient(150deg,#ffcc91_0%,#ffa33b_35%,#ff5d34_75%,#ff4a3e_100%)]",
     text: "text-white",
     muted: "text-white/75",
     number: "text-white",
     mark: "solid",
   },
   coal: {
-    card: "bg-[linear-gradient(160deg,#302e30_0%,#090809_60%)]",
+    card: "bg-[linear-gradient(160deg,#3a3535_0%,#161515_60%)]",
     text: "text-white",
     muted: "text-white/60",
     number: "text-amber",
     mark: "brand",
   },
   paper: {
-    card: "bg-[linear-gradient(160deg,#ffffff_0%,#e4e8eb_100%)]",
+    card: "bg-[linear-gradient(160deg,#ffffff_0%,#f4efed_100%)]",
     text: "text-graphite",
     muted: "text-slate",
     number: "text-flame",
@@ -49,7 +49,7 @@ function FakeQr({ className }: { className: string }) {
   return (
     <svg viewBox={`-1 -1 ${n + 2} ${n + 2}`} className={className} aria-hidden="true">
       <rect x="-1" y="-1" width={n + 2} height={n + 2} rx="1.5" fill="#fff" />
-      <path d={`${eye(0, 0)}${eye(n - 7, 0)}${eye(0, n - 7)}${cells.join("")}`} fill="#090809" fillRule="evenodd" />
+      <path d={`${eye(0, 0)}${eye(n - 7, 0)}${eye(0, n - 7)}${cells.join("")}`} fill="#161515" fillRule="evenodd" />
     </svg>
   );
 }
@@ -65,13 +65,13 @@ function LoyaltyCard({ tone, style }: { tone: Tone; style: React.CSSProperties }
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-[0.7em]">
           <LoalMark tone={t.mark} className={`h-[3em] w-[3em] ${t.mark === "solid" ? "text-white" : ""}`} />
-          <span className="font-brand text-[2.9em] leading-none font-bold">Loal</span>
+          <span className="font-brand text-[2.9em] leading-none font-extrabold tracking-[-0.03em]">Loal</span>
         </span>
         <span className={`text-[1.4em] ${t.muted}`}>до 1 октября</span>
       </div>
       <p className={`mt-[3.2em] text-[1.6em] ${t.muted}`}>Баланс бонусов</p>
       <p className={`display mt-[0.15em] text-[5.4em] leading-none whitespace-nowrap ${t.number}`}>100&nbsp;000</p>
-      <p className={`mt-[0.6em] text-[1.6em] ${t.muted}`}>сом бонусами</p>
+      <p className={`mt-[0.6em] text-[1.6em] ${t.muted}`}>бонусов на месяц</p>
       <FakeQr className="mt-auto h-[8em] w-[8em] self-end" />
     </div>
   );

@@ -110,11 +110,14 @@ export function CardView({ pass }: { pass: PublicPassInfo }) {
         <p className="relative mt-8 text-base" style={{ color: pass.labelColor }}>
           Баланс бонусов
         </p>
-        <p className="display relative text-[clamp(3rem,17vw,4.5rem)] leading-none tabular-nums text-amber">
+        <p
+          className="display relative text-[clamp(3rem,17vw,4.5rem)] leading-none tabular-nums"
+          style={{ color: pass.foregroundColor }}
+        >
           {money.format(balance)}
         </p>
         <p className="relative mt-2 text-lg" style={{ color: pass.labelColor }}>
-          сом, потратить у партнёров
+          бонусов — тратьте у партнёров
         </p>
 
         <div className="relative mt-7 flex items-center gap-4">

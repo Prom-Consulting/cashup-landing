@@ -3,11 +3,7 @@
 import { forwardRef, useId, useState } from "react";
 import { controlClass } from "./field";
 
-type BaseProps = {
-  id: string;
-  describedBy?: string;
-  invalid: boolean;
-};
+type BaseProps = { id: string; describedBy?: string; invalid: boolean };
 
 export const TextInput = forwardRef<HTMLInputElement, BaseProps & React.InputHTMLAttributes<HTMLInputElement>>(
   function TextInput({ id, describedBy, invalid, className = "", ...rest }, ref) {
@@ -153,7 +149,7 @@ export function Button({
   }[variant];
   return (
     <button
-      className={`inline-flex items-center justify-center rounded-[10px] px-7 py-4 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${styles} ${className}`}
+      className={`inline-flex items-center justify-center rounded-full px-7 py-4 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${styles} ${className}`}
       {...rest}
     />
   );

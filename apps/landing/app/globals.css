@@ -98,12 +98,12 @@ html {
 }
 .map-osm .maplibregl-ctrl-attrib {
   background: rgb(255 255 255 / 0.85);
-  font-family: var(--font-google-sans), sans-serif;
+  font-family: var(--font-body), sans-serif;
 }
 
 /* Огромная надпись в футере: серый градиент, растворяющийся к низу страницы */
 .loal-wordmark {
-  background: linear-gradient(to bottom, rgb(146 151 160 / 0.36), rgb(146 151 160 / 0));
+  background: linear-gradient(to bottom, rgb(255 93 52 / 0.28), rgb(255 163 59 / 0));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

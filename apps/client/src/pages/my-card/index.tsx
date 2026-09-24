@@ -46,7 +46,8 @@ export function MyCardPage() {
       <section className="flex flex-col gap-5">
         <h1 className="display text-[clamp(1.75rem,7vw,2.25rem)] leading-[1.1]">Карты пока нет</h1>
         <p className="text-lg text-muted-foreground">
-          Оформите подписку — карта появится в Apple Wallet сразу после оплаты, а на ней 100 000 сом бонусами.
+          Оформите подписку — карта появится в Apple Wallet сразу после оплаты, а на ней 100 000 бонусов на оплаченный
+          период.
         </p>
         <Card>
           <FirstCardForm phone={session?.email ? null : null} />
@@ -72,7 +73,7 @@ export function MyCardPage() {
         <p className="display text-[clamp(3rem,17vw,4.5rem)] leading-none tabular-nums text-amber">
           {money.format(pointsBalance)}
         </p>
-        <p className="mt-2 text-lg text-slate-soft">сом, потратить у партнёров</p>
+        <p className="mt-2 text-lg text-slate-soft">бонусов — тратьте у партнёров</p>
 
         <div className="mt-7 flex items-center gap-4">
           <Dialog>
@@ -113,7 +114,7 @@ export function MyCardPage() {
           </DialogTrigger>
           <DialogContent
             title={subscription ? "Продлить подписку" : "Оформить подписку"}
-            description="Каждый оплаченный месяц на карте снова 100 000 сом бонусами. Остаток прошлого месяца сгорает."
+            description="Каждый оплаченный месяц — снова 100 000 бонусов. Остаток прошлого месяца не переносится."
           >
             <PaySubscriptionForm serial={serialNumber} />
           </DialogContent>

@@ -43,7 +43,8 @@ export function AppLayout() {
 
   return (
     <AppShell
-      title="Кабинет магазина"
+      title="Кабинет партнёра"
+      direction="corporate"
       nav={items}
       userLabel={label}
       onLogout={logout}

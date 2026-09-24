@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ru_RU",
     siteName: "Loal",
-    images: { url: "/opengraph-image.png", width: 1200, height: 630, alt: "Loal — 100 000 сом бонусами каждый месяц" },
+    images: { url: "/opengraph-image.png", width: 1200, height: 630, alt: "Loal — бонусы по подписке" },
     title: "Где тратить бонусы Loal — Loal",
     description: "Заведения Бишкека, которые принимают бонусы Loal.",
   },
@@ -35,20 +35,22 @@ export default async function PartnersPage() {
     "@type": "ItemList",
     name: "Заведения, принимающие бонусы Loal",
     numberOfItems: partners.length,
-    itemListElement: partners.slice(0, 50).map((partner, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      item: {
-        "@type": "LocalBusiness",
-        name: partner.name,
-        ...(partner.category ? { additionalType: partner.category } : {}),
-        ...(partner.description ? { description: partner.description } : {}),
-        ...(partner.logoUrl ? { image: partner.logoUrl } : {}),
-        ...(partner.contactPhone ? { telephone: `+${partner.contactPhone.replace(/\D/g, "")}` } : {}),
-        areaServed: "Бишкек",
-        url: `${SITE_URL}/partners`,
-      },
-    })),
+    itemListElement: partners
+      .slice(0, 50)
+      .map((partner, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        item: {
+          "@type": "LocalBusiness",
+          name: partner.name,
+          ...(partner.category ? { additionalType: partner.category } : {}),
+          ...(partner.description ? { description: partner.description } : {}),
+          ...(partner.logoUrl ? { image: partner.logoUrl } : {}),
+          ...(partner.contactPhone ? { telephone: `+${partner.contactPhone.replace(/\D/g, "")}` } : {}),
+          areaServed: "Бишкек",
+          url: `${SITE_URL}/partners`,
+        },
+      })),
   };
 
   return (
@@ -75,7 +77,7 @@ export default async function PartnersPage() {
             <div className="flex flex-wrap gap-4 lg:justify-end">
               <Link
                 href="/become-partner"
-                className="inline-flex items-center rounded-full bg-flame px-6 py-4 text-lg font-medium text-white transition-colors hover:bg-graphite"
+                className="inline-flex items-center rounded-full bg-flame px-6 py-4 text-[1.1875rem] font-bold text-white transition-colors hover:bg-graphite"
               >
                 Подключить заведение
               </Link>
@@ -97,7 +99,7 @@ export default async function PartnersPage() {
               </p>
               <Link
                 href="/become-partner"
-                className="mt-8 inline-flex items-center rounded-full bg-flame px-6 py-4 text-lg font-medium text-white transition-colors hover:bg-graphite"
+                className="mt-8 inline-flex items-center rounded-full bg-flame px-6 py-4 text-[1.1875rem] font-bold text-white transition-colors hover:bg-graphite"
               >
                 Оставить заявку
               </Link>

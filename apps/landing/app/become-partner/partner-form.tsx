@@ -55,10 +55,7 @@ const order: FieldName[] = ["name", "category", "contact", "phone", "comment"];
 
 // Заявка уходит в публичную ручку шлюза и появляется в админке платформы.
 // Токен здесь не нужен: ручка открытая, поэтому и хранилище токенов пустышка.
-const api = createApiClient({
-  baseUrl: API_URL,
-  tokens: createTokenStore("loal.landing.unused"),
-});
+const api = createApiClient({ baseUrl: API_URL, tokens: createTokenStore("loal.landing.unused") });
 
 export function PartnerForm() {
   const [plan, setPlan] = useState<PlanId>("bundle");
@@ -141,7 +138,7 @@ export function PartnerForm() {
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <a
               href={PARTNER_APP_URL}
-              className="inline-flex items-center justify-center rounded-[10px] bg-flame px-7 py-4 font-bold text-white transition-colors hover:bg-graphite"
+              className="inline-flex items-center justify-center rounded-full bg-flame px-7 py-4 font-bold text-[1.1875rem] text-white transition-colors hover:bg-graphite"
             >
               Перейти в кабинет заведения
             </a>

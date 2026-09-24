@@ -26,24 +26,24 @@ type Step = {
 
 const steps: Step[] = [
   {
-    title: "Оформление\nподписки",
-    text: "10 $ в месяц — примерно 880 сом. Оплата через OctōPAY, после неё сразу открывается личный кабинет.",
+    title: "Оформляете\nподписку",
+    text: "На сайте: оформление, оплата 10 $ через OctōPAY — и сразу открывается личный кабинет с вашей картой.",
     balance: 0,
     image: stepSubscribe,
     alt: "Телефон с картой Loal и переключателем «Active»",
     imageWidth: 591,
   },
   {
-    title: "Получаете 100 000\nсом бонусами",
-    text: "Карта Loal добавляется в Apple Wallet по ссылке или QR-коду. Баланс уже на ней.",
+    title: "Добавляете карту\nв Apple Wallet",
+    text: "Одна кнопка в кабинете — и карта Loal у вас в телефоне, на ней 100 000 бонусов. Это Wallet, а не Apple Pay: картой не платят, её показывают.",
     balance: 100_000,
     image: stepWallet,
     alt: "Карта Loal с балансом 100 000 поверх других карт",
     imageWidth: 447,
   },
   {
-    title: "Платите\nу партнёров",
-    text: "Показываете QR карты на кассе. Бонусами закрывается часть чека — не больше процента партнёра, остаток деньгами.",
+    title: "Показываете QR\nна кассе партнёра",
+    text: "Бонусами закрывается допустимая партнёром часть чека. Остаток вы платите деньгами, как обычно.",
     balance: 36_800,
     image: stepPay,
     alt: "Платёжный терминал и бумажные пакеты с покупками",
@@ -52,8 +52,8 @@ const steps: Step[] = [
     centerFix: "-translate-x-[6.5%] lg:translate-x-0",
   },
   {
-    title: "Первого числа —\nснова 100 000",
-    text: "Перед концом месяца придёт напоминание. Продлили в кабинете — баланс снова полный. Не продлили — бонусы сгорают.",
+    title: "Продлили —\nснова 100 000",
+    text: "Новый период начинается с полного баланса, остаток прошлого не переносится. Не продлили — бонусы сгорают.",
     balance: 100_000,
     image: stepRefill,
     alt: "Настольный календарь, первое число отмечено",
@@ -154,10 +154,10 @@ export function MonthSteps() {
                   {step.title}
                 </h3>
                 <p className="mt-4 text-lg leading-snug text-slate sm:mt-6 sm:text-xl">{step.text}</p>
-                <p className="mt-6 inline-flex rounded-full bg-cream px-5 py-4 text-base whitespace-nowrap sm:text-lg">
+                <p className="mt-6 inline-flex rounded-full bg-white px-5 py-4 text-base whitespace-nowrap shadow-[0_0.75rem_1.5rem_rgb(22_21_21/0.06)] sm:text-lg">
                   Бонусов на карте&nbsp;
                   <b className="font-bold whitespace-nowrap tabular-nums">
-                    <span data-step-value>{format(step.balance)}</span> сом
+                    <span data-step-value>{format(step.balance)}</span>
                   </b>
                 </p>
               </div>

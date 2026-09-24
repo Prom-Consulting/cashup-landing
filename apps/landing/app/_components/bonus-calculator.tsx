@@ -190,7 +190,7 @@ export function BonusCalculator() {
             <div className="mt-6 flex flex-col items-center gap-2 rounded-xl bg-cream px-4 py-3.5 text-center">
               <span className="text-base">Останется на карте</span>
               <span className="display text-[30px] whitespace-nowrap tabular-nums">
-                <span data-out-left>{initial.left}</span> сом
+                <span data-out-left>{initial.left}</span> бонусов
               </span>
             </div>
           </div>
@@ -198,12 +198,12 @@ export function BonusCalculator() {
           <div
             data-stamp
             aria-hidden="true"
-            className="absolute -top-6 -right-3 rounded-full bg-flame px-5 py-3 text-center text-base leading-tight font-bold text-white sm:-right-[72px]"
+            className="absolute -top-6 -right-3 rounded-full bg-flame px-5 py-3 text-center text-base leading-tight font-bold text-graphite sm:-right-[72px]"
           >
             <span className="block whitespace-nowrap tabular-nums">
               −<span data-out-bonus>{initial.bonuses}</span>
             </span>
-            <span className="block whitespace-nowrap">сом бонусами</span>
+            <span className="block whitespace-nowrap">бонусов</span>
           </div>
         </div>
       </div>

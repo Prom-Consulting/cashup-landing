@@ -5,8 +5,8 @@ import { CITY, CLIENT_APP_URL, EMAIL, OCTOPAY_URL, PARTNER_APP_URL, PHONE, PHONE
 const product = [
   { label: "Как это работает?", href: "/#how" },
   { label: "Тарифы", href: "/#price" },
-  { label: "Партнёры на карте", href: "/partners" },
-  { label: "Стать партнёром", href: "/become-partner" },
+  { label: "Партнёры", href: "/partners" },
+  { label: "Loal Corporate", href: "/become-partner" },
 ];
 
 const link = "font-medium underline-offset-4 hover:underline";
@@ -15,13 +15,13 @@ export function SiteFooter() {
   return (
     <footer id="contacts" className="overflow-hidden">
       <div className="mx-auto max-w-[1512px] px-5 sm:px-12">
-        <div className="rounded-[32px] bg-cream p-7 sm:rounded-[40px] sm:p-11">
+        <div className="rounded-[32px] bg-white p-7 shadow-[0_2rem_4rem_rgb(22_21_21/0.05)] sm:rounded-[40px] sm:p-11">
           <div className="grid gap-10 md:grid-cols-2 md:gap-8 xl:grid-cols-[1.4fr_1fr_1fr_1fr_1.1fr]">
             <div className="max-w-[539px]">
-              <Logo size="lg" />
-              <p className="mt-4 text-lg leading-snug text-slate sm:text-xl">
-                Подписка на бонусы в Кыргызстане. 100 000 сом бонусами на карте в Apple Wallet каждый оплаченный месяц —
-                платите ими у партнёров.
+              <Logo size="lg" descriptor="Бонусы по подписке" />
+              <p className="mt-5 text-lg leading-snug text-slate sm:text-xl">
+                Выгода в привычных покупках. 100&nbsp;000 бонусов на каждый оплаченный месяц — ими закрывается часть
+                покупки у партнёров Loal в Бишкеке.
               </p>
             </div>
 
@@ -50,7 +50,7 @@ export function SiteFooter() {
                 </li>
                 <li>
                   <a href={PARTNER_APP_URL} className={`${link} hover:text-flame`}>
-                    Кабинет заведения
+                    Кабинет Loal Corporate
                   </a>
                 </li>
               </ul>

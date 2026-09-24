@@ -25,7 +25,7 @@ import {
   type PassDesign,
   type PassField,
 } from "@loal/api";
-import { FocusFirstError, applyServerIssues, zodValidate } from "@loal/forms";
+import { applyServerIssues, zodValidate } from "@loal/forms";
 import {
   Button,
   Card,
@@ -42,6 +42,7 @@ import {
 import { Form, Formik, getIn, type FormikProps } from "formik";
 import { useState, type ReactNode } from "react";
 import { useBrandFonts, useRenderBrandText, useUploadTemplateAsset } from "../../entities/platform/api";
+import { DesignErrorSummary, FocusDesignError, describePath, flattenErrors } from "./design-errors";
 
 type DesignFormik = FormikProps<PassDesign>;
 
@@ -324,10 +325,11 @@ function FieldGroup({ form, group, label }: { form: DesignFormik; group: FieldGr
           const base = `${group}.${index}`;
           const live = liveField(field.key);
           return (
-            <li key={index} className="rounded-2xl border-2 border-border p-4">
+            <li key={index} data-path={base} className="rounded-2xl border-2 border-border p-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <FormField
                   label="Что показывает"
+                  error={live ? errorAt(form, `${base}.key`) : undefined}
                   hint={
                     live
                       ? "Сервер подставит это значение сам при каждой выдаче."
@@ -498,6 +500,7 @@ function Locations({ form }: { form: DesignFormik }) {
         {locations.map((location, index) => (
           <li
             key={index}
+            data-path={`locations.${index}`}
             className="grid gap-3 rounded-2xl border-2 border-border p-4 sm:grid-cols-[1fr_1fr_1.5fr_auto] sm:items-end"
           >
             {(["latitude", "longitude"] as const).map((axis) => (
@@ -544,7 +547,7 @@ function PunchIcons({ form }: { form: DesignFormik }) {
   const upload = useUploadTemplateAsset();
   const punch = form.values.punchIcons ?? { target: 6, iconUrl: "" };
   return (
-    <div className="grid gap-4 sm:grid-cols-[200px_1fr] sm:items-end">
+    <div data-path="punchIcons" className="grid gap-4 rounded-2xl sm:grid-cols-[200px_1fr] sm:items-end">
       <FormField label="Штампов до награды" error={errorAt(form, "punchIcons.target")}>
         {(parts) => (
           <Input
@@ -613,7 +616,13 @@ export function DesignForm({
           await onSave(cleanDesign(values));
           setSaved(true);
         } catch (error) {
-          applyServerIssues(error, helpers, "Не удалось сохранить карту");
+          // Проверка схемы перед отправкой — показываем, что именно не так, а не общее «не удалось»
+          const issue = (error as { name?: string; issues?: { path: PropertyKey[]; message: string }[] }).issues?.[0];
+          if ((error as Error)?.name === "ZodError" && issue) {
+            helpers.setStatus(`${describePath(issue.path.map(String).join("."))}: ${issue.message}`);
+          } else {
+            applyServerIssues(error, helpers, "Не удалось сохранить карту");
+          }
         } finally {
           helpers.setSubmitting(false);
         }
@@ -627,7 +636,7 @@ export function DesignForm({
         );
         return (
           <Form noValidate className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-            <FocusFirstError form={form} />
+            <FocusDesignError form={form} />
 
             <div className="flex flex-col gap-6">
               <Section
@@ -752,6 +761,7 @@ export function DesignForm({
                     Правка уйдёт на все выданные карты сразу — у держателей Wallet перерисует её сам.
                   </p>
                 )}
+                {form.submitCount > 0 && <DesignErrorSummary errors={flattenErrors(form.errors)} />}
                 <FormStatus message={typeof form.status === "string" ? form.status : undefined} />
                 {saved && !form.dirty && <FormStatus tone="success" message="Сохранено" />}
                 {published ? (

@@ -11,7 +11,7 @@ export function PageFrame({ children }: { children?: ReactNode }) {
     <div className="flex min-h-dvh flex-col bg-background">
       <header className="mx-auto w-full max-w-[420px] px-5 py-6">
         <Link to="/" aria-label="Карта Loal" className="inline-flex">
-          <Logo />
+          <Logo descriptor="Бонусы по подписке" />
         </Link>
       </header>
       <main className="mx-auto w-full max-w-[420px] flex-1 px-5 pb-12">{children ?? <Outlet />}</main>
