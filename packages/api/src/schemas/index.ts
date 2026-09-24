@@ -4,4 +4,7 @@ export * from "./card";
 export * from "./customer";
 export * from "./deduction";
 export * from "./lead";
+export * from "./me";
 export * from "./merchant";
+export * from "./merchant-ops";
+export * from "./platform";

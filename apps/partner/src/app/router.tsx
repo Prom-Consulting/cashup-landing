@@ -8,7 +8,10 @@ import { NotFoundPage } from "../pages/not-found";
 import { RegisterPage } from "../pages/register";
 import { OnecPage } from "../pages/onec";
 import { ProfilePage } from "../pages/profile";
+import { PosPage } from "../pages/pos";
 import { StorefrontPage } from "../pages/storefront";
+import { TeamPage } from "../pages/team";
+import { WebhooksPage } from "../pages/webhooks";
 import { AppLayout } from "../widgets/app-layout";
 
 /** Кабинет открыт тем, кто состоит хотя бы в одном магазине. */
@@ -31,6 +34,9 @@ export function AppRouter() {
         <Route path="deductions" element={<DeductionsPage />} />
         <Route path="storefront" element={<StorefrontPage />} />
         <Route path="billing" element={<BillingPage />} />
+        <Route path="team" element={<TeamPage />} />
+        <Route path="pos" element={<PosPage />} />
+        <Route path="webhooks" element={<WebhooksPage />} />
         <Route path="onec" element={<OnecPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="*" element={<NotFoundPage />} />

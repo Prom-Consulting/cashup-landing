@@ -1,6 +1,7 @@
 import type { ApiClient } from "../http";
 import { buyMonthsInputSchema, cardSubscriptionSchema, invoiceSchema, type BuyMonthsInput } from "../schemas/billing";
 import { cardSchema } from "../schemas/card";
+import { paySubscriptionByPhoneInputSchema, type PaySubscriptionByPhoneInput } from "../schemas/me";
 
 /**
  * Карта и её подписка. Карта принадлежит платформе, поэтому в адресах нет заведения:
@@ -31,6 +32,17 @@ export const cardsApi = (api: ApiClient) => ({
     api.request(invoiceSchema, `/v1/public/octopay/subscriptions/${encodeURIComponent(serial)}`, {
       method: "POST",
       body: buyMonthsInputSchema.parse(input),
+      anonymous: true,
+    }),
+
+  /**
+   * Оплата для человека, у которого карты ещё нет: она заводится по телефону вместе
+   * со счётом, а в ответе приходит её номер и ссылка на добавление в Wallet.
+   */
+  paySubscriptionByPhone: (input: PaySubscriptionByPhoneInput) =>
+    api.request(invoiceSchema, "/v1/public/octopay/subscriptions", {
+      method: "POST",
+      body: paySubscriptionByPhoneInputSchema.parse(input),
       anonymous: true,
     }),
 });

@@ -1,4 +1,12 @@
-import { authApi, ApiError, createApiClient, createTokenStore, type ApiClient, type Session } from "@loal/api";
+import {
+  ApiError,
+  ApiShapeError,
+  authApi,
+  createApiClient,
+  createTokenStore,
+  type ApiClient,
+  type Session,
+} from "@loal/api";
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, use, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -116,8 +124,10 @@ export function AppProviders({
   queryClient.current ??= new QueryClient({
     defaultOptions: {
       queries: {
-        // 401 повторять бессмысленно: refresh-токена нет, нужен новый вход
-        retry: (count, error) => !(error instanceof ApiError && error.status < 500) && count < 2,
+        // Повторять бессмысленно: 401 без refresh-токена требует входа заново,
+        // а разошедшийся контракт сам собой не сойдётся
+        retry: (count, error) =>
+          !(error instanceof ApiError && error.status < 500) && !(error instanceof ApiShapeError) && count < 2,
         refetchOnWindowFocus: false,
       },
     },

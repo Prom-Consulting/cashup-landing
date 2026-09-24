@@ -1,6 +1,7 @@
 export * from "./auth";
 export * from "./cards";
 export * from "./leads";
+export * from "./me";
 export * from "./merchant-cabinet";
 export * from "./merchants";
 export * from "./partners";

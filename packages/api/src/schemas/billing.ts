@@ -40,6 +40,10 @@ export const invoiceSchema = z.looseObject({
   status: z.string().nullish(),
   paymentUrl: z.string().nullish(),
   providerInvoiceId: z.string().nullish(),
+  merchantId: z.string().nullish(),
+  /** Приходят у оплаты подписки клиента: номер выпущенной карты и ссылка на Wallet. */
+  cardSerial: z.string().nullish(),
+  walletUrl: z.string().nullish(),
   product: z.string().nullish(),
   paidAt: z.string().nullish(),
   expiresAt: z.string().nullish(),

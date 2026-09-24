@@ -1,21 +1,16 @@
 import { ApiError, buyMonthsInputSchema, type BuyMonthsInput } from "@loal/api";
-import { fieldError, formError, zodValidate } from "@loal/forms";
-import { Field } from "@loal/ui/field";
-import { Button } from "@loal/ui/shadcn";
-import { Select } from "@loal/ui/select";
+import { formError, zodValidate } from "@loal/forms";
+import { Button, Label } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
-import { usePaySubscription } from "../../entities/card/api";
+import { usePaySubscription } from "../../entities/me/api";
 
-const options = [1, 3, 6, 12].map((months) => ({
-  id: String(months),
-  label: months === 1 ? "1 месяц" : months < 5 ? `${months} месяца` : `${months} месяцев`,
-}));
+const MONTHS = [1, 3, 6, 12];
 
 const initialValues = { months: 1 } as BuyMonthsInput;
 
 /**
- * Оплата подписки держателем карты. Ссылку на оплату открываем в этой же вкладке:
- * после оплаты OctōPAY возвращает человека обратно, и баланс уже обновлён.
+ * Продление подписки по уже выпущенной карте. Ссылку на оплату открываем в этой же
+ * вкладке: после оплаты OctōPAY возвращает человека обратно, баланс уже обновлён.
  */
 export function PaySubscriptionForm({ serial }: { serial: string }) {
   const pay = usePaySubscription(serial);
@@ -34,13 +29,7 @@ export function PaySubscriptionForm({ serial }: { serial: string }) {
           }
           helpers.setStatus("Счёт создан, но ссылка на оплату не пришла. Напишите нам.");
         } catch (error) {
-          helpers.setStatus(
-            error instanceof ApiError && error.isConflict
-              ? "Подписка уже активна — оплачивать повторно не нужно."
-              : error instanceof Error
-                ? error.message
-                : "Не удалось создать счёт",
-          );
+          helpers.setStatus(error instanceof ApiError ? error.message : "Не удалось создать счёт");
         } finally {
           helpers.setSubmitting(false);
         }
@@ -48,16 +37,26 @@ export function PaySubscriptionForm({ serial }: { serial: string }) {
     >
       {(form) => (
         <Form className="flex flex-col gap-4" noValidate>
-          <Field label="На сколько месяцев" error={fieldError(form, "months")}>
-            {(parts) => (
-              <Select
-                {...parts}
-                value={String(form.values.months)}
-                options={options}
-                onChange={(value) => form.setFieldValue("months", Number(value))}
-              />
-            )}
-          </Field>
+          <div>
+            <Label>На сколько месяцев</Label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {MONTHS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={form.values.months === value}
+                  onClick={() => form.setFieldValue("months", value)}
+                  className={`h-12 rounded-2xl border-2 px-5 text-lg transition-colors ${
+                    form.values.months === value
+                      ? "border-secondary bg-secondary text-secondary-foreground"
+                      : "border-border bg-surface hover:border-foreground"
+                  }`}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {formError(form) && (
             <p role="alert" className="text-base font-medium text-destructive">
@@ -65,8 +64,8 @@ export function PaySubscriptionForm({ serial }: { serial: string }) {
             </p>
           )}
 
-          <Button type="submit" disabled={form.isSubmitting}>
-            {form.isSubmitting ? "Готовим счёт…" : "Оплатить подписку"}
+          <Button type="submit" size="lg" disabled={form.isSubmitting}>
+            {form.isSubmitting ? "Готовим счёт…" : "Оплатить"}
           </Button>
         </Form>
       )}

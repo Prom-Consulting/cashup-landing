@@ -1,4 +1,13 @@
-import { Chart01Icon, CreditCardIcon, Invoice01Icon, Settings02Icon, Store01Icon } from "@hugeicons/core-free-icons";
+import {
+  Chart01Icon,
+  CreditCardIcon,
+  Invoice01Icon,
+  LinkSquare02Icon,
+  CashierIcon,
+  Settings02Icon,
+  Store01Icon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons";
 import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
 import { Icon, type IconSvg } from "@loal/ui/shadcn";
 import { Select } from "@loal/ui/select";
@@ -11,6 +20,9 @@ const nav: (NavItem & { icon: IconSvg })[] = [
   { to: "/storefront", label: "Витрина", icon: Store01Icon },
   { to: "/deductions", label: "Списания", icon: CreditCardIcon },
   { to: "/billing", label: "Оплата", icon: Invoice01Icon },
+  { to: "/team", label: "Команда", icon: UserGroupIcon },
+  { to: "/pos", label: "Касса", icon: CashierIcon },
+  { to: "/webhooks", label: "Вебхуки", icon: LinkSquare02Icon },
   { to: "/onec", label: "Обмен с 1С", icon: Settings02Icon },
 ];
 

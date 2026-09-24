@@ -4,7 +4,10 @@ import { LeadsPage } from "../pages/leads";
 import { LoginPage } from "../pages/login";
 import { NotFoundPage } from "../pages/not-found";
 import { ProfilePage } from "../pages/profile";
+import { CertificatesPage } from "../pages/certificates";
 import { CustomersPage } from "../pages/customers";
+import { ProgramsPage } from "../pages/programs";
+import { SettingsPage } from "../pages/settings";
 import { MerchantDetailsPage } from "../pages/merchant-details";
 import { MerchantsPage } from "../pages/merchants";
 import { AppLayout } from "../widgets/app-layout";
@@ -27,6 +30,9 @@ export function AppRouter() {
         <Route index element={<MerchantsPage />} />
         <Route path="merchants/:merchantId" element={<MerchantDetailsPage />} />
         <Route path="customers" element={<CustomersPage />} />
+        <Route path="programs" element={<ProgramsPage />} />
+        <Route path="certificates" element={<CertificatesPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="leads" element={<LeadsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="*" element={<NotFoundPage />} />

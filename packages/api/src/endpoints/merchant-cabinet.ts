@@ -10,6 +10,21 @@ import {
   type CreateInvoiceInput,
 } from "../schemas/billing";
 import { deductionPageSchema } from "../schemas/deduction";
+import {
+  addMemberInputSchema,
+  addPartnerInputSchema,
+  branchSchema,
+  createBranchInputSchema,
+  createWebhookInputSchema,
+  posSettingsSchema,
+  webhookDeliverySchema,
+  webhookSchema,
+  type AddMemberInput,
+  type AddPartnerInput,
+  type CreateBranchInput,
+  type CreateWebhookInput,
+} from "../schemas/merchant-ops";
+import { merchantMemberSchema } from "../schemas/merchant";
 import { merchantProfileSchema, uploadedAssetSchema, type MerchantProfile } from "../schemas/merchant";
 
 export type DeductionQuery = {
@@ -65,6 +80,80 @@ export const merchantCabinetApi = (api: ApiClient) => ({
       query: { slot },
     });
   },
+
+  branches: (merchantId: string) => api.request(z.array(branchSchema), `/admin/v1/merchants/${merchantId}/branches`),
+
+  createBranch: (merchantId: string, input: CreateBranchInput) =>
+    api.request(branchSchema, `/admin/v1/merchants/${merchantId}/branches`, {
+      method: "POST",
+      body: createBranchInputSchema.parse(input),
+    }),
+
+  members: (merchantId: string) =>
+    api.request(z.array(merchantMemberSchema), `/admin/v1/merchants/${merchantId}/members`),
+
+  /** Сотрудника подключают по userId: он сначала регистрируется сам. */
+  addMember: (merchantId: string, input: AddMemberInput) =>
+    api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members`, {
+      method: "POST",
+      body: addMemberInputSchema.parse(input),
+    }),
+
+  /** Партнёру выбирают одну операцию навсегда — отсюда отдельный адрес. */
+  addPartner: (merchantId: string, input: AddPartnerInput) =>
+    api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members/partners`, {
+      method: "POST",
+      body: addPartnerInputSchema.parse(input),
+    }),
+
+  updateMember: (merchantId: string, memberId: string, input: { branchId?: string | null }) =>
+    api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members/${memberId}`, {
+      method: "PATCH",
+      body: input,
+    }),
+
+  /** Приветственный бонус партнёра: обе величины шлём вместе, null очищает. */
+  updatePartnerBonus: (
+    merchantId: string,
+    memberId: string,
+    input: { amount: number | null; maxPerCustomer: number | null },
+  ) =>
+    api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members/${memberId}/bonus`, {
+      method: "PATCH",
+      body: input,
+    }),
+
+  removeMember: (merchantId: string, memberId: string) =>
+    api.request(z.looseObject({}).or(z.null()), `/admin/v1/merchants/${merchantId}/members/${memberId}`, {
+      method: "DELETE",
+    }),
+
+  posSettings: (merchantId: string) =>
+    api.request(z.array(posSettingsSchema), `/admin/v1/merchants/${merchantId}/pos-settings`),
+
+  updatePosSettings: (merchantId: string, programId: string, body: Record<string, unknown>) =>
+    api.request(posSettingsSchema, `/admin/v1/merchants/${merchantId}/pos-settings/${programId}`, {
+      method: "PATCH",
+      body,
+    }),
+
+  /** Возвращает настройки кассы к значениям по умолчанию. */
+  resetPosSettings: (merchantId: string, programId: string) =>
+    api.request(z.looseObject({}).or(z.null()), `/admin/v1/merchants/${merchantId}/pos-settings/${programId}`, {
+      method: "DELETE",
+    }),
+
+  webhooks: (merchantId: string) => api.request(z.array(webhookSchema), `/admin/v1/merchants/${merchantId}/webhooks`),
+
+  /** secret приходит один раз — показать его нужно сразу после создания. */
+  createWebhook: (merchantId: string, input: CreateWebhookInput) =>
+    api.request(webhookSchema, `/admin/v1/merchants/${merchantId}/webhooks`, {
+      method: "POST",
+      body: createWebhookInputSchema.parse(input),
+    }),
+
+  webhookDeliveries: (merchantId: string, webhookId: string) =>
+    api.request(z.array(webhookDeliverySchema), `/admin/v1/merchants/${merchantId}/webhooks/${webhookId}/deliveries`),
 
   onecIntegration: (merchantId: string) =>
     api.request(onecIntegrationSchema, `/admin/v1/merchants/${merchantId}/onec-integration`),

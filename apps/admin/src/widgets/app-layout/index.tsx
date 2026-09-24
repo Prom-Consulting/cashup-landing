@@ -1,4 +1,12 @@
-import { Store01Icon, UserCircleIcon, UserGroupIcon, WorkflowSquare02Icon } from "@hugeicons/core-free-icons";
+import {
+  CreditCardIcon,
+  Settings02Icon,
+  ShieldKeyIcon,
+  Store01Icon,
+  UserCircleIcon,
+  UserGroupIcon,
+  WorkflowSquare02Icon,
+} from "@hugeicons/core-free-icons";
 import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
 import { Icon, type IconSvg } from "@loal/ui/shadcn";
 import { Link, Outlet, useLocation } from "react-router";
@@ -7,7 +15,10 @@ import { useCurrentUser } from "../../entities/session/model";
 const nav: (NavItem & { icon: IconSvg })[] = [
   { to: "/", label: "Заведения", icon: Store01Icon },
   { to: "/customers", label: "Клиенты", icon: UserGroupIcon },
+  { to: "/programs", label: "Программы", icon: CreditCardIcon },
   { to: "/leads", label: "Заявки", icon: WorkflowSquare02Icon },
+  { to: "/certificates", label: "Сертификаты", icon: ShieldKeyIcon },
+  { to: "/settings", label: "Настройки", icon: Settings02Icon },
   { to: "/profile", label: "Профиль", icon: UserCircleIcon },
 ];
 
