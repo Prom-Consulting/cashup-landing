@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@loal/ui/logo";
-import { CITY, EMAIL, OCTOPAY_URL, PHONE, PHONE_HREF, PROM_URL } from "../_data/site";
+import { CITY, CLIENT_APP_URL, EMAIL, OCTOPAY_URL, PARTNER_APP_URL, PHONE, PHONE_HREF, PROM_URL } from "../_data/site";
 
 const product = [
   { label: "Как это работает?", href: "/#how" },
@@ -16,7 +16,7 @@ export function SiteFooter() {
     <footer id="contacts" className="overflow-hidden">
       <div className="mx-auto max-w-[1512px] px-5 sm:px-12">
         <div className="rounded-[32px] bg-cream p-7 sm:rounded-[40px] sm:p-11">
-          <div className="grid gap-10 md:grid-cols-[1.6fr_1fr_1fr_1.1fr] md:gap-8">
+          <div className="grid gap-10 md:grid-cols-2 md:gap-8 xl:grid-cols-[1.4fr_1fr_1fr_1fr_1.1fr]">
             <div className="max-w-[539px]">
               <Logo size="lg" />
               <p className="mt-4 text-lg leading-snug text-slate sm:text-xl">
@@ -39,6 +39,22 @@ export function SiteFooter() {
                 ))}
               </ul>
             </nav>
+
+            <div>
+              <h2 className="text-base text-slate">Кабинеты</h2>
+              <ul className="mt-4 flex flex-col gap-4 text-lg sm:text-xl">
+                <li>
+                  <a href={CLIENT_APP_URL} className={`${link} hover:text-flame`}>
+                    Моя карта
+                  </a>
+                </li>
+                <li>
+                  <a href={PARTNER_APP_URL} className={`${link} hover:text-flame`}>
+                    Кабинет заведения
+                  </a>
+                </li>
+              </ul>
+            </div>
 
             <div>
               <h2 className="text-base text-slate">Экосистема</h2>

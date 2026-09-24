@@ -38,9 +38,7 @@ export function QrPattern({ x = 0, y = 0, size = 9 }: { x?: number; y?: number; 
         const cx = i % 9;
         const cy = Math.floor(i / 9);
         const inEye = eyes.some(([ex, ey]) => cx >= ex && cx < ex + 3 && cy >= ey && cy < ey + 3);
-        return on && !inEye ? (
-          <rect key={i} x={cx * u} y={cy * u} width={u} height={u} fill={INK} />
-        ) : null;
+        return on && !inEye ? <rect key={i} x={cx * u} y={cy * u} width={u} height={u} fill={INK} /> : null;
       })}
       {eyes.map(([ex, ey]) => (
         <g key={`${ex}-${ey}`}>

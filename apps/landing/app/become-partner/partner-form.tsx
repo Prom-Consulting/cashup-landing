@@ -8,7 +8,7 @@ import { Button, ChoiceCards, PhoneInput, Spinner, Textarea, TextInput } from "@
 import { Select } from "@loal/ui/select";
 import { createApiClient, createTokenStore, leadsApi } from "@loal/api";
 import { categories } from "../_data/partners";
-import { API_URL, EMAIL } from "../_data/site";
+import { API_URL, EMAIL, PARTNER_APP_URL } from "../_data/site";
 
 gsap.registerPlugin(useGSAP);
 
@@ -138,6 +138,18 @@ export function PartnerForm() {
             Мы свяжемся с вами в рабочее время, поможем выбрать модель и настроим кабинет. Заведение «{sent.name}»
             появится в каталоге после первой оплаты.
           </p>
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <a
+              href={PARTNER_APP_URL}
+              className="inline-flex items-center justify-center rounded-[10px] bg-flame px-7 py-4 font-bold text-white transition-colors hover:bg-graphite"
+            >
+              Перейти в кабинет заведения
+            </a>
+            <p className="max-w-[34ch] text-sm opacity-75">
+              Войти можно будет, когда мы выдадим код приглашения — он придёт вместе со звонком.
+            </p>
+          </div>
+
           <p className="mt-6 text-sm opacity-70">
             Срочные вопросы —{" "}
             <a href={`mailto:${EMAIL}`} className="text-flame-ink underline-offset-4 hover:underline">
@@ -148,7 +160,7 @@ export function PartnerForm() {
           <Button
             type="button"
             variant="outline"
-            className="mt-8"
+            className="mt-6"
             onClick={() => {
               setValues(empty);
               setSent(null);
@@ -217,12 +229,7 @@ export function PartnerForm() {
           <div data-field="phone">
             <Field label="Телефон" hint="Позвоним в рабочее время" error={errors.phone}>
               {(parts) => (
-                <PhoneInput
-                  {...parts}
-                  value={values.phone}
-                  onValueChange={set("phone")}
-                  onBlur={check("phone")}
-                />
+                <PhoneInput {...parts} value={values.phone} onValueChange={set("phone")} onBlur={check("phone")} />
               )}
             </Field>
           </div>

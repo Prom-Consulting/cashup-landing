@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@loal/ui/logo";
+import { CLIENT_APP_URL } from "../_data/site";
 import { MobileMenu } from "./mobile-menu";
 
 const nav = [
@@ -9,8 +10,9 @@ const nav = [
   { label: "Бизнесу", href: "/become-partner" },
 ];
 
+/** Кнопка ведёт в кабинет клиента: там оформляют подписку и получают карту. */
 export function SiteHeader({
-  cta = { label: "Оформить подписку", href: "/#price" },
+  cta = { label: "Оформить подписку", href: CLIENT_APP_URL },
 }: {
   cta?: { label: string; href: string };
 }) {
@@ -30,12 +32,17 @@ export function SiteHeader({
           ))}
         </ul>
       </nav>
-      <Link
-        href={cta.href}
-        className="hidden rounded-full bg-flame px-5 py-4 text-lg font-medium whitespace-nowrap text-cream transition-colors hover:bg-graphite lg:inline-flex"
-      >
-        {cta.label}
-      </Link>
+      <div className="hidden items-center gap-5 lg:flex">
+        <a href={CLIENT_APP_URL} className="text-lg font-medium whitespace-nowrap transition-colors hover:text-flame">
+          Моя карта
+        </a>
+        <Link
+          href={cta.href}
+          className="rounded-full bg-flame px-5 py-4 text-lg font-medium whitespace-nowrap text-cream transition-colors hover:bg-graphite"
+        >
+          {cta.label}
+        </Link>
+      </div>
       <MobileMenu nav={nav} cta={cta} />
     </header>
   );

@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { EMAIL, PHONE, PHONE_HREF } from "../_data/site";
+import { CLIENT_APP_URL, EMAIL, PHONE, PHONE_HREF } from "../_data/site";
 
 gsap.registerPlugin(useGSAP);
 
@@ -133,6 +133,13 @@ export function MobileMenu({ nav, cta }: { nav: NavItem[]; cta: NavItem }) {
             >
               {cta.label}
             </Link>
+            <a
+              href={CLIENT_APP_URL}
+              onClick={close}
+              className="mt-4 block text-center text-lg font-medium underline-offset-4 hover:underline"
+            >
+              Моя карта
+            </a>
           </div>
 
           <div data-menu-item className="mt-auto flex flex-col gap-2 pt-10 text-lg">

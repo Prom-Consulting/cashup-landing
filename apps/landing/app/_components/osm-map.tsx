@@ -94,10 +94,7 @@ export function OsmMap({
       el.innerHTML = pinHtml(p, active);
       el.addEventListener("click", () => onSelect(activeId === p.id ? null : p.id));
       el.addEventListener("mouseenter", () => onSelect(p.id));
-      markers.current.set(
-        p.id,
-        new Marker({ element: el, anchor: "bottom" }).setLngLat(p.coords).addTo(map.current),
-      );
+      markers.current.set(p.id, new Marker({ element: el, anchor: "bottom" }).setLngLat(p.coords).addTo(map.current));
     }
   }, [partners, activeId, ready, onSelect]);
 

@@ -8,10 +8,11 @@ import { MonthSteps } from "./_components/month-steps";
 import { PageMotion } from "./_components/page-motion";
 import { SiteFooter } from "./_components/site-footer";
 import { SiteHeader } from "./_components/site-header";
-import { OCTOPAY_URL, PARTNER_MAIL } from "./_data/site";
+import { CLIENT_APP_URL, OCTOPAY_URL } from "./_data/site";
 
 // TODO: point to the client cabinet once the system is live.
-const SUBSCRIBE_URL = "#price";
+// Подписку оформляют в кабинете клиента: там же выпускается карта
+const SUBSCRIBE_URL = CLIENT_APP_URL;
 
 const categories = [
   { label: "Кофейни и рестораны", icon: "coffee" },
@@ -308,7 +309,7 @@ export default function Home() {
           </div>
         </section>
 
-        <BusinessSection partnerUrl={PARTNER_MAIL} />
+        <BusinessSection partnerUrl="/become-partner" />
 
         {/* Вопросы */}
         <section id="faq" className="scroll-mt-6">
