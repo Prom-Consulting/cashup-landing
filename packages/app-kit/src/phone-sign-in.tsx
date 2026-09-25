@@ -1,7 +1,7 @@
 import { ApiError, otpLoginInputSchema, otpRequestInputSchema, type OtpLoginInput } from "@loal/api";
 import { FocusFirstError, fieldError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
-import { Button, PhoneInput, Spinner, TextInput } from "@loal/ui/inputs";
+import { Button, OtpInput, PhoneInput, Spinner } from "@loal/ui/inputs";
 import { Form, Formik, type FormikHelpers } from "formik";
 import { useEffect, useState } from "react";
 import { useLoginByOtp, useRegisterByPhone, useRequestOtp, useSession } from "./session";
@@ -70,6 +70,8 @@ export function PhoneSignInForm({ onDone }: { onDone?: () => void }) {
     helpers.setFieldValue("otp", "", false);
     helpers.setFieldTouched("otp", false, false);
     helpers.setFieldError("otp", undefined);
+    // Курсор — в первую клетку: следующий код вводят сразу
+    requestAnimationFrame(() => document.querySelector<HTMLInputElement>('input[name="otp"]')?.focus());
   };
 
   const sendCode = async (phone: string) => {
@@ -134,6 +136,8 @@ export function PhoneSignInForm({ onDone }: { onDone?: () => void }) {
           if (step === "phone") {
             await sendCode(values.phone);
             setStep("code");
+            // Отправка телефона отметила все поля тронутыми — код ещё не вводили, ошибку не показываем
+            helpers.setFieldTouched("otp", false, false);
             setNotice("Отправили код в WhatsApp.");
           } else {
             await submitCode(values, helpers);
@@ -175,22 +179,20 @@ export function PhoneSignInForm({ onDone }: { onDone?: () => void }) {
             <Field
               label="Код из WhatsApp"
               hint={intent === "register" ? "Этим кодом создадим аккаунт." : undefined}
-              error={
-                fieldError(form, "otp") ??
-                (typeof form.errors.otp === "string" && form.submitCount > 0 ? form.errors.otp : undefined)
-              }
+              error={fieldError(form, "otp")}
             >
               {(parts) => (
-                <TextInput
+                <OtpInput
                   {...parts}
-                  name="otp"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={6}
-                  autoFocus
                   value={form.values.otp}
-                  onChange={form.handleChange}
-                  onBlur={form.handleBlur}
+                  onValueChange={(code) => form.setFieldValue("otp", code)}
+                  onComplete={(code) => {
+                    // Шестая цифра — сразу отправляем: кнопку жать незачем
+                    void form.setFieldValue("otp", code, true).then(() => form.submitForm());
+                  }}
+                  onBlur={() => form.setFieldTouched("otp", true)}
+                  autoFocus
+                  disabled={form.isSubmitting}
                 />
               )}
             </Field>

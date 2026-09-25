@@ -54,7 +54,7 @@ export function Logo({
 }) {
   const markSize = { sm: "h-6 w-6", md: "h-8 w-8", lg: "h-11 w-11" }[size];
   const word = { sm: "text-[22px]", md: "text-[28px]", lg: "text-[38px]" }[size];
-  const ink = tone === "light" ? "text-white" : "text-graphite";
+  const ink = tone === "light" ? "text-white" : "text-foreground";
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <LoalMark

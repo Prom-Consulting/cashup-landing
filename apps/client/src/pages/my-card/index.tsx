@@ -1,30 +1,15 @@
 import { ApiError } from "@loal/api";
 import { RefreshIcon } from "@hugeicons/core-free-icons";
 import { useSession } from "@loal/app-kit";
+import { CardQr } from "../../widgets/card-qr";
 import { WalletButtons } from "../../widgets/wallet-buttons";
 import { Button, Card, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
-import QRCode from "qrcode";
-import { useEffect, useState } from "react";
 import { useMyCard } from "../../entities/me/api";
 import { FirstCardForm } from "../../features/subscription/first-card-form";
 import { PaySubscriptionForm } from "../../features/subscription/pay-form";
 import { formatDate } from "../../shared/lib/format";
 
 const money = new Intl.NumberFormat("ru-RU");
-
-function useQr(value: string, width = 480) {
-  const [src, setSrc] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    QRCode.toDataURL(value, { margin: 0, width, color: { dark: "#090809", light: "#ffffff" } })
-      .then((url) => alive && setSrc(url))
-      .catch(() => alive && setSrc(null));
-    return () => {
-      alive = false;
-    };
-  }, [value, width]);
-  return src;
-}
 
 /**
  * Своя карта. Сервер читает человека из токена, поэтому номера в адресе нет —
@@ -33,8 +18,6 @@ function useQr(value: string, width = 480) {
 export function MyCardPage() {
   const { session } = useSession();
   const card = useMyCard();
-  const qr = useQr(card.data?.serialNumber ?? "");
-  const bigQr = useQr(card.data?.serialNumber ?? "", 900);
 
   if (card.isPending) return <Loading label="Открываем карту…" rows={2} />;
 
@@ -62,7 +45,7 @@ export function MyCardPage() {
 
   return (
     <section className="flex flex-col gap-6">
-      <div className="receipt bg-graphite px-6 pt-6 pb-9 text-white">
+      <div className="rounded-[28px] bg-graphite px-6 pt-6 pb-3 text-white shadow-[0_1.5rem_3rem_rgb(22_21_21/0.18)]">
         <div className="flex items-baseline justify-between gap-3">
           <p className="font-brand text-2xl font-bold">Loal</p>
           {subscription?.currentPeriodEnd && (
@@ -76,23 +59,8 @@ export function MyCardPage() {
         </p>
         <p className="mt-2 text-lg text-slate-soft">бонусов — тратьте у партнёров</p>
 
-        <div className="mt-7 flex items-center gap-4">
-          <Dialog>
-            <DialogTrigger asChild>
-              <button type="button" className="rounded-2xl bg-white p-3 transition-transform hover:scale-[1.03]">
-                {qr ? <img src={qr} alt="" className="h-28 w-28" /> : <span className="block h-28 w-28" />}
-                <span className="sr-only">Показать QR во весь экран</span>
-              </button>
-            </DialogTrigger>
-            <DialogContent title="QR для кассы" description="Поднесите к сканеру. Экран лучше сделать поярче.">
-              {bigQr && <img src={bigQr} alt="" className="mx-auto aspect-square w-full max-w-[420px]" />}
-              <p className="mt-4 text-center text-lg tabular-nums">{serialNumber}</p>
-            </DialogContent>
-          </Dialog>
-          <div>
-            <p className="text-base text-slate-soft">Покажите на кассе</p>
-            <p className="mt-1 text-lg tabular-nums">{serialNumber}</p>
-          </div>
+        <div className="-mx-3 mt-7">
+          <CardQr value={serialNumber} />
         </div>
       </div>
 

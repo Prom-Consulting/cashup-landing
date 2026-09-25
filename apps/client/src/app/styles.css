@@ -6,3 +6,42 @@
   --font-heading: "Nunito Sans";
   --font-body: "Nunito";
 }
+
+/*
+ * Фоны, которые человек выбирает в настройках. Меняются токены темы, поэтому все
+ * экраны перекрашиваются сами; карта Loal остаётся своих цветов.
+ */
+html[data-bg="white"] {
+  --background: #fcf9f9;
+}
+html[data-bg="peach"] {
+  --background: #fff3ea;
+  --app-bg: linear-gradient(180deg, #ffe2cc 0%, #fff3ea 40%, #fcf9f9 100%);
+}
+html[data-bg="glow"] {
+  --background: #fcf9f9;
+  --app-bg:
+    radial-gradient(70% 45% at 95% 0%, rgb(255 93 52 / 0.28), transparent 70%),
+    radial-gradient(60% 40% at 0% 45%, rgb(255 163 59 / 0.24), transparent 70%),
+    radial-gradient(60% 40% at 100% 100%, rgb(255 204 145 / 0.3), transparent 70%);
+}
+html[data-bg="graphite"] {
+  color-scheme: dark;
+  --background: #211e1e;
+  --foreground: #fcf9f9;
+  --surface: #2c2828;
+  --muted: #332f2f;
+  --muted-foreground: #b3adad;
+  --border: #3d3838;
+  --secondary: #fcf9f9;
+  --secondary-foreground: #161515;
+  --cream: #332f2f;
+  --slate: #b3adad;
+}
+/* Графит остаётся цветом карты, а текст страницы берёт светлый foreground */
+html[data-bg="graphite"] body {
+  color: var(--foreground);
+}
+body {
+  background: var(--background);
+}

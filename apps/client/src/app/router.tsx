@@ -6,6 +6,7 @@ import { HistoryPage } from "../pages/history";
 import { LoginPage } from "../pages/login";
 import { MyCardPage } from "../pages/my-card";
 import { NotFoundPage } from "../pages/not-found";
+import { SettingsPage } from "../pages/settings";
 import { AppLayout } from "../widgets/app-layout";
 import { PageFrame } from "../widgets/page-frame";
 
@@ -35,6 +36,7 @@ export function AppRouter() {
       >
         <Route index element={<MyCardPage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>
   );

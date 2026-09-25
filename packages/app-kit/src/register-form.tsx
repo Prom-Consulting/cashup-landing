@@ -1,7 +1,7 @@
 import { ApiError, authApi, registerInputSchema, type RegisterInput } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
-import { Button, PhoneInput, Spinner, TextInput } from "@loal/ui/inputs";
+import { Button, PhoneInput, Spinner, TextInput, OtpInput } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
 import { useState } from "react";
 import { useRequestOtp, useSession } from "./session";
@@ -70,15 +70,13 @@ export function RegisterForm({ onDone }: { onDone?: () => void }) {
             <>
               <Field label="Код из сообщения" error={fieldError(form, "otp")}>
                 {(parts) => (
-                  <TextInput
+                  <OtpInput
                     {...parts}
-                    name="otp"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
                     value={form.values.otp}
-                    onChange={form.handleChange}
-                    onBlur={form.handleBlur}
+                    onValueChange={(code) => form.setFieldValue("otp", code)}
+                    onBlur={() => form.setFieldTouched("otp", true)}
+                    autoFocus
+                    disabled={form.isSubmitting}
                   />
                 )}
               </Field>

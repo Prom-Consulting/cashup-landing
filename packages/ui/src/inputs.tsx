@@ -250,3 +250,95 @@ export function SearchInput({
     </div>
   );
 }
+
+/**
+ * Код из сообщения: шесть клеток, под ними — одно настоящее поле. Так работают
+ * автоподстановка кода на iPhone (autocomplete="one-time-code"), вставка из буфера и
+ * стирание, а читалка экрана видит обычное поле ввода. Шестая цифра вызывает onComplete.
+ */
+export const OtpInput = forwardRef<
+  HTMLInputElement,
+  BaseProps & {
+    value: string;
+    onValueChange: (value: string) => void;
+    onComplete?: (value: string) => void;
+    onBlur?: React.FocusEventHandler<HTMLInputElement>;
+    length?: number;
+    autoFocus?: boolean;
+    disabled?: boolean;
+  }
+>(function OtpInput(
+  { id, describedBy, invalid, value, onValueChange, onComplete, onBlur, length = 6, autoFocus, disabled },
+  ref,
+) {
+  const [focused, setFocused] = useState(false);
+  const digits = value.replace(/\D/g, "").slice(0, length);
+  // Курсор стоит на следующей пустой клетке, а когда все заполнены — на последней
+  const active = Math.min(digits.length, length - 1);
+
+  return (
+    <div className="relative w-full max-w-[380px]">
+      <input
+        ref={ref}
+        id={id}
+        name="otp"
+        type="text"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        pattern="[0-9]*"
+        maxLength={length}
+        autoFocus={autoFocus}
+        disabled={disabled}
+        aria-describedby={describedBy}
+        aria-invalid={invalid || undefined}
+        value={digits}
+        onChange={(event) => {
+          const next = event.target.value.replace(/\D/g, "").slice(0, length);
+          onValueChange(next);
+          if (next.length === length && next !== digits) onComplete?.(next);
+        }}
+        onFocus={(event) => {
+          setFocused(true);
+          // Курсор всегда в конце: клетки заполняются по порядку
+          const end = event.target.value.length;
+          requestAnimationFrame(() => event.target.setSelectionRange(end, end));
+        }}
+        onBlur={(event) => {
+          setFocused(false);
+          onBlur?.(event);
+        }}
+        // Поле невидимо, но занимает всю ширину клеток — нажатие по любой клетке ставит фокус
+        className="absolute inset-0 z-10 h-full w-full cursor-text opacity-0 disabled:cursor-not-allowed"
+      />
+      <div
+        aria-hidden="true"
+        className="grid gap-2"
+        style={{ gridTemplateColumns: `repeat(${length}, minmax(0, 1fr))` }}
+      >
+        {Array.from({ length }, (_, index) => {
+          const filled = index < digits.length;
+          const current = focused && index === active && digits.length < length;
+          return (
+            <span
+              key={index}
+              className={[
+                "relative grid aspect-[4/5] place-items-center rounded-2xl border-2 bg-surface text-[1.75rem] font-bold tabular-nums transition-colors",
+                invalid
+                  ? "border-destructive"
+                  : current || (focused && filled && index === active)
+                    ? "border-foreground"
+                    : filled
+                      ? "border-foreground/40"
+                      : "border-border",
+                disabled ? "opacity-60" : "",
+              ].join(" ")}
+            >
+              {digits[index] ?? ""}
+              {current && <span className="absolute h-7 w-0.5 animate-pulse rounded-full bg-foreground" />}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+});
