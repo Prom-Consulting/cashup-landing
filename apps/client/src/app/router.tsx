@@ -18,6 +18,8 @@ export function AppRouter() {
     <Routes>
       <Route element={<PageFrame />}>
         <Route path="/login" element={<LoginPage />} />
+        {/* Регистрация и вход у клиента — одна форма по телефону */}
+        <Route path="/register" element={<LoginPage />} />
         <Route path="c/:serial" element={<CardPage />} />
         <Route path="enroll" element={<EnrollPage />} />
         <Route path="enroll/:templateId/:programId" element={<EnrollPage />} />

@@ -25,7 +25,8 @@ export type Membership = z.infer<typeof membershipSchema>;
 /** Содержимое токена, оно же ответ GET /auth/me. */
 export const sessionSchema = z.looseObject({
   sub: z.string(),
-  email: z.string(),
+  /** null у клиента, зарегистрированного по телефону: почты у него нет. */
+  email: z.string().nullish(),
   role: platformRoleSchema,
   /** Заведения, где человек работает. Раньше поле называлось stores. */
   merchants: z.array(membershipSchema).default([]),
@@ -34,17 +35,14 @@ export type Session = z.infer<typeof sessionSchema>;
 
 export const profileSchema = z.looseObject({
   id: z.string(),
-  email: z.string(),
+  email: z.string().nullish(),
   fullName: z.string().nullish(),
   role: platformRoleSchema,
 });
 export type Profile = z.infer<typeof profileSchema>;
 
 /** expiresIn приходит строкой jsonwebtoken — «12h», не секундами. */
-export const authTokensSchema = z.looseObject({
-  accessToken: z.string(),
-  expiresIn: z.string(),
-});
+export const authTokensSchema = z.looseObject({ accessToken: z.string(), expiresIn: z.string() });
 export type AuthTokens = z.infer<typeof authTokensSchema>;
 
 export const loginInputSchema = z.object({
@@ -90,16 +88,19 @@ export const otpRequestResultSchema = z.looseObject({
 });
 export type OtpRequestResult = z.infer<typeof otpRequestResultSchema>;
 
-export const otpLoginInputSchema = z.object({
-  phone: phoneSchema,
-  otp: otpSchema,
-});
+export const otpLoginInputSchema = z.object({ phone: phoneSchema, otp: otpSchema });
 export type OtpLoginInput = z.infer<typeof otpLoginInputSchema>;
 
 /**
- * Регистрация. Перед ней обязателен запрос кода на тот же телефон: код одноразовый,
- * успешная регистрация его поглощает. Код приглашения делает человека владельцем магазина,
- * без него получается обычный сотрудник без доступа к кабинету.
+ * Регистрация по телефону — всё, что нужно клиенту: номер и код из WhatsApp. Сервер
+ * принимает ровно эти поля (плюс deviceId), лишние дают 400. Код одноразовый.
+ */
+export const phoneRegisterInputSchema = z.object({ phone: phoneSchema, otp: otpSchema });
+export type PhoneRegisterInput = z.infer<typeof phoneRegisterInputSchema>;
+
+/**
+ * Регистрация владельца заведения по коду приглашения: почта, пароль, телефон и код
+ * из WhatsApp. Без приглашения регистрируются только по телефону (phoneRegisterInputSchema).
  */
 export const registerInputSchema = z.object({
   fullName: z.string().trim().min(2, "Введите имя"),
@@ -107,7 +108,7 @@ export const registerInputSchema = z.object({
   password: z.string().min(8, "Не короче 8 символов"),
   phone: phoneSchema,
   otp: otpSchema,
-  inviteCode: z.string().trim().optional(),
+  inviteCode: z.string().trim().min(1, "Введите код приглашения"),
 });
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 
@@ -121,10 +122,7 @@ export const changePasswordInputSchema = z
       .refine((value) => !/^\d+$/.test(value), "Пароль не может быть из одних цифр"),
     repeatPassword: z.string().min(1, "Повторите пароль"),
   })
-  .refine((v) => v.newPassword === v.repeatPassword, {
-    message: "Пароли не совпадают",
-    path: ["repeatPassword"],
-  })
+  .refine((v) => v.newPassword === v.repeatPassword, { message: "Пароли не совпадают", path: ["repeatPassword"] })
   .refine((v) => v.newPassword !== v.currentPassword, {
     message: "Новый пароль совпадает с текущим",
     path: ["newPassword"],

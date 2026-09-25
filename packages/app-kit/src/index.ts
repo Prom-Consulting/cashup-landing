@@ -4,6 +4,7 @@ export * from "./customers";
 export * from "./guard";
 export * from "./issue-card-dialog";
 export * from "./login-form";
+export * from "./phone-sign-in";
 export * from "./register-form";
 export * from "./session";
 export * from "./storefront-form";

@@ -7,12 +7,14 @@ import {
   registerInputSchema,
   otpLoginInputSchema,
   otpRequestInputSchema,
+  phoneRegisterInputSchema,
   profileSchema,
   sessionSchema,
   type ChangePasswordInput,
   type LoginInput,
   type OtpLoginInput,
   type OtpRequestInput,
+  type PhoneRegisterInput,
   type RegisterInput,
   type UpdateProfileInput,
 } from "../schemas/auth";
@@ -32,18 +34,23 @@ export const authApi = (api: ApiClient) => ({
     }),
 
   /**
-   * Регистрация сразу выдаёт токен — отдельный вход после неё не нужен.
-   * С кодом приглашения уходит на другой адрес: он же делает человека владельцем магазина.
+   * Регистрация клиента: только телефон и код. Сразу выдаёт токен — отдельный вход не нужен.
+   * deviceId сервер принимает необязательным, но без него первый же вход заменит сессию.
    */
-  register: (input: RegisterInput) => {
-    const { inviteCode, ...rest } = registerInputSchema.parse(input);
-    const path = inviteCode ? "/auth/register-with-invite" : "/auth/register";
-    return api.request(authTokensSchema, path, {
+  registerByPhone: (input: PhoneRegisterInput) =>
+    api.request(authTokensSchema, "/auth/register", {
       method: "POST",
-      body: { ...rest, deviceId: getDeviceId(), ...(inviteCode ? { inviteCode } : {}) },
+      body: { ...phoneRegisterInputSchema.parse(input), deviceId: getDeviceId() },
       anonymous: true,
-    });
-  },
+    }),
+
+  /** Владелец заведения по коду приглашения — сразу получает доступ к кабинету. */
+  register: (input: RegisterInput) =>
+    api.request(authTokensSchema, "/auth/register-with-invite", {
+      method: "POST",
+      body: { ...registerInputSchema.parse(input), deviceId: getDeviceId() },
+      anonymous: true,
+    }),
 
   login: (input: LoginInput) =>
     api.request(authTokensSchema, "/auth/login", {

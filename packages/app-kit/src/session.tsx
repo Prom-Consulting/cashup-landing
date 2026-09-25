@@ -168,8 +168,15 @@ export function useLogin() {
 /** Запрос кода в WhatsApp. Повтор раньше минуты — 429 с текстом, сколько ждать. */
 export function useRequestOtp() {
   const { api } = useSession();
+  return useMutation({ mutationFn: (input: { phone: string }) => authApi(api).requestOtp(input) });
+}
+
+/** Регистрация клиента по телефону и коду: сразу выдаёт токен. */
+export function useRegisterByPhone() {
+  const { api, signIn } = useSession();
   return useMutation({
-    mutationFn: (input: { phone: string }) => authApi(api).requestOtp(input),
+    mutationFn: (input: { phone: string; otp: string }) => authApi(api).registerByPhone(input),
+    onSuccess: (tokens) => signIn(tokens.accessToken),
   });
 }
 

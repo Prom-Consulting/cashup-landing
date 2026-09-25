@@ -16,6 +16,10 @@ import { useLogin, useLoginByOtp, useRequestOtp, useSession } from "./session";
 /** Одно понятное сообщение вместо технической ошибки шлюза. */
 function loginErrorText(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.status === 401 && /no account/i.test(error.message))
+      return "На этот номер нет аккаунта. Владелец заведения регистрируется по коду приглашения.";
+    if (error.status === 401 && /invalid otp/i.test(error.message)) return "Неверный код";
+    if (error.status === 401 && /missing or expired/i.test(error.message)) return "Код истёк или уже использован — запросите новый";
     if (error.status === 401) return "Неверные данные для входа";
     if (error.isTooManyRequests) return error.message || "Слишком часто. Попробуйте через минуту";
     return error.message;
