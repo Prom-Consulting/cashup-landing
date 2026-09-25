@@ -37,8 +37,8 @@
   --foreground: var(--graphite);
   --surface: #ffffff;
   --primary: var(--flame);
-  /* Графит, а не белый: белый на #ff5d34 даёт 3:1 и не читается мелким текстом, графит — 6:1 */
-  --primary-foreground: var(--graphite);
+  /* Белый на акценте — решение бренда; контраст 3:1, поэтому на таких кнопках текст жирный */
+  --primary-foreground: #ffffff;
   --secondary: var(--graphite);
   --secondary-foreground: var(--paper);
   --muted: var(--cream);

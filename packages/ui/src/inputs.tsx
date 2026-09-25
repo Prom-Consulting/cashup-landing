@@ -143,7 +143,7 @@ export function Button({
   ...rest
 }: { variant?: "primary" | "outline" | "quiet" } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const styles = {
-    primary: "bg-flame text-graphite hover:bg-graphite hover:text-paper",
+    primary: "bg-flame text-white hover:bg-graphite hover:text-paper",
     outline: "border-2 border-graphite hover:bg-graphite hover:text-paper",
     quiet: "bg-cream text-graphite hover:bg-flame",
   }[variant];

@@ -198,7 +198,7 @@ export function BonusCalculator() {
           <div
             data-stamp
             aria-hidden="true"
-            className="absolute -top-6 -right-3 rounded-full bg-flame px-5 py-3 text-center text-base leading-tight font-bold text-graphite sm:-right-[72px]"
+            className="absolute -top-6 -right-3 rounded-full bg-flame px-5 py-3 text-center text-base leading-tight font-bold text-white sm:-right-[72px]"
           >
             <span className="block whitespace-nowrap tabular-nums">
               −<span data-out-bonus>{initial.bonuses}</span>

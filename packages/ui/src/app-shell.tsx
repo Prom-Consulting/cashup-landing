@@ -82,5 +82,5 @@ export function AppShell({
  */
 export const navLinkClass = (active: boolean) =>
   `block rounded-2xl px-4 py-3 text-lg font-semibold transition-colors ${
-    active ? "brand-gradient text-graphite shadow-[0_0.5rem_1.25rem_rgb(255_93_52/0.3)]" : "hover:bg-current/8"
+    active ? "brand-gradient text-white shadow-[0_0.5rem_1.25rem_rgb(255_93_52/0.3)]" : "hover:bg-current/8"
   }`;
