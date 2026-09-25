@@ -20,7 +20,7 @@ export function SiteFooter() {
             <div className="max-w-[539px]">
               <Logo size="lg" descriptor="Бонусы по подписке" />
               <p className="mt-5 text-lg leading-snug text-slate sm:text-xl">
-                Выгода в привычных покупках. 100&nbsp;000 бонусов на каждый оплаченный месяц — ими закрывается часть
+                Выгода в привычных покупках. 15&nbsp;000 бонусов на каждый оплаченный месяц — ими закрывается часть
                 покупки у партнёров Loal в Бишкеке.
               </p>
             </div>

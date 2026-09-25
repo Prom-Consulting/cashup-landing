@@ -10,7 +10,7 @@ import { Button, ConfirmDialog, FormField, FormStatus, Input, Switch } from "@lo
 import { Form, Formik } from "formik";
 import { useCreateProgram, useDeleteProgram, useUpdateProgram } from "../../entities/platform/api";
 
-const newProgram: CreateProgramInput = { name: "", pointsPerPeriod: 100000, welcomePoints: 0 };
+const newProgram: CreateProgramInput = { name: "", pointsPerPeriod: 15000, welcomePoints: 0 };
 
 export function CreateProgramForm() {
   const create = useCreateProgram();
@@ -93,7 +93,7 @@ export function EditProgramForm({ program }: { program: Program }) {
   const remove = useDeleteProgram();
   const initialValues: UpdateProgramInput = {
     name: program.name,
-    pointsPerPeriod: Number((program.config as { pointsPerPeriod?: number } | null)?.pointsPerPeriod ?? 100000),
+    pointsPerPeriod: Number((program.config as { pointsPerPeriod?: number } | null)?.pointsPerPeriod ?? 15000),
     active: program.active ?? true,
     welcomePoints: program.welcomePoints ?? 0,
   };

@@ -21,7 +21,7 @@ const body = Nunito({
 const MOTION_PENDING_SCRIPT = `(function(){var d=document.documentElement;if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;d.classList.add("motion-pending");setTimeout(function(){d.classList.remove("motion-pending")},4000)})();`;
 
 const DESCRIPTION =
-  "Loal — бонусы по подписке. 10 $ в месяц: карта в Apple Wallet и 100 000 бонусов на каждый оплаченный период. Бонусами закрывается часть покупки у партнёров в Бишкеке.";
+  "Loal — бонусы по подписке. 17 $ в месяц: карта в Apple Wallet и 15 000 бонусов на каждый оплаченный период. Бонусами закрывается часть покупки у партнёров в Бишкеке.";
 
 // Картинка превью (opengraph-image.png) и иконки лежат в app/ и подключаются по соглашению Next.
 export const metadata: Metadata = {

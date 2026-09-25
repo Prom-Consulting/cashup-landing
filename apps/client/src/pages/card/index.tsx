@@ -51,7 +51,7 @@ export function CardPage() {
           </DialogTrigger>
           <DialogContent
             title="Продлить подписку"
-            description="Каждый оплаченный месяц — снова 100 000 бонусов. Остаток прошлого месяца не переносится."
+            description="Каждый оплаченный месяц — снова 15 000 бонусов. Остаток прошлого месяца не переносится."
           >
             <PaySubscriptionForm serial={serial} />
           </DialogContent>

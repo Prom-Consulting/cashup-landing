@@ -27,7 +27,7 @@ type Step = {
 const steps: Step[] = [
   {
     title: "Оформляете\nподписку",
-    text: "На сайте: оформление, оплата 10 $ через OctōPAY — и сразу открывается личный кабинет с вашей картой.",
+    text: "На сайте: оформление, оплата 17 $ через OctōPAY — и сразу открывается личный кабинет с вашей картой.",
     balance: 0,
     image: stepSubscribe,
     alt: "Телефон с картой Loal и переключателем «Active»",
@@ -35,16 +35,16 @@ const steps: Step[] = [
   },
   {
     title: "Добавляете карту\nв Apple Wallet",
-    text: "Одна кнопка в кабинете — и карта Loal у вас в телефоне, на ней 100 000 бонусов. Это Wallet, а не Apple Pay: картой не платят, её показывают.",
-    balance: 100_000,
+    text: "Одна кнопка в кабинете — и карта Loal у вас в телефоне, на ней 15 000 бонусов. Это Wallet, а не Apple Pay: картой не платят, её показывают.",
+    balance: 15_000,
     image: stepWallet,
-    alt: "Карта Loal с балансом 100 000 поверх других карт",
+    alt: "Карта Loal с балансом 15 000 поверх других карт",
     imageWidth: 447,
   },
   {
     title: "Показываете QR\nна кассе партнёра",
     text: "Бонусами закрывается допустимая партнёром часть чека. Остаток вы платите деньгами, как обычно.",
-    balance: 36_800,
+    balance: 11_800,
     image: stepPay,
     alt: "Платёжный терминал и бумажные пакеты с покупками",
     imageWidth: 593,
@@ -52,9 +52,9 @@ const steps: Step[] = [
     centerFix: "-translate-x-[6.5%] lg:translate-x-0",
   },
   {
-    title: "Продлили —\nснова 100 000",
+    title: "Продлили —\nснова 15 000",
     text: "Новый период начинается с полного баланса, остаток прошлого не переносится. Не продлили — бонусы сгорают.",
-    balance: 100_000,
+    balance: 15_000,
     image: stepRefill,
     alt: "Настольный календарь, первое число отмечено",
     imageWidth: 434,
@@ -137,7 +137,7 @@ export function MonthSteps() {
                     aria-hidden="true"
                     className="brand-gradient display absolute top-[6%] right-0 -rotate-[15deg] lg:-right-[8%] rounded-full px-[4.5%] py-[3%] text-[clamp(1.5rem,5.5vw,2.56rem)] whitespace-nowrap text-white"
                   >
-                    +100 000
+                    +15 000
                   </span>
                 )}
               </div>

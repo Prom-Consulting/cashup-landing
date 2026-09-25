@@ -19,7 +19,7 @@ export function EnrollPage() {
         <h1 className="display text-[2.25rem] leading-tight">Карта Loal</h1>
         <p className="mt-2 text-lg text-muted-foreground">
           Заполните три поля — карта сразу появится, её можно добавить в Apple или Google Wallet. Баллы на неё приносит
-          подписка: 100 000 бонусов на каждый оплаченный месяц.
+          подписка: 15 000 бонусов на каждый оплаченный месяц.
         </p>
       </div>
       {info.isPending && <Loading rows={3} />}

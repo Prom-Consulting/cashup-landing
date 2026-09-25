@@ -30,7 +30,7 @@ export function MyCardPage() {
       <section className="flex flex-col gap-5">
         <h1 className="display text-[clamp(1.75rem,7vw,2.25rem)] leading-[1.1]">Карты пока нет</h1>
         <p className="text-lg text-muted-foreground">
-          Оформите подписку — карта появится в Apple Wallet сразу после оплаты, а на ней 100 000 бонусов на оплаченный
+          Оформите подписку — карта появится в Apple Wallet сразу после оплаты, а на ней 15 000 бонусов на оплаченный
           период.
         </p>
         <Card>
@@ -76,7 +76,7 @@ export function MyCardPage() {
           </DialogTrigger>
           <DialogContent
             title={subscription ? "Продлить подписку" : "Оформить подписку"}
-            description="Каждый оплаченный месяц — снова 100 000 бонусов. Остаток прошлого месяца не переносится."
+            description="Каждый оплаченный месяц — снова 15 000 бонусов. Остаток прошлого месяца не переносится."
           >
             <PaySubscriptionForm serial={serialNumber} />
           </DialogContent>

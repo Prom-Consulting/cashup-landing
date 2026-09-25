@@ -51,7 +51,7 @@ export const BARCODE_FORMAT_LABELS: Record<z.infer<typeof barcodeFormatSchema>, 
  * показывается как написано. sample — чем заполнить превью.
  */
 export const LIVE_FIELD_KEYS = [
-  { key: "balance", label: "Баланс баллов", sample: "100 000" },
+  { key: "balance", label: "Баланс баллов", sample: "15 000" },
   { key: "cardNumber", label: "Номер карты", sample: "LOAL-7F3A" },
   { key: "memberName", label: "Имя клиента", sample: "Айгуль Садыкова" },
   { key: "phone", label: "Телефон клиента", sample: "+996 700 44 55 66" },

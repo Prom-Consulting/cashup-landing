@@ -9,7 +9,7 @@ gsap.registerPlugin(useGSAP);
 const PERCENTS = [10, 20, 30, 50];
 const MIN = 200;
 const MAX = 23000;
-const BALANCE = 100_000;
+const BALANCE = 15_000;
 
 // Полоса чека не схлопывается: 30% ширины на минимальной покупке, вся ширина — на максимальной.
 const checkWidth = (amount: number) => `${30 + ((amount - MIN) / (MAX - MIN)) * 70}%`;
