@@ -13,7 +13,7 @@ import { API_URL, EMAIL, PARTNER_APP_URL } from "../_data/site";
 gsap.registerPlugin(useGSAP);
 
 const plans = [
-  { id: "loyalty", label: "Только лояльность", note: "40 $ в месяц" },
+  { id: "loyalty", label: "Только лояльность", note: "100 $ в месяц" },
   { id: "bundle", label: "OctōPAY + лояльность", note: "без абонентской платы" },
   { id: "octopay", label: "Только OctōPAY", note: "комиссия с оборота" },
 ] as const;

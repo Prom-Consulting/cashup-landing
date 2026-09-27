@@ -61,7 +61,10 @@ const included = [
 ];
 
 const faq = [
-  { q: "Сколько стоит подписка?", a: "990 сом в месяц. Оплата проходит через OctōPAY, продлить можно в личном кабинете." },
+  {
+    q: "Сколько стоит подписка?",
+    a: "990 сом в месяц. Оплата проходит через OctōPAY, продлить можно в личном кабинете.",
+  },
   {
     q: "15 000 бонусов — это 15 000 сом?",
     a: "Нет. 1 бонус равен 1 сому только в бонусной части покупки у партнёра. Это не наличные: бонусы нельзя снять, вывести на карту или обменять на деньги.",
@@ -149,14 +152,7 @@ export default function Home() {
           <SiteHeader tone="light" />
 
           <div className="relative z-10 mx-auto flex max-w-[1080px] flex-col items-center px-5 pt-10 text-center sm:pt-20">
-            <p
-              data-hero-item
-              data-hero-fade
-              className="rounded-full border border-white/50 bg-white/15 px-5 py-2.5 text-base font-bold backdrop-blur-md sm:text-lg"
-            >
-              Бонусы по подписке
-            </p>
-            <h1 data-hero-item className="display mt-7">
+            <h1 data-hero-item className="display">
               <span
                 data-hero-number
                 className="block text-[clamp(3.4rem,10vw,9rem)] leading-[1] font-black whitespace-nowrap"
@@ -178,7 +174,32 @@ export default function Home() {
               Loal — подписка за 990 сом в месяц. Вы получаете карту в Apple Wallet и 15&nbsp;000 бонусов на оплаченный
               период, а бонусами закрываете часть покупки у партнёров.
             </p>
-            <div data-hero-item data-hero-fade className="mt-8 flex flex-wrap justify-center gap-4">
+            {/* Главное действие первого экрана: сразу показать, где тратить бонусы */}
+            {/* Появление анимирует обёртка: у самой кнопки CSS-переходы наведения, они спорили бы с GSAP */}
+            <div data-hero-item data-hero-fade className="mt-9">
+              <Link
+                href="/partners"
+                className="group inline-flex items-center gap-4 rounded-full bg-graphite py-5 pr-10 pl-6 text-[clamp(1.6rem,3.4vw,2.5rem)] leading-none font-extrabold text-white shadow-[0_1.5rem_3rem_rgb(22_21_21/0.35)] transition duration-300 hover:scale-[1.03] hover:bg-white hover:text-graphite focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-white sm:py-6 sm:pl-7"
+              >
+                <span
+                  aria-hidden="true"
+                  className="grid h-[1.9em] w-[1.9em] shrink-0 place-items-center rounded-full bg-flame text-white transition-transform duration-300 group-hover:rotate-[-8deg]"
+                >
+                  <svg viewBox="0 0 24 24" className="h-[0.95em] w-[0.95em]">
+                    <path
+                      d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 1 1 13 0c0 5.4-6.5 11-6.5 11Z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinejoin="round"
+                    />
+                    <circle cx="12" cy="10" r="2.4" fill="currentColor" />
+                  </svg>
+                </span>
+                Где потратить?
+              </Link>
+            </div>
+            <div data-hero-item data-hero-fade className="mt-6 flex flex-wrap justify-center gap-4">
               <a href={SUBSCRIBE_URL} className={`${pill} bg-white text-graphite hover:bg-graphite hover:text-white`}>
                 Оформить подписку
               </a>
