@@ -1,10 +1,12 @@
 "use client";
 
-import type { PublicPartner } from "@loal/api";
+import { PARTNER_CATEGORIES, type PublicPartner } from "@loal/api";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import { coordsOf } from "../_data/partner-coords";
+import { highlight, searchPartners } from "../_data/partner-search";
 import { monogram } from "../_data/partners-api";
+import { SearchField, Suggestions, type SearchOption } from "./smart-search";
 
 const STORAGE_KEY = "loal.partners.panel";
 const PANEL_WIDTH = 400;
@@ -18,11 +20,6 @@ function plural(count: number, one: string, few: string, many: string) {
   if (mod10 === 1 && mod100 !== 11) return one;
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
   return many;
-}
-
-function matches(partner: PublicPartner, query: string) {
-  const haystack = `${partner.name} ${partner.category ?? ""} ${partner.description ?? ""}`;
-  return haystack.toLowerCase().includes(query.trim().toLowerCase());
 }
 
 function phoneHref(phone: string) {
@@ -54,7 +51,7 @@ function Grip() {
 function Avatar({ partner }: { partner: PublicPartner }) {
   const image = partner.photos[0] ?? partner.logoUrl;
   return (
-    <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-[conic-gradient(from_210deg,var(--coral),var(--flame),var(--amber),var(--peach),var(--coral))] p-[3px]">
+    <span aria-hidden="true" className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-[conic-gradient(from_210deg,var(--coral),var(--flame),var(--amber),var(--peach),var(--coral))] p-[3px]">
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -109,10 +106,67 @@ export function PartnersPanel({
       if (partner.category) counted.set(partner.category, (counted.get(partner.category) ?? 0) + 1);
     return [...counted.entries()].sort((a, b) => b[1] - a[1]);
   }, [partners]);
-  const shown = useMemo(
-    () => partners.filter((partner) => (!category || partner.category === category) && matches(partner, query)),
-    [partners, category, query],
+  // Все категории — и те, где заведений ещё нет: по ним тоже ищут
+  const allCategories = useMemo(
+    () => [...new Set([...categories.map(([name]) => name), ...PARTNER_CATEGORIES.map((item) => item.label)])],
+    [categories],
   );
+  const count = (label: string) => partners.filter((partner) => partner.category === label).length;
+  const result = useMemo(() => searchPartners(query, partners, allCategories), [query, partners, allCategories]);
+  const shown = useMemo(
+    () =>
+      (query.trim() ? result.partners.map((hit) => hit.partner) : partners).filter(
+        (partner) => !category || partner.category === category,
+      ),
+    [query, result, partners, category],
+  );
+
+  // Поиск: пока поле в фокусе, на месте списка — подсказки
+  const input = useRef<HTMLInputElement>(null);
+  const [searching, setSearching] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const options: SearchOption[] = useMemo(() => {
+    if (!query.trim()) return allCategories.map((label) => ({ kind: "category", label, count: count(label) }));
+    const found: SearchOption[] = [
+      ...result.categories.map((hit) => ({ kind: "category" as const, label: hit.label, count: hit.count })),
+      ...result.partners.slice(0, 6).map((hit) => ({ kind: "partner" as const, partner: hit.partner })),
+    ];
+    if (result.partners.length > 6) found.push({ kind: "all", count: result.partners.length });
+    // Ничего не нашлось — предлагаем категории, а не пустоту
+    return found.length > 0 ? found : allCategories.map((label) => ({ kind: "category", label, count: count(label) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, result, allCategories]);
+  useEffect(() => setActiveIndex(query.trim() ? 0 : -1), [query]);
+
+  const closeSearch = () => {
+    setSearching(false);
+    input.current?.blur();
+  };
+  const choose = (option: SearchOption) => {
+    if (option.kind === "category") {
+      setCategory(option.label);
+      setQuery("");
+    } else if (option.kind === "partner") {
+      setQuery("");
+      onPick(option.partner);
+    }
+    closeSearch();
+  };
+  const onSearchKey = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      setSearching(true);
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      setActiveIndex((current) => (options.length ? (current + step + options.length) % options.length : -1));
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      const option = options[activeIndex];
+      if (option && searching) choose(option);
+      else closeSearch();
+    } else if (event.key === "Escape") {
+      closeSearch();
+    }
+  };
 
   const bounds = () => panel.current?.parentElement?.getBoundingClientRect();
   const clamp = (x: number, y: number) => {
@@ -286,135 +340,178 @@ export function PartnersPanel({
       <div className={`flex min-h-0 flex-1 flex-col ${collapsed ? "md:hidden" : ""}`}>
         {partners.length > 0 && (
           <div className="flex shrink-0 flex-col gap-3 px-5 pb-3 md:px-6">
-            <label className="relative block">
-              <span className="sr-only">Поиск по заведениям</span>
-              <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 opacity-55"
-              >
-                <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
-                <path d="m16 16 4.5 4.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-              </svg>
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Название или чем занимается"
-                className="h-12 w-full rounded-full border-2 border-smoke bg-white/80 pr-4 pl-11 text-base outline-none transition-colors placeholder:text-slate focus:border-graphite"
-              />
-            </label>
-            {categories.length > 1 && (
+            <SearchField
+              inputRef={input}
+              value={query}
+              open={searching}
+              activeIndex={activeIndex}
+              onChange={(value) => {
+                setQuery(value);
+                setSearching(true);
+              }}
+              onFocus={() => {
+                setSearching(true);
+                // На телефоне подсказкам нужно место — шторка раскрывается
+                if (!desktop) setSheet(sheetStops().full);
+              }}
+              onBlur={() => setSearching(false)}
+              onKeyDown={onSearchKey}
+            />
+            {(categories.length > 0 || category) && !searching && (
               <div className="-mx-5 flex gap-2 overflow-x-auto px-5 md:-mx-6 md:px-6">
-                {[null, ...categories.map(([name]) => name)].map((name) => {
-                  const active = category === name;
-                  return (
-                    <button
-                      key={name ?? "all"}
-                      type="button"
-                      onClick={() => setCategory(active ? null : name)}
-                      aria-pressed={active}
-                      className={`shrink-0 rounded-full border-2 px-4 py-2 text-sm font-medium transition-colors ${
-                        active
-                          ? "border-graphite bg-graphite text-paper"
-                          : "border-smoke bg-white/70 hover:border-graphite"
-                      }`}
-                    >
-                      {name ?? "Все"}
-                    </button>
-                  );
-                })}
+                {[null, ...new Set([...categories.map(([name]) => name), ...(category ? [category] : [])])].map(
+                  (name) => {
+                    const active = category === name;
+                    return (
+                      <button
+                        key={name ?? "all"}
+                        type="button"
+                        onClick={() => setCategory(active ? null : name)}
+                        aria-pressed={active}
+                        className={`shrink-0 rounded-full border-2 px-4 py-2 text-sm font-medium transition-colors ${
+                          active
+                            ? "border-graphite bg-graphite text-paper"
+                            : "border-smoke bg-white/70 hover:border-graphite"
+                        }`}
+                      >
+                        {name ?? "Все"}
+                      </button>
+                    );
+                  },
+                )}
               </div>
             )}
           </div>
         )}
 
-        <ul ref={list} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3 md:px-4">
-          {shown.map((partner) => {
-            const selected = partner.id === selectedId;
-            const onMap = Boolean(coordsOf(partner));
-            return (
-              <li key={partner.id} data-id={partner.id} className="py-1">
-                <div
-                  className={`rounded-[22px] transition-colors ${selected ? "bg-white shadow-[0_8px_24px_rgb(22_21_21/0.1)] ring-2 ring-flame" : "hover:bg-white/70"}`}
-                >
-                  <button
-                    type="button"
-                    onMouseEnter={() => onHover(partner.id)}
-                    onMouseLeave={() => onHover(null)}
-                    onFocus={() => onHover(partner.id)}
-                    onBlur={() => onHover(null)}
-                    onClick={() => onPick(partner)}
-                    aria-expanded={selected}
-                    className="flex w-full items-center gap-3 rounded-[22px] p-3 text-left outline-none focus-visible:ring-3 focus-visible:ring-flame"
-                  >
-                    <Avatar partner={partner} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-lg leading-tight font-bold">{partner.name}</span>
-                      <span className="block truncate text-sm text-slate">
-                        {[partner.category, onMap ? null : "без точки на карте"].filter(Boolean).join(" · ") ||
-                          "Бишкек"}
-                      </span>
-                    </span>
-                    {partner.maxCoveragePercent ? (
-                      <span className="shrink-0 rounded-full bg-flame px-3 py-1 text-sm font-bold text-white">
-                        до {partner.maxCoveragePercent}%
-                      </span>
-                    ) : null}
-                  </button>
-
-                  {selected && (
-                    <div className="flex flex-col gap-3 px-4 pb-4">
-                      {partner.description && (
-                        <p className="line-clamp-3 text-base leading-snug text-graphite/85">{partner.description}</p>
-                      )}
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-base">
-                        {partner.contactPhone && (
-                          <a
-                            href={phoneHref(partner.contactPhone)}
-                            className="font-bold text-flame-ink underline-offset-4 hover:underline"
-                          >
-                            Позвонить
-                          </a>
-                        )}
-                        {partner.instagramUrl && (
-                          <a
-                            href={partner.instagramUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="underline-offset-4 hover:underline"
-                          >
-                            Instagram
-                          </a>
-                        )}
-                        {partner.twogisUrl && (
-                          <a
-                            href={partner.twogisUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="underline-offset-4 hover:underline"
-                          >
-                            Маршрут в 2ГИС
-                          </a>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => onOpen(partner)}
-                        className="self-start rounded-full bg-flame px-5 py-2.5 text-base font-bold text-white transition-colors hover:bg-graphite"
-                      >
-                        Фото и подробности
-                      </button>
-                    </div>
-                  )}
-                </div>
+        {searching && partners.length > 0 ? (
+          <Suggestions
+            query={query}
+            result={result}
+            options={options}
+            activeIndex={activeIndex}
+            onHover={setActiveIndex}
+            onPick={choose}
+          />
+        ) : (
+          <ul ref={list} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3 md:px-4">
+            {result.readAs && query.trim() && (
+              <li className="px-3 pb-2 text-sm text-slate">
+                Показаны результаты для «<span className="font-bold text-graphite">{result.readAs}</span>»
               </li>
-            );
-          })}
-          {partners.length > 0 && shown.length === 0 && (
-            <li className="px-3 py-8 text-center text-base text-slate">Ничего не нашлось — попробуйте другое слово.</li>
-          )}
-        </ul>
+            )}
+            {shown.map((partner) => {
+              const selected = partner.id === selectedId;
+              const onMap = Boolean(coordsOf(partner));
+              return (
+                <li key={partner.id} data-id={partner.id} className="py-1">
+                  <div
+                    className={`rounded-[22px] transition-colors ${selected ? "bg-white shadow-[0_8px_24px_rgb(22_21_21/0.1)] ring-2 ring-flame" : "hover:bg-white/70"}`}
+                  >
+                    <button
+                      type="button"
+                      onMouseEnter={() => onHover(partner.id)}
+                      onMouseLeave={() => onHover(null)}
+                      onFocus={() => onHover(partner.id)}
+                      onBlur={() => onHover(null)}
+                      onClick={() => onPick(partner)}
+                      aria-expanded={selected}
+                      className="flex w-full items-center gap-3 rounded-[22px] p-3 text-left outline-none focus-visible:ring-3 focus-visible:ring-flame"
+                    >
+                      <Avatar partner={partner} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-lg leading-tight font-bold">
+                          {highlight(partner.name, query).map((part, index) =>
+                            part.hit ? (
+                              <mark key={index} className="rounded bg-amber/40 px-0.5 text-inherit">
+                                {part.text}
+                              </mark>
+                            ) : (
+                              <span key={index}>{part.text}</span>
+                            ),
+                          )}
+                        </span>
+                        <span className="block truncate text-sm text-slate">
+                          {[partner.category, onMap ? null : "без точки на карте"].filter(Boolean).join(" · ") ||
+                            "Бишкек"}
+                        </span>
+                      </span>
+                      {partner.maxCoveragePercent ? (
+                        <span className="shrink-0 rounded-full bg-flame px-3 py-1 text-sm font-bold text-white">
+                          до {partner.maxCoveragePercent}%
+                        </span>
+                      ) : null}
+                    </button>
+
+                    {selected && (
+                      <div className="flex flex-col gap-3 px-4 pb-4">
+                        {partner.description && (
+                          <p className="line-clamp-3 text-base leading-snug text-graphite/85">{partner.description}</p>
+                        )}
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-base">
+                          {partner.contactPhone && (
+                            <a
+                              href={phoneHref(partner.contactPhone)}
+                              className="font-bold text-flame-ink underline-offset-4 hover:underline"
+                            >
+                              Позвонить
+                            </a>
+                          )}
+                          {partner.instagramUrl && (
+                            <a
+                              href={partner.instagramUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="underline-offset-4 hover:underline"
+                            >
+                              Instagram
+                            </a>
+                          )}
+                          {partner.twogisUrl && (
+                            <a
+                              href={partner.twogisUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="underline-offset-4 hover:underline"
+                            >
+                              Маршрут в 2ГИС
+                            </a>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onOpen(partner)}
+                          className="self-start rounded-full bg-flame px-5 py-2.5 text-base font-bold text-white transition-colors hover:bg-graphite"
+                        >
+                          Фото и подробности
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+            {partners.length > 0 && shown.length === 0 && (
+              <li className="flex flex-col items-center gap-3 px-3 py-8 text-center">
+                <p className="text-base text-slate">
+                  {category && !query.trim()
+                    ? `В «${category}» заведений пока нет — скоро появятся.`
+                    : "Ничего не нашлось — попробуйте другое слово или категорию."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategory(null);
+                    setQuery("");
+                  }}
+                  className="rounded-full bg-graphite px-5 py-2.5 text-sm font-bold text-paper transition-colors hover:bg-flame"
+                >
+                  Показать все заведения
+                </button>
+              </li>
+            )}
+          </ul>
+        )}
 
         <Link
           href="/become-partner"
