@@ -103,10 +103,13 @@ export function IssueCardDialog({ cardUrl }: { cardUrl?: (serial: string) => str
                 });
                 helpers.resetForm();
               } catch (error) {
+                // Один телефон — один клиент: занятый номер показываем у поля
+                if (error instanceof ApiError && error.isConflict)
+                  return helpers.setFieldError("phone", error.message || "Клиент с таким телефоном уже есть");
                 applyServerIssues(
                   error,
                   helpers,
-                  error instanceof ApiError && error.status === 400
+                  error instanceof ApiError && error.status === 400 && error.issues.length === 0
                     ? "Карту выпустить не удалось: проверьте, что у платформы есть опубликованный шаблон и программа."
                     : undefined,
                 );

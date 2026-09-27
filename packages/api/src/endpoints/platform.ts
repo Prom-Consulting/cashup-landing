@@ -82,7 +82,10 @@ export const platformApi = (api: ApiClient) => ({
   createCustomer: (input: CreateCustomerInput) =>
     api.request(customerSchema, "/admin/v1/customers", {
       method: "POST",
-      body: createCustomerInputSchema.parse(input),
+      // Пустые поля не шлём: пустой телефон сервер не примет (ждёт номер с кодом страны)
+      body: Object.fromEntries(
+        Object.entries(createCustomerInputSchema.parse(input)).filter(([, value]) => value !== "" && value != null),
+      ),
     }),
 
   /** Архивация необратима: карты клиента отзываются тем же запросом. */

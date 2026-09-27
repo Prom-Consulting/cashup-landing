@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { phoneSchema } from "./auth";
 
 /**
  * Кабинет держателя карты. Идентификатора в адресе нет: сервер читает человека
@@ -63,11 +64,7 @@ export type HistoryPage = z.infer<typeof historyPageSchema>;
 
 /** Оплата подписки человеком, у которого карты ещё нет: карта заводится по телефону. */
 export const paySubscriptionByPhoneInputSchema = z.object({
-  phone: z
-    .string()
-    .trim()
-    .transform((value) => value.replace(/\D/g, ""))
-    .refine((digits) => digits.length >= 9, "Введите номер телефона"),
+  phone: phoneSchema,
   firstName: z.string().trim().min(1, "Как вас зовут?"),
   months: z.coerce.number().int().min(1).max(24),
 });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { phoneSchema } from "./auth";
 
 /** Программа лояльности платформы. У Loal она одна, тип onec. */
 export const programSchema = z.looseObject({
@@ -309,11 +310,7 @@ export type AuditLog = z.infer<typeof auditLogSchema>;
 
 /** Карту заводят по телефону либо по существующему клиенту — вместе нельзя. */
 export const issueCardByPhoneInputSchema = z.object({
-  phone: z
-    .string()
-    .trim()
-    .transform((value) => value.replace(/\D/g, ""))
-    .refine((digits) => digits.length >= 9, "Введите номер телефона"),
+  phone: phoneSchema,
   firstName: z.string().trim().min(2, "Введите имя").max(60, "Слишком длинное имя"),
   lastName: z.string().trim().max(60, "Слишком длинная фамилия").optional(),
 });
