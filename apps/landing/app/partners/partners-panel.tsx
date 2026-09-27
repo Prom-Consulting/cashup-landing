@@ -263,11 +263,22 @@ export function PartnersPanel({
             }}
             aria-expanded={!collapsed}
             aria-label={collapsed ? "Развернуть список" : "Свернуть список"}
-            className="hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-cream text-xl transition-colors hover:bg-graphite hover:text-paper md:grid"
+            className="hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-cream transition-colors outline-none hover:bg-graphite hover:text-paper focus-visible:ring-3 focus-visible:ring-flame md:grid"
           >
-            <span aria-hidden="true" className={`transition-transform ${collapsed ? "rotate-180" : ""}`}>
-              ⌃
-            </span>
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              className={`h-5 w-5 transition-transform ${collapsed ? "rotate-180" : ""}`}
+            >
+              <path
+                d="m6 15 6-6 6 6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
         </div>
       </div>
@@ -410,8 +421,13 @@ export function PartnersPanel({
           className="flex shrink-0 items-center justify-between gap-3 border-t border-smoke/80 px-6 py-4 text-base font-bold transition-colors hover:bg-white/60"
         >
           {partners.length > 0 ? "Подключить своё заведение" : "Станьте первым — подключите заведение"}
-          <span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-full bg-flame text-white">
-            +
+          <span
+            aria-hidden="true"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-flame text-white"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4">
+              <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+            </svg>
           </span>
         </Link>
       </div>

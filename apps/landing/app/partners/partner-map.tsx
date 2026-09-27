@@ -211,17 +211,19 @@ export function PartnerMap({
       </div>
       <div className="absolute right-5 bottom-[calc(var(--sheet,0px)+2rem)] z-10 flex flex-col gap-2 md:bottom-8 md:right-8">
         {[
-          { label: "Приблизить", sign: "+", delta: 1 },
-          { label: "Отдалить", sign: "−", delta: -1 },
+          { label: "Приблизить", path: "M12 5v14M5 12h14", delta: 1 },
+          { label: "Отдалить", path: "M5 12h14", delta: -1 },
         ].map((button) => (
           <button
             key={button.label}
             type="button"
             onClick={() => zoomBy(button.delta)}
             aria-label={button.label}
-            className="grid h-12 w-12 place-items-center rounded-full bg-paper text-2xl leading-none font-bold shadow-[0_8px_24px_rgb(22_21_21/0.18)] transition-colors hover:bg-graphite hover:text-paper"
+            className="grid h-12 w-12 place-items-center rounded-full bg-paper shadow-[0_8px_24px_rgb(22_21_21/0.18)] transition-colors hover:bg-graphite hover:text-paper"
           >
-            {button.sign}
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
+              <path d={button.path} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+            </svg>
           </button>
         ))}
       </div>

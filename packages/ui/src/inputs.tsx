@@ -87,7 +87,8 @@ export function Textarea({
         onBlur={onBlur}
         aria-describedby={[describedBy, counterId].filter(Boolean).join(" ")}
         aria-invalid={invalid || undefined}
-        className={controlClass(invalid, "resize-y")}
+        // Высота h-12 — для однострочных полей; многострочному нужны свои строки
+        className={controlClass(invalid, "min-h-28 resize-y py-3 leading-snug").replace("h-12 ", "")}
       />
       <p id={counterId} className={`mt-1 text-right text-sm ${left < 40 ? "text-flame-ink" : "opacity-60"}`}>
         Осталось {left} символов
