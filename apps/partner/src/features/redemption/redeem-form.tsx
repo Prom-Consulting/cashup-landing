@@ -12,6 +12,7 @@ import { Badge, Button, Card, FormField, FormStatus, Icon, Input } from "@loal/u
 import { Form, Formik, getIn } from "formik";
 import { useMemo, useState } from "react";
 import { useRedeem } from "../../entities/merchant/api";
+import { QrScanButton } from "../../shared/ui/qr-scanner";
 
 const money = new Intl.NumberFormat("ru-RU");
 
@@ -85,19 +86,32 @@ export function RedeemForm({ ceiling, merchantId }: { ceiling: number | null; me
             <Card className="flex flex-col gap-5">
               <FormField
                 label="Номер карты"
-                hint="Под QR-кодом на карте клиента."
+                hint="Отсканируйте QR с карты клиента или введите номер под ним."
                 error={fieldError(form, "cardSerialNumber")}
               >
                 {(parts) => (
-                  <Input
-                    {...parts}
-                    name="cardSerialNumber"
-                    autoComplete="off"
-                    className="text-xl tabular-nums"
-                    value={form.values.cardSerialNumber}
-                    onChange={form.handleChange}
-                    onBlur={form.handleBlur}
-                  />
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Input
+                      {...parts}
+                      name="cardSerialNumber"
+                      autoComplete="off"
+                      className="text-xl tabular-nums"
+                      value={form.values.cardSerialNumber}
+                      onChange={form.handleChange}
+                      onBlur={form.handleBlur}
+                    />
+                    <QrScanButton
+                      onScan={(cardNumber) => {
+                        void form.setFieldValue("cardSerialNumber", cardNumber);
+                        void form.setFieldTouched("cardSerialNumber", true, false);
+                        // Карта считана — дальше вводят товар
+                        setTimeout(
+                          () => document.querySelector<HTMLInputElement>('input[name="whatPurchased.0.productName"]')?.focus(),
+                          50,
+                        );
+                      }}
+                    />
+                  </div>
                 )}
               </FormField>
 
