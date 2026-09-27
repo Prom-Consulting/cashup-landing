@@ -102,38 +102,6 @@ function price() {
   });
 }
 
-function business() {
-  gsap.from("[data-biz-item]", {
-    y: 30,
-    autoAlpha: 0,
-    duration: 0.8,
-    stagger: 0.08,
-    ease: "power3.out",
-    scrollTrigger: { trigger: "#business", start: "top 75%", once: true },
-  });
-
-  // Телефон выезжает снизу и чуть наклоняется, пока блок проходит экран.
-  gsap.fromTo(
-    "[data-biz-phone]",
-    { y: 60, rotateX: 14, transformPerspective: 1200 },
-    {
-      y: 0,
-      rotateX: 0,
-      ease: "none",
-      scrollTrigger: { trigger: "[data-biz-phone]", start: "top bottom", end: "top 30%", scrub: 0.6 },
-    },
-  );
-
-  gsap.from("[data-model]", {
-    y: 100,
-    autoAlpha: 0,
-    duration: 1,
-    stagger: 0.12,
-    ease: "power3.out",
-    scrollTrigger: { trigger: "[data-models]", start: "top 80%", once: true },
-  });
-}
-
 export function PageMotion() {
   useGSAP(() => {
     const mm = gsap.matchMedia();
@@ -166,7 +134,6 @@ export function PageMotion() {
       calculatorReveal();
       categoryRows();
       price();
-      business();
     });
   });
 

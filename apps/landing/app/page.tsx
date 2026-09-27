@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Sparkle } from "@loal/ui/logo";
 import bannerGlass from "@/public/images/brand/banner-glass.jpg";
 import { BonusCalculator } from "./_components/bonus-calculator";
-import { BusinessSection } from "./_components/business-section";
+import { BusinessLink } from "./_components/business-section";
 import { Faq } from "./_components/faq";
 import { HeroCards } from "./_components/hero-cards";
 import { JsonLd } from "./_components/json-ld";
@@ -171,8 +171,8 @@ export default function Home() {
               data-hero-fade
               className="mt-7 max-w-[760px] text-[1.1875rem] leading-snug font-bold sm:text-xl"
             >
-              Loal — подписка за 990 сом в месяц. Вы получаете карту в Apple Wallet или Google Wallet и 15&nbsp;000 бонусов на оплаченный
-              период, а бонусами закрываете часть покупки у партнёров.
+              Loal — подписка за 990 сом в месяц. Вы получаете карту в Apple Wallet или Google Wallet и 15&nbsp;000
+              бонусов на оплаченный период, а бонусами закрываете часть покупки у партнёров.
             </p>
             {/* Главное действие первого экрана: сразу показать, где тратить бонусы */}
             {/* Появление анимирует обёртка: у самой кнопки CSS-переходы наведения, они спорили бы с GSAP */}
@@ -419,7 +419,9 @@ export default function Home() {
         </section>
 
         {/* Вопросы 9–10: Loal Corporate */}
-        <BusinessSection partnerUrl="/become-partner" />
+        <div className="py-16 sm:py-24">
+          <BusinessLink href="/become-partner" />
+        </div>
 
         {/* Вопросы */}
         <section id="faq" className="scroll-mt-6">

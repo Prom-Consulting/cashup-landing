@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
-import partnerPhoto from "@/public/images/partner-barista.jpg";
-import { Logo } from "@loal/ui/logo";
-import { Coin } from "../_components/illustrations";
+import { CorporateHero } from "../_components/business-section";
 import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
 import { models } from "../_data/models";
@@ -86,52 +82,7 @@ export default function BecomePartnerPage() {
       <SiteHeader cta={{ label: "Оставить заявку", href: "#form" }} />
 
       <main className="flex-1 overflow-x-clip">
-        <section className="mx-auto grid max-w-[1440px] items-center gap-14 px-5 pt-6 pb-20 sm:px-10 xl:grid-cols-[1.15fr_1fr] xl:pt-10 xl:pb-28">
-          <div>
-            <Logo size="lg" direction="corporate" />
-            <h1 className="display mt-6 text-[clamp(2.43rem,5.9vw,5.17rem)]">Программы лояльности для бизнеса</h1>
-            <p className="mt-8 max-w-[52ch] text-lg leading-relaxed text-slate sm:text-xl">
-              Loal Corporate подключает компанию к бонусной сети. Подписчики ищут, где потратить бонусы, — вы сами
-              решаете, какую долю покупки они закроют, и видите каждую операцию в кабинете.
-            </p>
-            <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
-              <Link
-                href="#form"
-                className="inline-flex items-center justify-center rounded-full bg-flame px-7 py-4 text-[1.1875rem] font-bold text-white transition-colors hover:bg-graphite"
-              >
-                Оставить заявку
-              </Link>
-              <Link
-                href="/partners"
-                className="font-medium underline decoration-amber decoration-2 underline-offset-6 hover:decoration-flame"
-              >
-                Посмотреть каталог
-              </Link>
-            </div>
-          </div>
-
-          <div className="relative mx-auto w-full max-w-[480px]">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[40px]">
-              <Image
-                src={partnerPhoto}
-                alt="Бариста за стойкой кофейни"
-                fill
-                quality={90}
-                placeholder="blur"
-                sizes="(min-width: 1024px) 480px, 92vw"
-                className="object-cover object-[50%_40%]"
-              />
-            </div>
-            <div className="absolute -bottom-6 -left-4 w-[min(280px,80%)] rounded-3xl bg-graphite p-5 text-paper sm:-left-10">
-              <p className="text-sm opacity-80">Гость оплатил</p>
-              <p className="display mt-1 text-4xl text-amber">400 бонусами</p>
-              <p className="mt-2 text-sm opacity-80">Остальное — деньгами на ваш счёт</p>
-            </div>
-            <div className="absolute -top-6 -right-4 w-20" aria-hidden="true">
-              <Coin className="h-auto w-full" />
-            </div>
-          </div>
-        </section>
+        <CorporateHero formHref="#form" />
 
         <section className="bg-cream/50">
           <div className="mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-24">
