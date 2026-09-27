@@ -17,8 +17,8 @@ export function SettingsPage() {
   const name = [customer?.firstName, customer?.lastName].filter(Boolean).join(" ");
 
   return (
-    <section className="flex flex-col gap-5">
-      <h1 className="display text-[2rem] leading-tight">Настройки</h1>
+    <section className="flex flex-col gap-5 lg:grid lg:max-w-[960px] lg:grid-cols-2 lg:items-start lg:gap-6">
+      <h1 className="display text-[2rem] leading-tight lg:col-span-2 lg:text-[2.5rem]">Настройки</h1>
 
       <Card className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">Вы вошли как</p>
@@ -84,7 +84,7 @@ export function SettingsPage() {
 
       <ConfirmDialog
         trigger={
-          <Button variant="outline" size="lg" className="w-full">
+          <Button variant="outline" size="lg" className="w-full lg:col-span-2 lg:w-fit lg:px-8">
             <Icon icon={Logout01Icon} />
             Выйти
           </Button>

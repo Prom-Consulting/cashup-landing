@@ -46,7 +46,7 @@ const LIFT = [0, 44, 12, 60, 24, 52, 4, 36];
 
 const chip = (active: boolean) =>
   `shrink-0 rounded-full border-2 px-5 py-3 text-lg transition-colors focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-flame ${
-    active ? "border-white bg-white text-graphite" : "border-white/20 text-white hover:border-white"
+    active ? "border-graphite bg-graphite text-paper" : "border-smoke bg-paper hover:border-graphite"
   }`;
 
 function Face({ partner, className = "" }: { partner: PublicPartner; className?: string }) {
@@ -82,7 +82,7 @@ function Bubble({ partner, index, onOpen }: { partner: PublicPartner; index: num
         aria-label={`${partner.name}: подробнее`}
         className="group relative block aspect-square w-full rounded-full outline-none focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-flame"
       >
-        <span className="block h-full w-full overflow-hidden rounded-full ring-2 ring-white/10 transition duration-300 group-hover:ring-4 group-hover:ring-flame motion-safe:group-hover:-translate-y-1">
+        <span className="block h-full w-full overflow-hidden rounded-full ring-4 ring-paper shadow-[0_12px_32px_rgb(22_21_21/0.14)] transition duration-300 group-hover:ring-4 group-hover:ring-flame motion-safe:group-hover:-translate-y-1">
           <Face partner={partner} className="transition duration-500 motion-safe:group-hover:scale-105" />
         </span>
         {partner.logoUrl && partner.photos[0] && (
@@ -91,7 +91,7 @@ function Bubble({ partner, index, onOpen }: { partner: PublicPartner; index: num
           <img
             src={partner.logoUrl}
             alt=""
-            className="absolute -bottom-1 -left-1 h-[30%] w-[30%] rounded-full border-4 border-graphite bg-paper object-contain p-1"
+            className="absolute -bottom-1 -left-1 h-[30%] w-[30%] rounded-full border-4 border-cream bg-paper object-contain p-1"
             loading="lazy"
           />
         )}
@@ -101,11 +101,11 @@ function Bubble({ partner, index, onOpen }: { partner: PublicPartner; index: num
           </span>
         ) : null}
       </button>
-      <span className="mt-3 line-clamp-2 text-center text-base leading-tight font-bold text-white sm:text-lg">
+      <span className="mt-3 line-clamp-2 text-center text-base leading-tight font-bold text-graphite sm:text-lg">
         {partner.name}
       </span>
       {partner.category && (
-        <span className="mt-0.5 line-clamp-1 text-center text-sm text-slate-soft">{partner.category}</span>
+        <span className="mt-0.5 line-clamp-1 text-center text-sm text-slate">{partner.category}</span>
       )}
     </li>
   );
@@ -121,18 +121,20 @@ function InviteBubble({ index }: { index: number }) {
     >
       <Link
         href="/become-partner"
-        className="grid aspect-square w-full place-items-center rounded-full border-2 border-dashed border-white/30 text-[calc(var(--d)*var(--s)*0.3)] font-light text-white/70 transition-colors hover:border-flame hover:text-flame focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-flame"
+        className="grid aspect-square w-full place-items-center rounded-full border-2 border-dashed border-slate/50 text-[calc(var(--d)*var(--s)*0.3)] font-light text-slate transition-colors hover:border-flame hover:text-flame focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-flame"
       >
         <span aria-hidden="true">+</span>
         <span className="sr-only">Подключить своё заведение</span>
       </Link>
-      <span className="mt-3 text-center text-base leading-tight font-bold text-white sm:text-lg">Ваше заведение</span>
-      <span className="mt-0.5 text-center text-sm text-slate-soft">подключить</span>
+      <span className="mt-3 text-center text-base leading-tight font-bold text-graphite sm:text-lg">
+        Ваше заведение
+      </span>
+      <span className="mt-0.5 text-center text-sm text-slate">подключить</span>
     </li>
   );
 }
 
-function PartnerDialog({ partner, onClose }: { partner: PublicPartner | null; onClose: () => void }) {
+export function PartnerDialog({ partner, onClose }: { partner: PublicPartner | null; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -247,13 +249,18 @@ function PartnerDialog({ partner, onClose }: { partner: PublicPartner | null; on
 }
 
 /**
- * Каталог заведений — облако кругов на графите. Круг — лицо места: фото или логотип,
+ * Каталог заведений — облако кругов сразу под заголовком, без рамок. Круг — лицо места: фото или логотип,
  * размер — сколько чека закрывают бонусы. Подробности открываются по клику.
  */
-export function PartnersCatalog({ partners }: { partners: PublicPartner[] }) {
+export function PartnersCatalog({
+  partners,
+  onOpen,
+}: {
+  partners: PublicPartner[];
+  onOpen: (partner: PublicPartner) => void;
+}) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
-  const [opened, setOpened] = useState<PublicPartner | null>(null);
   const categories = useCategories(partners);
 
   const shown = useMemo(
@@ -263,18 +270,9 @@ export function PartnersCatalog({ partners }: { partners: PublicPartner[] }) {
   const filtering = Boolean(category || query.trim());
 
   return (
-    <section
-      aria-label="Заведения"
-      className="relative overflow-hidden rounded-[40px] bg-graphite px-5 pt-8 pb-14 text-white sm:px-10 sm:pt-10 sm:pb-20"
-    >
-      {/* Тёплое свечение из угла — градиент бренда, приглушённый до фона */}
-      <div
-        aria-hidden="true"
-        className="brand-gradient pointer-events-none absolute -top-40 -right-40 h-[420px] w-[420px] rounded-full opacity-25 blur-[120px]"
-      />
-
-      <div className="relative flex flex-col gap-5">
-        <label className="relative block max-w-[460px]">
+    <section aria-label="Заведения">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <label className="relative block w-full shrink-0 sm:max-w-[380px]">
           <span className="sr-only">Поиск по заведениям</span>
           <svg
             viewBox="0 0 24 24"
@@ -289,7 +287,7 @@ export function PartnersCatalog({ partners }: { partners: PublicPartner[] }) {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Название или чем занимается"
-            className="h-14 w-full rounded-full border-2 border-white/15 bg-coal pr-5 pl-13 text-lg text-white transition-colors outline-none placeholder:text-slate-soft focus:border-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-flame"
+            className="h-14 w-full rounded-full border-2 border-smoke bg-paper pr-5 pl-13 text-lg transition-colors outline-none placeholder:text-slate focus:border-graphite focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-flame"
           />
         </label>
 
@@ -319,23 +317,21 @@ export function PartnersCatalog({ partners }: { partners: PublicPartner[] }) {
       </div>
 
       {shown.length === 0 ? (
-        <p className="relative py-20 text-center text-xl text-slate-soft">
+        <p className="py-20 text-center text-xl text-slate">
           Ничего не нашлось. Попробуйте другое слово или посмотрите все заведения.
         </p>
       ) : (
-        <ul className="relative mx-auto mt-12 flex max-w-[1180px] flex-wrap items-start justify-center gap-x-6 gap-y-8 sm:mt-16 sm:gap-x-10 sm:gap-y-6">
+        <ul className="mx-auto mt-10 flex max-w-[1180px] flex-wrap items-start justify-center gap-x-6 gap-y-8 sm:mt-12 sm:gap-x-10 sm:gap-y-6">
           {shown.map((partner, index) => (
-            <Bubble key={partner.id} partner={partner} index={index} onOpen={() => setOpened(partner)} />
+            <Bubble key={partner.id} partner={partner} index={index} onOpen={() => onOpen(partner)} />
           ))}
           {!filtering && <InviteBubble index={shown.length} />}
         </ul>
       )}
 
-      <p className="relative mt-14 text-center text-base text-slate-soft">
+      <p className="mt-12 text-center text-base text-slate">
         Чем больше круг, тем большую часть чека там можно закрыть бонусами.
       </p>
-
-      <PartnerDialog partner={opened} onClose={() => setOpened(null)} />
     </section>
   );
 }

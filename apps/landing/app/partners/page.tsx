@@ -5,7 +5,7 @@ import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
 import { getPublicPartners } from "../_data/partners-api";
 import { SITE_URL } from "../_data/site";
-import { PartnersCatalog } from "./partners-catalog";
+import { PartnersExplorer } from "./partners-explorer";
 
 export const metadata: Metadata = {
   title: "Где тратить бонусы в Бишкеке",
@@ -59,38 +59,10 @@ export default async function PartnersPage() {
       {partners.length > 0 && <JsonLd data={itemListLd} />}
 
       <main className="flex-1 bg-cream">
-        <div className="mx-auto max-w-[1512px] px-5 pt-8 pb-16 sm:px-12 sm:pt-14">
-          <div className="grid items-end gap-8 pb-10 lg:grid-cols-[1.25fr_1fr]">
-            <div>
-              <h1 className="display text-[clamp(2.4rem,6vw,5.2rem)] leading-[1.02] text-flame">
-                Где тратить
-                <br />
-                бонусы
-              </h1>
-              <p className="mt-6 max-w-[52ch] text-lg leading-snug sm:text-xl">
-                {partners.length > 0
-                  ? "Эти заведения принимают бонусы Loal. Каждое само решает, какую часть чека можно закрыть бонусами — процент видно на кассе."
-                  : "Скоро здесь появятся заведения Бишкека: подключение идёт прямо сейчас."}
-              </p>
-            </div>
+        <PartnersExplorer partners={partners} />
 
-            <div className="flex flex-wrap gap-4 lg:justify-end">
-              <Link
-                href="/become-partner"
-                className="inline-flex items-center rounded-full bg-flame px-6 py-4 text-[1.1875rem] font-bold text-white transition-colors hover:bg-graphite"
-              >
-                Подключить заведение
-              </Link>
-              <Link
-                href="/#price"
-                className="inline-flex items-center rounded-full border-2 border-graphite px-6 py-4 text-lg font-medium transition-colors hover:bg-graphite hover:text-paper"
-              >
-                Оформить карту
-              </Link>
-            </div>
-          </div>
-
-          {partners.length === 0 ? (
+        {partners.length === 0 && (
+          <div className="mx-auto max-w-[1512px] px-5 pb-16 sm:px-12">
             <div className="rounded-[32px] bg-paper px-6 py-16 text-center">
               <p className="display text-[clamp(1.5rem,3vw,2.25rem)]">Каталог скоро наполнится</p>
               <p className="mx-auto mt-4 max-w-[52ch] text-lg leading-snug text-slate">
@@ -104,10 +76,8 @@ export default async function PartnersPage() {
                 Оставить заявку
               </Link>
             </div>
-          ) : (
-            <PartnersCatalog partners={partners} />
-          )}
-        </div>
+          </div>
+        )}
       </main>
 
       <SiteFooter />

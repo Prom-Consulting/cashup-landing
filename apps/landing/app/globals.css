@@ -134,3 +134,14 @@ html {
   background: rgb(22 21 21 / 0.6);
   backdrop-filter: blur(4px);
 }
+
+/* Точка заведения на карте каталога: цвет бренда, белый жирный текст — как на оранжевых кнопках */
+.map-pin--brand {
+  background: var(--flame);
+  border-color: var(--paper);
+  color: #fff;
+  box-shadow: 0 6px 16px rgb(255 93 52 / 0.4);
+}
+.map-pin--brand:hover {
+  background: var(--graphite);
+}

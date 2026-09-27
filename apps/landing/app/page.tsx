@@ -50,7 +50,7 @@ const worthIt = [
   "Откройте каталог и найдите партнёров, к которым вы и так ходите",
   "Прикиньте, сколько тратите у них за месяц",
   "Умножьте на их процент — это то, что закроют бонусы",
-  "Сравните с 17 $ за подписку",
+  "Сравните с 990 сом за подписку",
 ];
 
 const included = [
@@ -61,7 +61,7 @@ const included = [
 ];
 
 const faq = [
-  { q: "Сколько стоит подписка?", a: "17 $ в месяц. Оплата проходит через OctōPAY, продлить можно в личном кабинете." },
+  { q: "Сколько стоит подписка?", a: "990 сом в месяц. Оплата проходит через OctōPAY, продлить можно в личном кабинете." },
   {
     q: "15 000 бонусов — это 15 000 сом?",
     a: "Нет. 1 бонус равен 1 сому только в бонусной части покупки у партнёра. Это не наличные: бонусы нельзя снять, вывести на карту или обменять на деньги.",
@@ -102,17 +102,17 @@ const subscriptionLd = {
   "@type": "Product",
   name: "Подписка Loal",
   description:
-    "Подписка Loal за 17 $ в месяц: карта в Apple Wallet и 15 000 бонусов на оплаченный период. Бонусами закрывается часть покупки у партнёров в Бишкеке.",
+    "Подписка Loal за 990 сом в месяц: карта в Apple Wallet и 15 000 бонусов на оплаченный период. Бонусами закрывается часть покупки у партнёров в Бишкеке.",
   brand: { "@type": "Brand", name: "Loal" },
   offers: {
     "@type": "Offer",
-    price: "17",
-    priceCurrency: "USD",
+    price: "990",
+    priceCurrency: "KGS",
     availability: "https://schema.org/InStock",
     priceSpecification: {
       "@type": "UnitPriceSpecification",
-      price: "17",
-      priceCurrency: "USD",
+      price: "990",
+      priceCurrency: "KGS",
       billingDuration: "P1M",
       unitCode: "MON",
     },
@@ -175,7 +175,7 @@ export default function Home() {
               data-hero-fade
               className="mt-7 max-w-[760px] text-[1.1875rem] leading-snug font-bold sm:text-xl"
             >
-              Loal — подписка за 17 $ в месяц. Вы получаете карту в Apple Wallet и 15&nbsp;000 бонусов на оплаченный
+              Loal — подписка за 990 сом в месяц. Вы получаете карту в Apple Wallet и 15&nbsp;000 бонусов на оплаченный
               период, а бонусами закрываете часть покупки у партнёров.
             </p>
             <div data-hero-item data-hero-fade className="mt-8 flex flex-wrap justify-center gap-4">
@@ -339,7 +339,7 @@ export default function Home() {
                 Окупится ли подписка?
               </h2>
               <p className="mt-6 text-lg leading-snug text-slate-soft sm:text-xl">
-                Не всем. Если вы почти не бываете у партнёров Loal, 17&nbsp;$ не вернутся. Проверьте за минуту:
+                Не всем. Если вы почти не бываете у партнёров Loal, 990&nbsp;сом не вернутся. Проверьте за минуту:
               </p>
             </div>
             <ol className="flex flex-col gap-4">
@@ -365,11 +365,11 @@ export default function Home() {
                   data-price
                   className="display mt-4 flex flex-wrap items-baseline gap-x-[0.3em] text-[clamp(4rem,8vw,7.5rem)] leading-none"
                 >
-                  <span className="whitespace-nowrap">17 $</span>
+                  <span className="whitespace-nowrap">990 сом</span>
                   <span className="text-[0.36em] whitespace-nowrap text-slate">в месяц</span>
                 </p>
                 <p className="mt-5 text-lg text-slate sm:text-xl">
-                  Примерно 1 500 сом. Оплата через{" "}
+                  Оплата через{" "}
                   <a href={OCTOPAY_URL} className="text-flame-ink underline underline-offset-4 hover:no-underline">
                     OctōPAY
                   </a>
