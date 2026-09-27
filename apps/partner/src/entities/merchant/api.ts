@@ -1,6 +1,7 @@
 import {
   merchantCabinetApi,
   merchantsApi,
+  promoApi,
   redemptionsApi,
   type RedemptionForm,
   type AddMemberInput,
@@ -9,6 +10,7 @@ import {
   type CreateInvoiceInput,
   type CreateWebhookInput,
   type DeductionQuery,
+  type RedeemPromoInput,
 } from "@loal/api";
 import { useApi } from "@loal/app-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -153,6 +155,16 @@ export function useSubscription(merchantId: string) {
     queryKey: merchantKeys.subscription(merchantId),
     queryFn: () => merchantCabinetApi(api).subscription(merchantId),
     enabled: Boolean(merchantId),
+  });
+}
+
+/** Промокод на месяцы подписки магазина: после успеха перечитываем подписку — у неё новый срок. */
+export function useRedeemMerchantPromo(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RedeemPromoInput) => promoApi(api).redeemForMerchant(merchantId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.subscription(merchantId) }),
   });
 }
 

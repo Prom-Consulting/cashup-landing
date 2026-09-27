@@ -1,7 +1,13 @@
-import { ApiError, merchantProfileFormSchema, type MerchantProfile, type MerchantProfileForm } from "@loal/api";
+import {
+  ApiError,
+  PARTNER_CATEGORIES,
+  merchantProfileFormSchema,
+  type MerchantProfile,
+  type MerchantProfileForm,
+} from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Delete02Icon, ImageAdd01Icon } from "@hugeicons/core-free-icons";
-import { Button, Icon, Input, Label, Textarea } from "@loal/ui/shadcn";
+import { Button, Icon, Input, Label, NativeSelect, Textarea } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useRef, useState } from "react";
 import { merchantCabinetApi } from "@loal/api";
@@ -39,6 +45,14 @@ function useUploadAsset(merchantId: string) {
 }
 
 const MAX_PHOTOS = 10;
+
+/** Тот же список, что на лендинге. Старую свою категорию заведения не теряем — она остаётся в списке. */
+function categoryOptions(current: string | null) {
+  const options = PARTNER_CATEGORIES.map((category) => ({ value: category.label, label: category.label }));
+  return current && !options.some((option) => option.value === current)
+    ? [{ value: current, label: current }, ...options]
+    : options;
+}
 
 /** Пустая строка в поле — это «очистить», а бэкенд ждёт для этого null. */
 const orNull = (value: string) => (value.trim() === "" ? null : value.trim());
@@ -106,15 +120,16 @@ export function StorefrontForm({ merchantId, profile }: { merchantId: string; pr
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <Label htmlFor="category">Категория</Label>
-              <Input
+              <NativeSelect
                 id="category"
                 name="category"
-                placeholder="Кофейня"
                 className="mt-2"
+                placeholder="Не выбрана"
                 value={form.values.category}
                 onChange={form.handleChange}
                 onBlur={form.handleBlur}
                 invalid={Boolean(fieldError(form, "category"))}
+                options={categoryOptions(profile.category)}
               />
               {fieldError(form, "category") && (
                 <p className="mt-2 text-base text-destructive">{fieldError(form, "category")}</p>

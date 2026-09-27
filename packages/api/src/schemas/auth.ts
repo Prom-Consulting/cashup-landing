@@ -42,7 +42,12 @@ export const profileSchema = z.looseObject({
 export type Profile = z.infer<typeof profileSchema>;
 
 /** expiresIn приходит строкой jsonwebtoken — «12h», не секундами. */
-export const authTokensSchema = z.looseObject({ accessToken: z.string(), expiresIn: z.string() });
+export const authTokensSchema = z.looseObject({
+  accessToken: z.string(),
+  expiresIn: z.string(),
+  /** Вход по телефону: true — аккаунт только что создан. Вход по почте поля не присылает. */
+  isNewAccount: z.boolean().optional(),
+});
 export type AuthTokens = z.infer<typeof authTokensSchema>;
 
 export const loginInputSchema = z.object({
@@ -129,8 +134,9 @@ export const changePasswordInputSchema = z
   });
 export type ChangePasswordInput = z.infer<typeof changePasswordInputSchema>;
 
+/** Имя и почта. Почта занята другим аккаунтом — 409, показываем у поля. Пустую почту не шлём. */
 export const updateProfileInputSchema = z.object({
   fullName: z.string().trim().min(2, "Введите имя").max(80, "Слишком длинное имя"),
-  email: z.string().trim().toLowerCase().pipe(z.email("Похоже, в почте опечатка")),
+  email: z.union([z.literal(""), z.string().trim().toLowerCase().pipe(z.email("Похоже, в почте опечатка"))]),
 });
-export type UpdateProfileInput = z.infer<typeof updateProfileInputSchema>;
+export type UpdateProfileInput = { fullName: string; email: string };

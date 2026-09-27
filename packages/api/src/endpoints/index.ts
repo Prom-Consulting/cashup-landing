@@ -9,4 +9,5 @@ export * from "./partner-self";
 export * from "./partners";
 export * from "./passes";
 export * from "./platform";
+export * from "./promo";
 export * from "./redemptions";

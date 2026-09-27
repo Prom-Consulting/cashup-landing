@@ -8,3 +8,5 @@ export * from "./phone-sign-in";
 export * from "./register-form";
 export * from "./session";
 export * from "./storefront-form";
+export * from "./promo-code-form";
+export * from "./profile-form";

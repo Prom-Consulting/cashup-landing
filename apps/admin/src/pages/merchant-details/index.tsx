@@ -35,6 +35,7 @@ import {
   useMerchantSubscription,
   useRemoveMember,
   useSuspendMerchant,
+  useActivateMerchant,
 } from "../../entities/merchant/api";
 import { EditMerchantForm } from "../../features/merchant/edit-merchant-form";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
@@ -59,6 +60,7 @@ export function MerchantDetailsPage() {
   const subscription = useMerchantSubscription(merchantId);
   const grant = useGrantSubscription(merchantId);
   const suspend = useSuspendMerchant(merchantId);
+  const activate = useActivateMerchant(merchantId);
   const deductions = useMerchantDeductions(merchantId, { page: 1, pageSize: 5 });
   const invoices = useMerchantInvoices(merchantId);
   const accept = useAcceptMember(merchantId);
@@ -266,24 +268,30 @@ export function MerchantDetailsPage() {
       </Card>
 
       <Card>
-        <h2 className="text-xl font-bold">Приостановить или удалить</h2>
+        <h2 className="text-xl font-bold">
+          {merchant.data.status === "suspended" ? "Заведение приостановлено" : "Приостановить или удалить"}
+        </h2>
         <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
-          Приостановленное заведение перестаёт обслуживаться платформой. Удаление убирает его насовсем — клиенты, карты
-          и их баланс остаются: они принадлежат платформе, а не заведению.
+          {merchant.data.status === "suspended"
+            ? "Платформа его сейчас не обслуживает: бонусы здесь не принимаются. Верните в работу — и всё заработает, как раньше, если подписка заведения действует."
+            : "Приостановленное заведение перестаёт обслуживаться платформой, вернуть его можно в любой момент. Удаление убирает его насовсем — клиенты, карты и их баланс остаются: они принадлежат платформе, а не заведению."}
         </p>
         {suspend.isError && <ErrorState error={suspend.error} />}
+        {activate.isError && <ErrorState error={activate.error} />}
         <div className="mt-4 flex flex-wrap gap-3">
-          <ConfirmDialog
-            trigger={
-              <Button variant="outline" disabled={merchant.data.status === "suspended"}>
-                {merchant.data.status === "suspended" ? "Уже приостановлено" : "Приостановить"}
-              </Button>
-            }
-            title="Приостановить заведение?"
-            description="Оно перестанет принимать бонусы. Это увидят все его сотрудники."
-            confirmLabel="Приостановить"
-            onConfirm={() => suspend.mutateAsync()}
-          />
+          {merchant.data.status === "suspended" ? (
+            <Button disabled={activate.isPending} onClick={() => activate.mutate()}>
+              {activate.isPending ? "Возвращаем…" : "Вернуть в работу"}
+            </Button>
+          ) : (
+            <ConfirmDialog
+              trigger={<Button variant="outline">Приостановить</Button>}
+              title="Приостановить заведение?"
+              description="Оно перестанет принимать бонусы, пока вы не вернёте его в работу. Это увидят все его сотрудники."
+              confirmLabel="Приостановить"
+              onConfirm={() => suspend.mutateAsync()}
+            />
+          )}
           <ConfirmDialog
             trigger={<Button variant="danger">Удалить заведение</Button>}
             title={`Удалить «${merchant.data.name}»?`}

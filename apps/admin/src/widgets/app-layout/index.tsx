@@ -1,4 +1,5 @@
 import {
+  Coupon01Icon,
   CreditCardIcon,
   GiftIcon,
   Wallet01Icon,
@@ -20,6 +21,7 @@ const nav: (NavItem & { icon: IconSvg })[] = [
   { to: "/templates", label: "Карты", icon: Wallet01Icon },
   { to: "/programs", label: "Программы", icon: CreditCardIcon },
   { to: "/bonus-items", label: "Бонусные товары", icon: GiftIcon },
+  { to: "/promo-codes", label: "Промокоды", icon: Coupon01Icon },
   { to: "/leads", label: "Заявки", icon: WorkflowSquare02Icon },
   { to: "/certificates", label: "Сертификаты", icon: ShieldKeyIcon },
   { to: "/settings", label: "Настройки", icon: Settings02Icon },

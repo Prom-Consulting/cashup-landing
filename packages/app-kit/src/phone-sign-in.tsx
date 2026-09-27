@@ -4,20 +4,14 @@ import { Field } from "@loal/ui/field";
 import { Button, OtpInput, PhoneInput, Spinner } from "@loal/ui/inputs";
 import { Form, Formik, type FormikHelpers } from "formik";
 import { useEffect, useState } from "react";
-import { useLoginByOtp, useRegisterByPhone, useRequestOtp, useSession } from "./session";
+import { useLoginByOtp, useRequestOtp, useSession } from "./session";
 
 type Step = "phone" | "code";
-/** login — пробуем войти; register — номер новый, следующий код регистрирует. */
-type Intent = "login" | "register";
 
-/** Сервер отвечает 401 с этим текстом, когда на номер нет аккаунта. */
-const isNoAccount = (error: unknown) =>
-  error instanceof ApiError && error.status === 401 && /no account/i.test(error.message);
 const isSpentCode = (error: unknown) =>
   error instanceof ApiError && error.status === 401 && /missing or expired/i.test(error.message);
 const isWrongCode = (error: unknown) =>
   error instanceof ApiError && error.status === 401 && /invalid otp/i.test(error.message);
-const isAlreadyRegistered = (error: unknown) => error instanceof ApiError && error.status === 409;
 
 function readable(error: unknown): string {
   if (error instanceof ApiError) {
@@ -26,7 +20,9 @@ function readable(error: unknown): string {
         ? "Слишком много неверных попыток. Запросите новый код."
         : error.message.replace(/^Try again in (\d+) seconds$/i, "Повторить можно через $1 с");
     if (isSpentCode(error)) return "Код истёк или уже использован. Запросите новый.";
-    if (error.status === 502 || error.status === 503) return "WhatsApp сейчас не отвечает. Попробуйте через минуту.";
+    // 503 — недоступно хранилище кодов (или WhatsApp): это не «неверный код», а временный сбой
+    if (error.status === 503) return "Сервис кодов временно недоступен. Попробуйте через минуту.";
+    if (error.status === 502) return "WhatsApp сейчас не отвечает. Попробуйте через минуту.";
     return error.message;
   }
   return error instanceof Error ? error.message : "Не получилось, попробуйте ещё раз";
@@ -45,21 +41,15 @@ function useCooldown() {
 
 /**
  * Вход и регистрация клиента в одном потоке: телефон → код из WhatsApp → внутри.
- * Есть аккаунт — входим, нет — регистрируем тем же кодом. Человеку не нужно знать,
- * заходил ли он раньше.
- *
- * Сервер при входе на незнакомый номер сначала гасит код и только потом отвечает
- * «аккаунта нет», поэтому регистрация тем же кодом может не пройти. Тогда сами
- * отправляем новый код и следующим вводом регистрируем — без лишних вопросов.
+ * Код проверяется один раз, а войти или создать аккаунт решает сервер: в ответе
+ * isNewAccount. Человеку не нужно знать, заходил ли он раньше.
  */
-export function PhoneSignInForm({ onDone }: { onDone?: () => void }) {
+export function PhoneSignInForm({ onDone }: { onDone?: (result: { isNewAccount: boolean }) => void }) {
   const requestOtp = useRequestOtp();
   const loginByOtp = useLoginByOtp();
-  const registerByPhone = useRegisterByPhone();
   const { endedReason } = useSession();
   const cooldown = useCooldown();
   const [step, setStep] = useState<Step>("phone");
-  const [intent, setIntent] = useState<Intent>("login");
   const [notice, setNotice] = useState<string | null>(null);
   const initialValues: OtpLoginInput = { phone: "", otp: "" };
 
@@ -80,49 +70,16 @@ export function PhoneSignInForm({ onDone }: { onDone?: () => void }) {
   };
 
   const submitCode = async (values: OtpLoginInput, helpers: FormikHelpers<OtpLoginInput>) => {
-    if (intent === "register") {
-      try {
-        await registerByPhone.mutateAsync(values);
-        onDone?.();
-      } catch (error) {
-        if (isAlreadyRegistered(error)) {
-          // Номер уже есть — значит, это вход. Код потрачен, шлём новый.
-          setIntent("login");
-          clearCode(helpers);
-          await sendCode(values.phone).catch(() => undefined);
-          setNotice("Этот номер уже зарегистрирован. Отправили новый код — введите его, чтобы войти.");
-          return;
-        }
-        if (isWrongCode(error)) return helpers.setFieldError("otp", "Неверный код");
-        helpers.setStatus(readable(error));
-      }
-      return;
-    }
-
     try {
-      await loginByOtp.mutateAsync(values);
-      onDone?.();
+      const tokens = await loginByOtp.mutateAsync(values);
+      onDone?.({ isNewAccount: tokens.isNewAccount === true });
     } catch (error) {
       if (isWrongCode(error)) return helpers.setFieldError("otp", "Неверный код");
-      if (!isNoAccount(error)) return helpers.setStatus(readable(error));
-
-      // Аккаунта нет — пробуем зарегистрировать тем же кодом.
-      try {
-        await registerByPhone.mutateAsync(values);
-        onDone?.();
-      } catch (registerError) {
-        if (!isSpentCode(registerError)) return helpers.setStatus(readable(registerError));
-        // Код уже погашен неудачным входом: отправляем новый, следующий ввод — регистрация.
-        setIntent("register");
+      if (isSpentCode(error)) {
         clearCode(helpers);
-        try {
-          await sendCode(values.phone);
-          setNotice("Номер новый — создадим вам аккаунт. Отправили ещё один код в WhatsApp, введите его.");
-        } catch (sendError) {
-          setNotice("Номер новый — создадим вам аккаунт. Запросите код ещё раз и введите его.");
-          helpers.setStatus(readable(sendError));
-        }
+        return helpers.setStatus("Код истёк или уже использован. Запросите новый.");
       }
+      helpers.setStatus(readable(error));
     }
   };
 
@@ -176,11 +133,7 @@ export function PhoneSignInForm({ onDone }: { onDone?: () => void }) {
           </Field>
 
           {step === "code" && (
-            <Field
-              label="Код из WhatsApp"
-              hint={intent === "register" ? "Этим кодом создадим аккаунт." : undefined}
-              error={fieldError(form, "otp")}
-            >
+            <Field label="Код из WhatsApp" error={fieldError(form, "otp")}>
               {(parts) => (
                 <OtpInput
                   {...parts}
@@ -210,15 +163,7 @@ export function PhoneSignInForm({ onDone }: { onDone?: () => void }) {
           )}
 
           <Button type="submit" disabled={form.isSubmitting}>
-            {form.isSubmitting ? (
-              <Spinner />
-            ) : step === "phone" ? (
-              "Получить код"
-            ) : intent === "register" ? (
-              "Создать аккаунт"
-            ) : (
-              "Войти"
-            )}
+            {form.isSubmitting ? <Spinner /> : step === "phone" ? "Получить код" : "Войти"}
           </Button>
 
           {step === "code" && (
@@ -243,7 +188,6 @@ export function PhoneSignInForm({ onDone }: { onDone?: () => void }) {
                 type="button"
                 onClick={() => {
                   setStep("phone");
-                  setIntent("login");
                   setNotice(null);
                   clearCode(form);
                   form.setStatus(undefined);

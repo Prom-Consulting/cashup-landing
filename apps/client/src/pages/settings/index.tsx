@@ -1,16 +1,17 @@
 import { Logout01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
-import { useSession } from "@loal/app-kit";
+import { PromoCodeForm, useSession } from "@loal/app-kit";
 import { formatPhone } from "@loal/ui/inputs";
 import { Button, Card, ConfirmDialog, Icon, cn } from "@loal/ui/shadcn";
-import { useNavigate } from "react-router";
-import { useMyCard } from "../../entities/me/api";
+import { Link, useNavigate } from "react-router";
+import { useMyCard, useRedeemPromo } from "../../entities/me/api";
 import { BACKGROUNDS, useBackground } from "../../shared/lib/background";
 
-/** Настройки держателя карты: кто вошёл, фон кабинета и выход. */
+/** Настройки держателя карты: кто вошёл, промокод, фон кабинета и выход. */
 export function SettingsPage() {
   const { logout } = useSession();
   const navigate = useNavigate();
   const card = useMyCard();
+  const redeemPromo = useRedeemPromo();
   const [background, setBackground] = useBackground();
   const customer = card.data?.customer;
   const name = [customer?.firstName, customer?.lastName].filter(Boolean).join(" ");
@@ -25,6 +26,23 @@ export function SettingsPage() {
         {customer?.phone && (
           <p className="text-base text-muted-foreground tabular-nums">{formatPhone(customer.phone)}</p>
         )}
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-lg font-bold">Промокод</h2>
+          <p className="text-sm text-muted-foreground">Бесплатные месяцы подписки добавятся к вашей карте.</p>
+        </div>
+        <PromoCodeForm
+          redeem={(input) => redeemPromo.mutateAsync(input)}
+          renderHint={(error) =>
+            error === "Сначала получите карту" && (
+              <Button asChild variant="outline" size="sm" className="self-start">
+                <Link to="/">Купить подписку</Link>
+              </Button>
+            )
+          }
+        />
       </Card>
 
       <Card className="flex flex-col gap-4">

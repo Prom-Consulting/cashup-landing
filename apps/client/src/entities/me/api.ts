@@ -1,11 +1,15 @@
-import { cardsApi, meApi, type BuyMonthsInput, type PaySubscriptionByPhoneInput } from "@loal/api";
+import {
+  cardsApi,
+  meApi,
+  promoApi,
+  type BuyMonthsInput,
+  type PaySubscriptionByPhoneInput,
+  type RedeemPromoInput,
+} from "@loal/api";
 import { useApi } from "@loal/app-kit";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export const meKeys = {
-  card: ["me", "card"] as const,
-  history: (page: number) => ["me", "history", page] as const,
-};
+export const meKeys = { card: ["me", "card"] as const, history: (page: number) => ["me", "history", page] as const };
 
 /** 404 значит «карты ещё нет» — это состояние экрана, а не ошибка. */
 export function useMyCard() {
@@ -36,5 +40,15 @@ export function usePaySubscriptionByPhone() {
   const api = useApi();
   return useMutation({
     mutationFn: (input: PaySubscriptionByPhoneInput) => cardsApi(api).paySubscriptionByPhone(input),
+  });
+}
+
+/** Промокод на месяцы подписки: после успеха карта перечитывается — подписка на ней уже с ними. */
+export function useRedeemPromo() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RedeemPromoInput) => promoApi(api).redeemForMe(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: meKeys.card }),
   });
 }

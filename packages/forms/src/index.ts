@@ -96,16 +96,22 @@ export function applyServerIssues<Values>(
  * на длинной форме человек не видит, где именно проблема.
  */
 export function FocusFirstError<Values>({ form }: { form: FormikProps<Values> }) {
-  const { submitCount, isValid, errors } = form;
+  const { submitCount, isValid, errors, setErrors } = form;
 
   useEffect(() => {
     if (submitCount === 0 || isValid) return;
     const first = Object.keys(errors)[0];
     if (!first) return;
     const field = document.querySelector<HTMLElement>(`[name="${first}"], #${CSS.escape(first)}`);
-    field?.focus();
-    field?.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, [submitCount, isValid, errors]);
+    if (!field || field === document.activeElement) return;
+    const left = document.activeElement;
+    field.focus();
+    field.scrollIntoView({ block: "center", behavior: "smooth" });
+    // Фокус ушёл с другого поля (Enter в нём) — Formik перепроверил форму схемой на blur
+    // и стёр ошибки сервера (409 «код уже есть»). Значения те же — возвращаем их.
+    if (left instanceof HTMLInputElement || left instanceof HTMLTextAreaElement || left instanceof HTMLSelectElement)
+      setTimeout(() => setErrors(errors), 0);
+  }, [submitCount, isValid, errors, setErrors]);
 
   return null;
 }

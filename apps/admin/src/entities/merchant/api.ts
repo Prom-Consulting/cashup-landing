@@ -1,9 +1,12 @@
 import {
+  ApiError,
   merchantCabinetApi,
   merchantsApi,
+  slugify,
   type BuyMonthsInput,
-  type CreateMerchantInput,
+  type CreateMerchantForm,
   type DeductionQuery,
+  type Merchant,
   type UpdateMerchantInput,
 } from "@loal/api";
 import { useApi } from "@loal/app-kit";
@@ -30,12 +33,68 @@ export function useMerchant(merchantId: string) {
   return useQuery({ queryKey: merchantKeys.detail(merchantId), queryFn: () => merchantsApi(api).get(merchantId) });
 }
 
+export type NewMerchant = { values: CreateMerchantForm; logo: File | null; photos: File[] };
+
+/**
+ * Новое заведение одним действием: запись, картинки и витрина. Адрес собирается из
+ * названия; занят — пробуем с номером. Если заведение создалось, а витрина нет, ошибку
+ * не бросаем: заведение уже есть, фото можно дозагрузить в его карточке.
+ */
 export function useCreateMerchant() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateMerchantInput) => merchantsApi(api).create(input),
+    mutationFn: async ({ values, logo, photos }: NewMerchant) => {
+      const base = slugify(values.name) || "merchant";
+      let merchant: Merchant | null = null;
+      for (let attempt = 1; !merchant; attempt += 1) {
+        const slug =
+          attempt === 1 ? base : attempt <= 5 ? `${base}-${attempt}` : `${base}-${crypto.randomUUID().slice(0, 6)}`;
+        try {
+          merchant = await merchantsApi(api).create({
+            slug,
+            name: values.name,
+            contactEmail: values.contactEmail,
+            contactPhone: values.contactPhone,
+          });
+        } catch (error) {
+          if (!(error instanceof ApiError && error.isConflict) || attempt >= 8) throw error;
+        }
+      }
+
+      let storefrontError: string | null = null;
+      try {
+        const cabinet = merchantCabinetApi(api);
+        const logoUrl = logo ? (await cabinet.uploadAsset(merchant.id, "merchantLogo", logo)).url : null;
+        const photoUrls: string[] = [];
+        for (const photo of photos)
+          photoUrls.push((await cabinet.uploadAsset(merchant.id, "merchantPhoto", photo)).url);
+        await cabinet.saveProfile(merchant.id, {
+          category: values.category.trim() || null,
+          description: values.description.trim() || null,
+          logoUrl,
+          photos: photoUrls,
+          instagramUrl: null,
+          twogisUrl: null,
+        });
+      } catch (error) {
+        storefrontError = error instanceof Error ? error.message : "Витрина не сохранилась";
+      }
+      return { merchant, storefrontError };
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.all }),
+  });
+}
+
+export function useActivateMerchant(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => merchantsApi(api).activate(merchantId),
+    onSuccess: (merchant) => {
+      queryClient.setQueryData(merchantKeys.detail(merchantId), merchant);
+      queryClient.invalidateQueries({ queryKey: merchantKeys.all });
+    },
   });
 }
 

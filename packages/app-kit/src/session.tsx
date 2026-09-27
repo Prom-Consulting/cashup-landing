@@ -187,3 +187,18 @@ export function useLoginByOtp() {
     onSuccess: (tokens) => signIn(tokens.accessToken),
   });
 }
+
+/** Имя и почта того, кто вошёл, — для формы профиля. */
+export function useProfile() {
+  const { api } = useSession();
+  return useQuery({ queryKey: ["session", "profile"], queryFn: () => authApi(api).profile() });
+}
+
+/** Смена имени и почты. Сервер выдаёт новый токен — с ним и перечитываем сессию. */
+export function useUpdateProfile() {
+  const { api, signIn } = useSession();
+  return useMutation({
+    mutationFn: (input: { fullName: string; email: string }) => authApi(api).updateProfile(input),
+    onSuccess: (tokens) => signIn(tokens.accessToken),
+  });
+}

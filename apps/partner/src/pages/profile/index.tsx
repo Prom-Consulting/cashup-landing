@@ -1,5 +1,5 @@
 import { ApiError, changePasswordInputSchema, type ChangePasswordInput, authApi } from "@loal/api";
-import { useApi } from "@loal/app-kit";
+import { ProfileForm, useApi } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { TextInput } from "@loal/ui/inputs";
@@ -9,7 +9,7 @@ import { useCurrentMerchant } from "../../entities/session/model";
 
 const initialValues: ChangePasswordInput = { currentPassword: "", newPassword: "", repeatPassword: "" };
 
-/** Профиль: кто вошёл и смена пароля. */
+/** Профиль: кто вошёл, имя и почта, смена пароля. */
 export function ProfilePage() {
   const api = useApi();
   const { label, membership } = useCurrentMerchant();
@@ -25,6 +25,11 @@ export function ProfilePage() {
             ? "Владелец магазина: видит оплату и настройки 1С"
             : "Сотрудник магазина"}
         </p>
+      </Card>
+
+      <Card>
+        <h2 className="text-xl font-bold">Имя и почта</h2>
+        <ProfileForm />
       </Card>
 
       <Card>

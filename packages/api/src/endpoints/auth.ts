@@ -10,6 +10,7 @@ import {
   phoneRegisterInputSchema,
   profileSchema,
   sessionSchema,
+  updateProfileInputSchema,
   type ChangePasswordInput,
   type LoginInput,
   type OtpLoginInput,
@@ -70,8 +71,13 @@ export const authApi = (api: ApiClient) => ({
 
   profile: () => api.request(profileSchema, "/auth/me/profile"),
 
-  updateProfile: (input: UpdateProfileInput) =>
-    api.request(authTokensSchema, "/auth/me", { method: "PUT", body: input }),
+  updateProfile: (input: UpdateProfileInput) => {
+    const { fullName, email } = updateProfileInputSchema.parse(input);
+    return api.request(authTokensSchema, "/auth/me", {
+      method: "PUT",
+      body: { fullName, ...(email === "" ? {} : { email }) },
+    });
+  },
 
   changePassword: ({ currentPassword, newPassword }: ChangePasswordInput) =>
     api.request(z.looseObject({ ok: z.boolean() }), "/auth/me/password", {

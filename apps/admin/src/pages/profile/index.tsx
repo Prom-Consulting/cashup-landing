@@ -1,5 +1,5 @@
 import { ApiError, changePasswordInputSchema, type ChangePasswordInput, authApi } from "@loal/api";
-import { useApi } from "@loal/app-kit";
+import { ProfileForm, useApi } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Button, Input, PageHeader } from "@loal/ui/shadcn";
@@ -9,7 +9,7 @@ import { useCurrentUser } from "../../entities/session/model";
 
 const initialValues: ChangePasswordInput = { currentPassword: "", newPassword: "", repeatPassword: "" };
 
-/** Профиль: кто вошёл и смена пароля. */
+/** Профиль: кто вошёл, имя и почта, смена пароля. */
 export function ProfilePage() {
   const api = useApi();
   const { session, label } = useCurrentUser();
@@ -23,6 +23,11 @@ export function ProfilePage() {
         <p className="mt-2 text-lg text-muted-foreground">
           Роль: {session?.role === "super_admin" ? "администратор платформы" : (session?.role ?? "—")}
         </p>
+      </Card>
+
+      <Card>
+        <h2 className="text-xl font-bold">Имя и почта</h2>
+        <ProfileForm />
       </Card>
 
       <Card>

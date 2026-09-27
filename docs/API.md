@@ -48,9 +48,25 @@
 | `/admin/v1/stores/{id}/customer-field-settings` | `/admin/v1/customer-field-settings` |
 | `/v1/public/enroll/{storeId}/{templateId}` | `/v1/public/enroll/{templateId}` |
 
-Поле `storeId` пропало из ответов по клиенту, карте, шаблону, программе, подписке
-клиента и сертификату. В операции вместо пары `storeId` + `merchantStoreId` теперь один
-`merchantId` — магазин, где потратили; у начисления подписки он `null`.
+**Поля в ответах тоже поменялись** — если схема на фронте проверяет ответ, она
+упадёт раньше, чем экран нарисуется. Вот весь список:
+
+| Объект | Было | Стало |
+|---|---|---|
+| Клиент | `storeId` | пропало; появилось `userId` (аккаунт клиента или `null`) |
+| Карта | `storeId` | пропало |
+| Шаблон карты | `storeId` | пропало |
+| Программа лояльности | `storeId` | пропало |
+| Подписка клиента | `storeId`, `cardId` | вместо них `customerId` — подписка принадлежит человеку |
+| Сертификат | `storeId` | пропало |
+| Бонусный товар | `storeId` | пропало |
+| Операция | `storeId` + `merchantStoreId` | один `merchantId`, у начислений `null` |
+| Филиал | `storeId` | `merchantId` |
+| Настройки кассы | `storeId` | `merchantId` (может быть `null`) |
+| Счёт | `storeId` | `merchantId` (`null` у оплаты подписки клиента); добавились `cardSerial` и `walletUrl` |
+| Подписка магазина | `storeId` | `merchantId` |
+| Настройки 1С | `storeId` | `merchantId` |
+| Магазин | `kind`, `certificateCounts` | пропали: роли у магазина больше нет, сертификаты платформенные |
 
 **3. Эти адреса доступны только агентству.** Магазину они закрыты целиком — не
 отфильтрованы, а именно закрыты, `403`. Магазин видит свой журнал списаний, свою
@@ -112,7 +128,9 @@ Cookies не используются, `credentials: "include"` ставить �
 Frontend хранит два значения:
 
 1. `deviceId` — постоянный ID конкретной установки приложения. Создаётся **один раз**,
-   не меняется при обычном запуске и отправляется при регистрации и каждом входе.
+   не меняется при обычном запуске и отправляется при каждом входе. При регистрации
+   его можно не присылать, но лучше прислать: иначе сервер заведёт сессию под
+   случайным ID, и первый же вход с настоящим `deviceId` её заменит.
 2. `accessToken` — JWT текущей сессии. Отправляется как
    `Authorization: Bearer <accessToken>` на всех закрытых endpoint’ах.
 
@@ -160,35 +178,63 @@ Content-Type: application/json
 до трёх раз. `502` frontend получит только если все попытки закончились неудачно; в этом
 случае код не сохранён и запрос можно безопасно повторить позже.
 
+Код переживает перезапуск сервера: он хранится не в памяти процесса, а в Redis. Если
+само хранилище кодов недоступно, и запрос кода, и его проверка ответят `503` с текстом
+«Сервис кодов временно недоступен» — повторить через минуту.
+
 ### Регистрация
+
+Регистрация — **только телефон и код** из WhatsApp. Почты, пароля и имени в теле нет.
 
 ```
 POST /auth/register
 Content-Type: application/json
 
 {
-  "email": "client@example.com",
-  "password": "не короче 8 символов",
-  "fullName": "Иван Петров",
   "phone": "+996700000001",
   "otp": "123456",
   "deviceId": "7ce8e4d2-4621-43f4-a57c-b85b1d26d124"
 }
-→ { "accessToken": "...", "expiresIn": "12h" }
+→ 201 { "accessToken": "...", "expiresIn": "12h", "isNewAccount": true }
 ```
 
-Все поля, кроме `fullName`, обязательны. Перед регистрацией frontend обязательно
-вызывает `/auth/otp/request` для того же телефона. После успеха надо сохранить
-`accessToken`; отдельный вызов `/auth/login` не нужен.
+**Код вводится один раз.** Регистрация и вход по телефону — одно действие: код
+подтверждает номер, а есть ли уже аккаунт, решает только, что произойдёт.
+`/auth/register` с уже зарегистрированным номером **входит** в него
+(`isNewAccount: false`), `/auth/login` с новым номером **создаёт** аккаунт
+(`isNewAccount: true`). Второй код не нужен ни в каком случае — не запрашивайте его:
+первый к этому моменту уже израсходован. `isNewAccount` — чтобы показать приветствие
+новому клиенту.
 
-`POST /auth/register-with-invite` — то же плюс `inviteCode`; создаёт администратора
-магазина, для которого код выпущен.
+| Поле | Обязательно | Правило |
+|---|---|---|
+| `phone` | да | тот же номер, что в `/auth/otp/request`; пробелы, `+`, скобки, дефисы сервер уберёт, должно остаться 10–15 цифр |
+| `otp` | да | 6 цифр из WhatsApp, живёт 5 минут, 5 попыток |
+| `deviceId` | нет | 8–200 символов, постоянный ID установки — см. «Что frontend должен хранить» |
 
-Самостоятельная регистрация всегда создаёт **обычного сотрудника** (`store_staff`) без
+Перед регистрацией frontend обязательно вызывает `/auth/otp/request` для того же
+телефона. После успеха сохранить `accessToken`; отдельный `/auth/login` не нужен.
+Входить дальше — по телефону и коду.
+
+Лишнее поле в теле — `400` с его названием: если клиент всё ещё шлёт `email`,
+`password` или `fullName`, он узнает об этом сразу, а не решит, что они сохранились.
+
+Самостоятельная регистрация всегда создаёт **обычный аккаунт** (`store_staff`) без
 членства в магазине. Права агентства выдаются отдельно — передать роль в теле нельзя.
+Карта к аккаунту привязывается по телефону — см. «Кабинет клиента».
 
-Основные отказы: `400` — поле отсутствует/неверного формата; `401` — OTP неверный или
-истёк; `409` — email или телефон уже зарегистрирован; `502/503` — проблема WhatsApp.
+Основные отказы: `400` — поле отсутствует, лишнее или неверного формата; `401` — OTP
+неверный или истёк; `502/503` — проблема WhatsApp. Занятого номера как ошибки больше
+нет — это вход.
+
+**Регистрация администратора магазина по приглашению** — отдельный адрес, и почта с
+паролем там остаются: администратор работает в кабинете и входит паролем.
+
+```
+POST /auth/register-with-invite
+{ "email": "...", "password": "не короче 8 символов", "fullName": "…?",
+  "phone": "...", "otp": "123456", "deviceId": "…?", "inviteCode": "..." }
+```
 
 ### Вход
 
@@ -199,7 +245,8 @@ Content-Type: application/json
 { "email": "client@example.com", "password": "password123", "deviceId": "..." }
    или
 { "phone": "+996700000001", "otp": "123456", "deviceId": "..." }
-→ { "accessToken": "...", "expiresIn": "12h" }
+→ { "accessToken": "...", "expiresIn": "12h" }                       (по почте)
+→ { "accessToken": "...", "expiresIn": "12h", "isNewAccount": false } (по телефону)
 ```
 
 Нельзя смешивать две формы. Для входа по email нужны `email + password + deviceId`.
@@ -228,6 +275,9 @@ Frontend обязан отдельно обработать `error === "SESSION_
 закрыть приватные экраны и показать `message`. Автоматически повторять такой запрос или
 молча обновлять сессию нельзя — это вернуло бы доступ старому устройству.
 
+Вход по телефону с номером, у которого ещё нет аккаунта, **создаёт** его и входит
+(`isNewAccount: true`) — см. «Регистрация». Ошибки «номер не зарегистрирован» нет.
+
 ### Рекомендуемая последовательность экранов
 
 **Регистрация:**
@@ -235,8 +285,11 @@ Frontend обязан отдельно обработать `error === "SESSION_
 1. Получить/создать постоянный `deviceId`.
 2. Пользователь вводит телефон → `POST /auth/otp/request`.
 3. Показать ввод 6 цифр и таймер повторной отправки 60 секунд.
-4. Собрать email, пароль, имя → один `POST /auth/register` с телефоном, OTP и `deviceId`.
-5. Сохранить `accessToken` и открыть приложение.
+4. Код введён → `POST /auth/register` (или `/auth/login` — разницы нет) с телефоном,
+   кодом и `deviceId`. Два экрана, один код.
+5. Сохранить `accessToken`; `isNewAccount: true` — показать приветствие.
+
+Отдельных экранов «вход» и «регистрация» для клиента не нужно: телефон → код → внутри.
 
 **Вход по телефону:**
 
@@ -256,8 +309,8 @@ Frontend обязан отдельно обработать `error === "SESSION_
 | Метод | Адрес | Что делает |
 |---|---|---|
 | `GET` | `/auth/me` | Разбор токена: `sub`, `email`, `role`, `merchants[]`, `sessionId`. Отвечает `401`, если сессия заменена |
-| `GET` | `/auth/me/profile` | `{ id, email, fullName, role }` |
-| `PUT` | `/auth/me` | Смена имени и почты; возвращает новый токен |
+| `GET` | `/auth/me/profile` | `{ id, email, fullName, role }`; у зарегистрированных по телефону `email` и `fullName` — `null` |
+| `PUT` | `/auth/me` | Смена имени и почты (так клиент добавляет их позже); возвращает новый токен |
 | `PUT` | `/auth/me/password` | `{ currentPassword, newPassword }` |
 
 В токене лежит `merchants[]` — список магазинов, где человек работает, с ролью и
@@ -320,7 +373,7 @@ DELETE /admin/v1/cards/{serial}/subscription   отмена
 Ответ:
 
 ```json
-{ "id": "...", "cardId": "...",
+{ "id": "...", "customerId": "...",
   "status": "active",
   "pointsPerPeriod": 100000,
   "periodsTotal": 3, "periodsGranted": 1,
@@ -333,18 +386,142 @@ DELETE /admin/v1/cards/{serial}/subscription   отмена
 **сгорает целиком**, и если оплаченные месяцы ещё есть — тут же выдаётся новый запас.
 Когда они кончились, баланс ноль, а карта остаётся у клиента.
 
-Повторное включение при активной подписке — `400`. Продлевать пока нечем, это в работе.
+**Продление — тот же `POST`.** Если подписка уже идёт, месяцы прибавляются к
+`periodsTotal`, а новая подписка не заводится: в ответе придёт тот же `id`.
+
+Баллы при продлении **не выдаются сейчас** — текущий запас уже на карте, а купленные
+месяцы выдаст смена периода, когда до них дойдёт. Заплатить заранее не значит держать
+два запаса сразу. Этим подписка карты отличается от подписки магазина, где продление
+двигает дату: здесь срок меряется периодами, и у каждого свой запас баллов.
+
+Когда подписка закончилась, тот же `POST` начинает новую — с новым `id` и выдачей
+баллов сразу.
+
+**Подписка принадлежит человеку, а не карте.** Адрес по-прежнему по серийному номеру —
+так удобнее искать, — но в ответе `customerId`, и перевыпуск карты подписку не трогает:
+оплаченные месяцы продолжают приходить уже на новую карту.
 
 ### Оплатить подписку
 
 ```
 POST /v1/public/octopay/subscriptions/{serial}
 { "months": 1 }
-→ { "id", "providerInvoiceId", "amount", "paymentUrl", "status": "pending", ... }
+→ { "id", "providerInvoiceId", "amount", "paymentUrl", "cardSerial", "walletUrl", "status": "pending", ... }
 ```
 
 Без токена. Клиента надо отправить на `paymentUrl`; после оплаты OctōPAY присылает нам
 колбэк, и подписка включается сама. Проверять результат — карточкой подписки выше.
+
+**Оплата по телефону** — для человека, у которого карты ещё нет:
+
+```
+POST /v1/public/octopay/subscriptions
+{ "phone": "996700000001", "months": 1, "firstName": "Иван" }
+→ { "paymentUrl": "…", "cardSerial": "…", "walletUrl": "…", "status": "pending", … }
+```
+
+В ответе сразу две ссылки: `paymentUrl` — куда отправить платить, `walletUrl` — файл
+карты для Apple Wallet (на Android — `…/google-save-link`, см. «Моя карта»). Второй достаточно, чтобы человек забрал карту
+без регистрации: показать её можно прямо после оплаты, ничего не спрашивая.
+
+Карта появляется **до** оплаты, а не после: иначе человеку пришлось бы ждать и
+переспрашивать, появилась ли она. Он добавляет её в Wallet сразу, а оплата наполняет её
+баллами. Если он передумает платить, останется пустая карта — никому не мешает.
+
+После оплаты OctōPAY возвращает браузер на `OCTOPAY_CLIENT_RETURN_URL` (по умолчанию
+`https://client.loal.kg/payment/return`). Экран возврата ждёт, пока платёжный webhook активирует
+подписку, и затем открывает карту с QR-кодом. Для локальной проверки может понадобиться
+публичный HTTPS-адрес вместо `localhost`.
+
+---
+
+## Кабинет клиента
+
+Две ручки для мобильного приложения. Идентификатора в адресе нет намеренно: сервер
+читает человека из токена, поэтому спросить про чужую карту нельзя в принципе.
+
+### Моя карта
+
+```
+GET /v1/me/card
+→ {
+    "serialNumber": "...", "status": "active", "pointsBalance": 94571,
+    "walletUrl": "https://loal.promconsult.pro/v1/public/passes/...",
+    "customer": { "firstName": "Иван", "lastName": "Петров", "phone": "996700000001" },
+    "subscription": {
+      "status": "active", "periodsTotal": 3, "periodsGranted": 1,
+      "currentPeriodEnd": "2026-10-23T10:15:00.000Z"
+    }
+  }
+```
+
+`walletUrl` — файл карты для **Apple Wallet** (`.pkpass`): на iPhone по нему Wallet
+предлагает добавить карту. Для Android он бесполезен — там ссылку «Добавить в Google
+Wallet» отдаёт `GET /v1/public/passes/{serialNumber}/google-save-link`
+(`{ "available": true, "saveUrl": "https://pay.google.com/..." }`; `available: false` —
+Google Wallet не настроен).
+
+`subscription` приходит `null`, когда подписку ни разу не покупали или последняя
+закончилась: тогда на карте лежит остаток и его ничто не продлевает.
+`currentPeriodEnd` — когда баллы текущего периода сгорят.
+
+**`404`, если карты нет.** Это честный ответ человеку, которому её ещё не выпускали, —
+показывайте экран «карты пока нет», а не ошибку.
+
+Как человек связывается со своей картой: при первом обращении сервер ищет клиента по
+телефону, с которым тот зарегистрировался, и запоминает связь. Дальше телефон уже ни на
+что не влияет — сменит номер, карта останется его.
+
+### Моя история
+
+```
+GET /v1/me/history?page=1&pageSize=20
+→ { "items": [...], "total": 42, "page": 1, "pageSize": 20 }
+```
+
+Строка:
+
+```json
+{ "id": "...", "kind": "spend", "amount": -5429, "balanceAfter": 94571,
+  "createdAt": "...", "merchantName": "Кофейня",
+  "items": [{ "productName": "Айфон 15", "price": 100000, "points": 5000 }] }
+```
+
+| `kind` | Что это |
+|---|---|
+| `spend` | Потратили у магазина. `merchantName` — где, `items` — что купили |
+| `grant` | Выдала подписка в начале периода |
+| `burn` | Сгорел остаток в конце периода |
+| `welcome` | Приветственные баллы при выдаче первой карты |
+| `other` | Всё прочее: ручная правка, наследие старой механики |
+
+`merchantName` приходит `null` у всего, что платформа делает сама, и у магазина,
+которого уже удалили. `items` пустой у всего, кроме трат.
+
+История собирается по человеку, а не по куску пластика: перевыпуск карты её не
+обнуляет, и строки со старой карты остаются на месте.
+
+### Промокод
+
+Клиент вводит промокод оператора и получает бесплатные месяцы подписки своей карты.
+
+```
+POST /v1/me/promo-code          (токен клиента)
+{ "code": "LOAL-7KX2QM" }
+→ { "code": "LOAL-7KX2QM", "audience": "client", "months": 1,
+    "subscription": { …подписка карты, как в «Подписка клиента»… } }
+```
+
+Регистр не важен: `loal-7kx2qm` — тот же код. Месяцы ложатся на подписку ровно как
+оплаченные: нет подписки — она начинается сразу с выдачей бонусов; есть — месяцы
+добавляются к ней.
+
+| Код | Когда |
+|---|---|
+| `404` | Код не найден, выключен или удалён; либо у человека ещё нет карты |
+| `400` | Код для магазинов, истёк или исчерпан лимит использований |
+| `409` | Этот человек уже применял этот код |
+| `502` | Сервис карт не ответил — код не засчитан, можно повторить |
 
 ---
 
@@ -371,13 +548,16 @@ POST /v1/redemptions                    (нужен токен кассира)
 Если человек работает в нескольких магазинах, надо добавить `"merchantId"`, иначе придёт
 `400`.
 
-Процент покрытия в приложении — **не больше 30**. У магазина со своей 1С правила свои.
+Процент покрытия в приложении — **не больше 30**. Кроме того, если магазин задал потолок
+(см. «Потолок процента» в кабинете магазина), ни одна позиция не может его превышать — это
+правило действует и для 1С. Получается, в приложении предел — меньшее из 30 и потолка.
 
 `operationId` — ваш номер операции. Повтор с тем же значением **не спишет второй раз**, а
 вернёт тот же ответ с `"duplicate": true`. Это то, что позволяет смело повторять запрос
 при обрыве связи.
 
-Отказы: `403` — подписка магазина неактивна; `404` — карты нет; `409` — не хватает баллов
+Отказы: `400` — процент позиции выше потолка магазина (в тексте номер позиции и потолок);
+`403` — подписка магазина неактивна; `404` — карты нет; `409` — не хватает баллов
 или карта не активна. При любом отказе **ничего не списано**.
 
 ### Из 1С магазина
@@ -422,6 +602,23 @@ POST /admin/v1/merchants/{merchantId}/subscription     { "months": 1 }
 через приложение, ни через 1С. `POST` — выдача доступа агентством без оплаты; обычный
 путь продления идёт через оплату.
 
+
+### Промокод магазина
+
+Магазин вводит промокод оператора и получает бесплатные месяцы доступа — ту же
+подписку, что продлевается оплатой.
+
+```
+POST /admin/v1/merchants/{merchantId}/promo-code
+{ "code": "SUMMER-2026" }
+→ { "code": "SUMMER-2026", "audience": "merchant", "months": 2,
+    "subscription": { "merchantId": "...", "expiresAt": "...", "isActive": true } }
+```
+
+Применяет администратор магазина или партнёр (и агентство); кассиру `403`. Месяцы
+добавляются к более поздней из дат «сегодня» и «текущий конец подписки». Коды ответа —
+как у клиентского промокода: `404` — не найден или выключен, `400` — не та аудитория,
+истёк или исчерпан, `409` — этот магазин уже применял этот код.
 ### Счета
 
 ```
@@ -480,6 +677,108 @@ POST /admin/v1/merchants/{merchantId}/profile-assets?slot=merchantPhoto
 только агентству, а профиль заполняет сам магазин. Отдаются картинки по прежнему
 публичному адресу — хранилище одно и то же.
 
+### Потолок процента
+
+Сколько процентов цены одной позиции магазин готов покрыть баллами. Касса и 1С выбирают
+процент по каждому товару сами, но не выше потолка; каталог показывает его клиенту как
+«до N%».
+
+```
+GET /admin/v1/merchants/{merchantId}/coverage-limit
+PUT /admin/v1/merchants/{merchantId}/coverage-limit     { "maxCoveragePercent": 20 }
+→ { "maxCoveragePercent": 20, "changedAt": "2026-09-24T…", "nextChangeAt": "2026-10-24T…" }
+```
+
+`maxCoveragePercent` — целое 1–100 или `null` (потолок не задан: в приложении действует
+общий предел 30%, в 1С — 100%).
+
+Менять могут администратор магазина, партнёр и агентство, остальным `403`. Магазин меняет
+потолок **не чаще раза в месяц**: до `nextChangeAt` придёт `409` с датой, когда можно.
+`nextChangeAt: null` — менять можно прямо сейчас. `changedAt` — когда потолок менял сам
+магазин. Агентство этим ограничением не связано, и его правка месячный срок магазина не
+сдвигает.
+
+Потолок не касается автосписания при оплате через OctōPAY: там клиент платит баллами всю
+сумму счёта, позиций с процентами нет.
+
+### Филиалы
+
+```
+GET  /admin/v1/merchants/{merchantId}/branches
+POST /admin/v1/merchants/{merchantId}/branches   { "name": "На Чуй" }
+→ { id, merchantId, name, createdAt }
+```
+
+Филиал — физическая точка. К нему привязывают сотрудника, и тогда в «Продажах» видно,
+где прошла операция.
+
+### Сотрудники
+
+```
+GET    /admin/v1/merchants/{merchantId}/members
+POST   /admin/v1/merchants/{merchantId}/members            { userId, role, branchId? }
+POST   /admin/v1/merchants/{merchantId}/members/partners   { userId, scanOperation, branchId? }
+PATCH  /admin/v1/merchants/{merchantId}/members/{memberId} { branchId, defaultTemplateId?, defaultProgramId? }
+PATCH  /admin/v1/merchants/{merchantId}/members/{memberId}/bonus  { amount, maxPerCustomer }
+POST   /admin/v1/merchants/{merchantId}/members/{memberId}/accept
+DELETE /admin/v1/merchants/{merchantId}/members/{memberId}
+```
+
+`role` при добавлении — `admin` или `staff`. Человека добавляют **по уже существующему
+`userId`**: он сначала регистрируется сам, потом его подключают к магазину.
+
+Партнёр заводится отдельной ручкой, потому что ему выбирают **одну-единственную**
+операцию: `scanOperation` — `earn` или `redeem`. Больше ничего он делать не сможет
+никогда, и сотрудники, которых он заведёт сам, унаследуют ровно это право.
+
+`PATCH .../bonus` — приветственный бонус партнёра: `amount` (сколько баллов) и
+`maxPerCustomer` (сколько раз одному клиенту, `null` — без ограничения). Оба поля
+отправляются вместе, `null` очищает.
+
+### Приглашение администратора
+
+```
+GET  /admin/v1/merchants/{merchantId}/invites
+POST /admin/v1/merchants/{merchantId}/invites
+→ { id, merchantId, code, role: "admin", createdAt, usedAt, usedByUserId }
+```
+
+Только агентство (`super_admin`), остальным `403`. Код одноразовый: его вводят при
+регистрации через `/auth/register-with-invite`, и человек сразу становится
+администратором этого магазина.
+
+### Касса
+
+```
+GET    /admin/v1/merchants/{merchantId}/pos-settings
+PATCH  /admin/v1/merchants/{merchantId}/pos-settings/{programId}
+DELETE /admin/v1/merchants/{merchantId}/pos-settings/{programId}
+```
+
+Что кассир вводит в приложении при начислении и при списании. Одна строка на программу.
+`DELETE` возвращает к значениям по умолчанию.
+
+| Поле | Значения |
+|---|---|
+| `earnInputMode` | `purchase_amount` — вводит сумму покупки; `points_amount` — сразу баллы; `purchase_count` — жмёт +/− на счётчике покупок |
+| `redeemInputMode` | `purchase_amount`, `points_amount`, `amount_bonus_payment` (сумма + баллы + способ оплаты) |
+| `maxRedeemPercent` | Потолок «не больше N% от чека», `null` — без потолка |
+| `mixedPaymentEnabled` | Разрешить «оплату с баллами»: часть баллами, часть деньгами |
+
+Сканер читает свои настройки отдельной ручкой: `GET /v1/pos-settings?merchantId=…&programId=…`.
+
+### Вебхуки
+
+```
+GET  /admin/v1/merchants/{merchantId}/webhooks
+POST /admin/v1/merchants/{merchantId}/webhooks  { "url": "https://…", "events": ["points_changed"] }
+GET  /admin/v1/merchants/{merchantId}/webhooks/{id}/deliveries
+```
+
+Наши исходящие вызовы в систему магазина, когда на карте что-то произошло **у него**.
+`POST` возвращает `secret` — **единственный раз**, им подписываются вызовы. `deliveries`
+показывает попытки доставки со статусом.
+
 ### Настройки 1С
 
 ```
@@ -503,24 +802,55 @@ POST /admin/v1/merchants/{merchantId}/onec-integration/regenerate-token
 | Метод | Адрес | Комментарий |
 |---|---|---|
 | `GET` | `/admin/v1/merchants` | Список. Только агентство |
-| `POST` | `/admin/v1/merchants` | `{ slug, name, contactEmail?, contactPhone? }`. Только агентство |
+| `POST` | `/admin/v1/merchants` | `{ slug, name, contactEmail?, contactPhone? }`. Только агентство. `slug` занят — `409` |
 | `GET` | `/admin/v1/merchants/{id}` | Виден и самому магазину |
 | `PATCH` | `/admin/v1/merchants/{id}` | Название, контакты, этап подключения |
-| `POST` | `/admin/v1/merchants/{id}/suspend` | |
-| `DELETE` | `/admin/v1/merchants/{id}` | Убирает магазин. Клиенты, карты и баланс остаются — они не его |
+| `POST` | `/admin/v1/merchants/{id}/suspend` | `status: "suspended"` — платформа магазин не обслуживает. Только агентство |
+| `POST` | `/admin/v1/merchants/{id}/activate` | Обратно в `status: "active"`. Только агентство |
+| `DELETE` | `/admin/v1/merchants/{id}` | Убирает магазин. Клиенты, карты и баланс остаются — они не его. Только агентство |
 
 ### Клиенты и карты
 
 Платформенные, магазину закрыты.
+
+**У человека одна действующая карта.** Выпуск новой отзывает прежнюю и переносит на
+новую весь её баланс — переезд записывается в реестр двумя строками, так что в истории
+видно, откуда и куда ушли баллы. Подписка при этом не трогается: она принадлежит
+человеку.
+
+#### Выдать карту
+
+```
+POST /admin/v1/cards
+{ "phone": "996700000001", "firstName": "Иван", "lastName": "Петров" }
+   или
+{ "customerId": "…" }
+→ карта
+```
+
+Человека называют **или** телефоном, **или** идентификатором — и то и другое сразу даёт
+`400`. По телефону клиент заводится сам, если его ещё нет; повторный вызов с тем же
+номером находит того же человека, а не создаёт двойника.
+
+`templateId` и `programId` **можно не присылать** — тогда выдаётся карта платформы по
+умолчанию. Присылать их по-прежнему можно, но это исключение.
+
+Если у программы заданы `welcomePoints`, а человеку карту выдают впервые, баллы уже
+лежат в `pointsBalance` ответа — отдельного вызова не нужно.
+
+Выпуск **по неопубликованной карте отклоняется** (`400`): черновик — это «ещё не
+решено», и людям он попасть не должен.
 
 | Метод | Адрес |
 |---|---|
 | `GET` / `POST` | `/admin/v1/customers` |
 | `GET` | `/admin/v1/customers/table?page=&pageSize=&search=` |
 | `POST` | `/admin/v1/customers/{id}/archive` |
-| `POST` | `/admin/v1/cards` — `{ customerId, templateId, programId }` |
+| `POST` | `/admin/v1/cards` — выдать карту, см. ниже |
 | `GET` | `/admin/v1/customers/{customerId}/cards` |
 | `POST` | `/admin/v1/cards/{serial}/revoke` |
+| `POST` | `/admin/v1/cards/bulk` — `{ cards: [{ customerId, templateId, programId }] }` |
+| `PATCH` | `/admin/v1/cards/{serial}/tier` — `{ tierId }`, поставить уровень руками |
 
 ### Программы лояльности
 
@@ -532,25 +862,443 @@ GET|PATCH|DELETE  /admin/v1/loyalty-programs/{id}
 Программа Cashup — тип `onec`, в её настройках одно поле:
 `config: { "pointsPerPeriod": 100000 }` — сколько баллов даёт подписка за месяц.
 
-### Шаблоны карт
+**Сохранение — один `PATCH` на всю форму.** Присылать можно любые из полей:
+`name`, `config`, `currency`, `active`, `welcomePoints`, поля бонусного товара
+(`bonusItemEnabled`, `bonusItemName`, `bonusItemMode`, `bonusItemOptions`,
+`bonusItemPartnerAccess`) и `mechanicPartnerAccess`. Непереданные поля не меняются.
+Можно отправить обратно ровно то, что вернул `GET`, с правками: `id` и `programType`
+принимаются, если совпадают с текущими.
+
+- неизвестное поле — `400` с его названием; раньше такое поле молча отбрасывалось с
+  ответом `200`, и настройки «сохранялись», не сохраняясь;
+- смена `programType` — `400`: тип после создания не меняется;
+- включённый бонусный товар без названия или режима — `400`;
+- при любом `400` **ничего не записано**, даже поля, которые были в порядке.
+
+Ответ — программа целиком, уже после сохранения. Отдельные `PATCH …/bonus-item` и
+`PATCH …/mechanic-access` по-прежнему работают.
+
+**Приветственные баллы** — `welcomePoints`, число ≥ 0, по умолчанию `0`. Столько баллов
+человек получает **сразу при выдаче первой карты**, до всякой подписки. Задаётся при
+создании программы и меняется через `PATCH`:
 
 ```
-GET  /admin/v1/templates
-POST /admin/v1/templates/custom
-PUT  /admin/v1/templates/{id}
-POST /admin/v1/templates/{id}/publish
+POST  /admin/v1/loyalty-programs
+{ "name": "Cashup", "programType": "onec", "config": { "pointsPerPeriod": 100000 },
+  "welcomePoints": 500 }
+
+PATCH /admin/v1/loyalty-programs/{id}     { "welcomePoints": 700 }
+→ программа, в ней "welcomePoints": 700
 ```
 
-Дизайн карты — объект `design`: цвета, формат штрихкода, наборы полей. Формат штрихкода —
-один из `PKBarcodeFormatQR`, `PKBarcodeFormatAztec`, `PKBarcodeFormatPDF417`,
-`PKBarcodeFormatCode128`.
+Правила:
+- начисляются **один раз на человека**. Перевыпуск карты переносит баланс, а не выдаёт
+  баллы заново, даже если все прежние карты уже отозваны;
+- новый размер действует только на карты, выданные после изменения, чужие балансы не
+  пересчитываются;
+- срабатывает на любой выдаче: из кабинета агентства, самостоятельной (`/v1/public/enroll`)
+  и при оплате по телефону, если карты ещё не было;
+- в истории клиента такая строка приходит с `kind: "welcome"`.
 
-### Сертификаты и настройки платформы
+### Шаблоны карт — редактор
 
-`/admin/v1/certificates`, `/admin/v1/platform-settings`, `/admin/v1/audit-logs`,
-`/admin/v1/leads` — только `super_admin`.
+Шаблон и есть карта: её цвета, надписи, картинки и штрихкод. Клиенты получают карту,
+собранную по шаблону, а правка шаблона доходит до **уже выданных карт** — см. ниже.
+
+**Порядок работы редактора, сверху вниз:**
+
+1. `GET /admin/v1/template-library` — показать заготовки, дать выбрать.
+2. `POST /admin/v1/templates` с `libraryTemplateId` — из заготовки, или
+   `POST /admin/v1/templates/custom` со своим `design` — с нуля. В обоих случаях
+   называют `programId`.
+3. Картинки: `POST /admin/v1/template-assets?slot=…`, полученные `url` складывают в
+   `design.images` и `design.googleImages`.
+4. `PUT /admin/v1/templates/{id}` — сохранить дизайн. Тело — **весь** объект `design`
+   целиком, не его кусок.
+5. `POST /admin/v1/templates/{id}/publish` — опубликовать.
+6. `PUT /admin/v1/templates/{id}/default` — сделать картой платформы, если это она.
+
+Превью рисует сам фронт: серверной ручки «покажи, как получится» нет, и не нужно —
+`design` содержит всё, чтобы нарисовать карту, а как она выглядит на телефоне, решают
+Apple и Google.
+
+```
+GET    /admin/v1/template-library                готовые заготовки (29 штук)
+POST   /admin/v1/templates                       { libraryTemplateId, name, programId, appleCertificateId?, googleCertificateId? }
+POST   /admin/v1/templates/custom                { name, cardType, programId, design, … }
+GET    /admin/v1/templates                       все карты платформы
+GET    /admin/v1/templates/{id}
+PUT    /admin/v1/templates/{id}                  тело = весь объект design
+PUT    /admin/v1/templates/{id}/name             { "name": "…" }
+PUT    /admin/v1/templates/{id}/card-type        { "cardType": "storeCard" }
+PUT    /admin/v1/templates/{id}/program          { "programId": "…" }   только пока не задана
+PUT    /admin/v1/templates/{id}/certificates     { appleCertificateId, googleCertificateId }
+PUT    /admin/v1/templates/{id}/showcase         { "isShowcase": true }
+POST   /admin/v1/templates/{id}/publish
+PUT    /admin/v1/templates/{id}/default          сделать картой платформы
+DELETE /admin/v1/templates/{id}
+POST   /admin/v1/cards/by-template/{templateId}/revoke
+```
+
+**Карта платформы — одна.** У шаблона есть флаг `isDefault`, и он ровно один на всю
+платформу: это та карта, которую получает клиент, за которого не сказали иначе.
+`PUT .../default` делает карту основной и снимает флаг с прежней. Черновик основным не
+делается — сначала `publish`.
+
+**Статус решает, можно ли выпускать.** `draft` — карту видно только в кабинете,
+выпустить по ней нельзя; `published` — можно.
+
+**Правка доходит до выданных карт.** После `PUT` шаблона сервер сам поднимает версию у
+всех активных карт по нему и отправляет push — карта в Wallet перерисовывается. Это и
+удобно, и опасно: неудачная правка уезжает всем сразу, отката нет.
+
+`POST /admin/v1/templates` клонирует заготовку из библиотеки, `…/custom` создаёт с нуля
+с полностью своим `design`.
+
+`DELETE` отказывает, пока по шаблону есть неотозванные карты, — сначала
+`POST /admin/v1/cards/by-template/{id}/revoke`.
+
+**`cardType` и тип программы должны сочетаться.** Сервер проверяет это и на создании, и
+при смене типа:
+
+| `cardType` | С какими программами |
+|---|---|
+| `storeCard` | `points`, `tiers`, `membership`, `fixed_discount`, комбинированные, `onec` |
+| `punchCard` | `punchcard`, `points_punchcard`, `fixed_discount_punchcard` |
+| `coupon` | `fixed_discount`, `points_fixed_discount`, `fixed_discount_punchcard` |
+| `eventTicket` | `tiers`, `fixed_discount` |
+| `boardingPass` | `fixed_discount` |
+
+Карта Cashup — это `storeCard` с программой типа `onec`.
+
+#### Объект `design`
+
+```json
+{
+  "organizationName": "Cashup",
+  "description": "Карта лояльности",
+  "logoText": "Cashup",
+  "backgroundColor": "rgb(20,20,20)",
+  "foregroundColor": "rgb(255,255,255)",
+  "labelColor": "rgb(200,200,200)",
+  "barcodeFormat": "PKBarcodeFormatQR",
+  "barcodeAltText": "Покажите код на кассе",
+  "headerFields": [], "primaryFields": [], "secondaryFields": [],
+  "auxiliaryFields": [], "backFields": [],
+  "images": { "iconUrl": "…", "logoUrl": "…", "stripUrl": "…", "thumbnailUrl": "…" },
+  "googleImages": { "logoUrl": "…", "heroImageUrl": "…" },
+  "roundLogo": false
+}
+```
+
+Цвета — строкой `rgb(r,g,b)`. Формат штрихкода — `PKBarcodeFormatQR`,
+`PKBarcodeFormatPDF417`, `PKBarcodeFormatAztec` или `PKBarcodeFormatCode128`.
+
+**Поля карты** — пять наборов, это разные места на карте: `headerFields` (верх, рядом с
+логотипом), `primaryFields` (крупно по центру), `secondaryFields`, `auxiliaryFields`,
+`backFields` (оборот). Одно поле:
+
+```json
+{ "key": "balance", "label": "Баланс", "value": "0",
+  "textAlignment": "PKTextAlignmentRight", "changeMessage": "Баланс: %@" }
+```
+
+#### Живые значения — по `key`, а не по тексту
+
+Это главное, что нужно знать редактору. **Никакого шаблонного синтаксиса вроде
+`{{...}}` нет.** Сервер смотрит на `key` поля: если он из списка ниже, `value`
+подменяется данными карты при каждой выдаче. Что написано в `value` у таких полей,
+значения не имеет — это просто заглушка для превью.
+
+| `key` | Что подставится |
+|---|---|
+| `balance` | Баланс баллов |
+| `cardNumber` | Серийный номер карты |
+| `memberName` | Имя клиента |
+| `phone` | Телефон клиента |
+| `memberSince` | Дата выдачи карты |
+| `punch` | Штампы, «3 / 6» |
+| `tier` | Название уровня |
+| `tierReward` | Уровень и его выгода: «Gold · 7% баллами» |
+| `discount` | Скидка программы |
+| `bonusItem` | Бонусный товар: название или количество |
+
+Любой другой `key` — обычный статичный текст: что написали в `value`, то и покажется.
+Так делают подписи, условия, адрес — всё, что не меняется.
+
+`changeMessage` — текст уведомления на телефон, когда значение меняется; `%@`
+подставляет новое значение. Имеет смысл только у живых полей.
+
+⚠️ **`dateStyle` и `timeStyle` ставьте только датам.** Apple отвергает карту целиком
+при установке, если у поля есть формат даты, а значение датой не является. Это ломало
+настоящую карту в проде: формат даты остался на поле `balance`, и карта молча
+переставала ставиться. Сервер теперь такой формат снимает, но редактору лучше его для
+не-дат просто не предлагать.
+
+**Необязательное, по делу:**
+
+| Поле | Зачем |
+|---|---|
+| `expirationDate` | Карта гаснет в Wallet после этой даты |
+| `hoursBeforeExpiration` | Напомнить за N часов до сгорания (для купонов и билетов) |
+| `locations` | До 10 точек: карта всплывает на экране блокировки рядом с ними, у каждой свой `relevantText` |
+| `punchIcons` | `{ target, iconUrl }` — сетка штампов для `punchCard` |
+| `transitType` | Только для `boardingPass` |
+| `roundLogo` | Круглый логотип — **только в нашем превью**, на настоящей карте Apple так не умеет |
+
+Чего Apple не умеет вовсе: слать произвольный текст держателям карт. `locations` и даты —
+единственный способ показаться на экране блокировки. Произвольное сообщение умеет только
+Google Wallet — отдельной ручкой, см. «Сообщения на карту».
+
+#### Картинки
+
+```
+POST /admin/v1/template-assets?slot=logo    multipart, поле file
+→ { "url": "https://…/v1/public/template-assets/<id>.png" }
+```
+
+Принимаются PNG, JPG, SVG и PDF до 25 МБ; на выходе всегда PNG. Полученный `url`
+кладётся в `design.images.*` или `design.googleImages.*`.
+
+| `slot` | Что это | Как обрабатывается |
+|---|---|---|
+| `icon` | Значок в уведомлениях, 58×58 | обрезается в квадрат |
+| `logo` | Логотип в шапке карты | вписывается, не обрезается |
+| `strip` | Баннер во всю ширину | по ширине, пропорции сохраняются |
+| `thumbnail` | Квадратик у главного поля | обрезается в квадрат |
+| `background` | Фон карты | обрезается под размер |
+| `footer` | Узкая полоса под штрихкодом | вписывается |
+| `googleLogo` | Логотип для Google Wallet, 660×660 | обрезается в квадрат |
+| `googleHero` | Баннер Google Wallet, 1032×336 | обрезается |
+| `punchIcon` | Картинка штампа | обрезается в квадрат |
+
+Для SVG можно прислать поле `backgroundColor` (`#rrggbb`) — им подложат фон перед
+растеризацией. Для остальных форматов игнорируется.
+
+**Надпись шрифтом.** Ни Apple, ни Google не дают поставить свой шрифт в текстовое поле.
+Обход — нарисовать надпись картинкой:
+
+```
+GET  /admin/v1/template-assets/fonts
+→ [{ id, label, cssFamily, weight }]
+
+POST /admin/v1/template-assets/render-brand-text
+{ "text": "Кофейня", "fontId": "playfair-display", "color": "#ffffff" }
+→ { "url": "…" }
+```
+
+Полученный `url` кладут в `images.logoUrl`.
+
+### Уровни программы
+
+```
+GET    /admin/v1/loyalty-programs/{id}/tiers
+POST   /admin/v1/loyalty-programs/{id}/tiers      { name, threshold, sortOrder, earnPercent?, rewardType?, rewardValue?, benefits? }
+PATCH  /admin/v1/loyalty-programs/{id}/tiers/{tierId}
+DELETE /admin/v1/loyalty-programs/{id}/tiers/{tierId}
+```
+
+`threshold` сравнивается с накопленной суммой покупок, а не с балансом. `earnPercent`
+переопределяет процент начисления программы на этом уровне; `rewardType` —
+`fixed_discount_percent` или `fixed_discount_amount` с `rewardValue`.
+
+Ещё две настройки программы живут отдельными ручками, потому что обе должны уметь
+очищаться:
+
+```
+PATCH /admin/v1/loyalty-programs/{id}/bonus-item      { bonusItemEnabled, bonusItemName, bonusItemMode, bonusItemOptions, bonusItemPartnerAccess }
+PATCH /admin/v1/loyalty-programs/{id}/mechanic-access { "mechanicPartnerAccess": { "points_earn": false } }
+```
+
+### Кто держит карту этой программы
+
+```
+GET /admin/v1/loyalty-programs/{programId}/members
+→ [{ card_id, serial_number, customer_id, first_name, last_name, email, phone,
+     status, points_balance, punch_count, tier_id, created_at }]
+```
+
+### Сообщения на карту
+
+```
+POST /admin/v1/loyalty-programs/{programId}/notifications/apple-relevance
+{ "relevantDate": "…", "locations": [{ latitude, longitude, relevantText? }] }
+
+POST /admin/v1/loyalty-programs/{programId}/notifications/google-message
+{ "header": "…", "body": "…" }
+```
+
+Первая прописывает в шаблоны программы условия появления на экране блокировки и
+пушит обновление всем картам. Вторая шлёт настоящее текстовое сообщение — **только
+владельцам карт в Google Wallet**, у Apple такого механизма нет.
+
+### Сертификаты
+
+Платформенные: Cashup подписывает все карты своим Pass Type ID. Только `super_admin`.
+
+```
+GET    /admin/v1/certificates
+POST   /admin/v1/certificates            завести запись вручную
+PATCH  /admin/v1/certificates/{id}       имя, teamId, passTypeIdentifier, expiresAt
+POST   /admin/v1/certificates/{id}/set-default
+DELETE /admin/v1/certificates/{id}
+GET    /admin/v1/certificates/{id}/health   проверить, что ключ и сертификат сходятся
+```
+
+**Выпуск без Mac, в два шага с кнопками** — механизм сохранён целиком. Сервер сам
+делает ключ и запрос, наружу уходит только запрос; закрытая половина ключа остаётся у
+нас и никуда не уезжает.
+
+```
+1. POST /admin/v1/certificates/csr          { name, email }
+   → { certificate, csrPem }               «Создать запрос»
+
+2. человек несёт csrPem в Apple Developer и возвращается с файлом pass.cer
+
+3. POST /admin/v1/certificates/{id}/complete   multipart, поле cer
+   → готовый сертификат                    «Загрузить pass.cer»
+```
+
+`GET /admin/v1/certificates/{id}/csr` отдаёт запрос ещё раз — файл легко теряется в
+папке загрузок, а перевыпустить его нельзя: это был бы другой ключ, и уже полученный
+`pass.cer` к нему не подошёл бы.
+
+Между шагами запись живёт в статусе `pending_csr`: ключ есть, сертификата нет,
+подписывать нечем. Первый доведённый до конца сертификат сам становится основным.
+
+`GET /admin/v1/certificates/{id}/health` — проверить, что ключ и сертификат сходятся.
+
+Готовый `.p12` можно загрузить и целиком, минуя эти шаги:
+`POST /admin/v1/certificates/{id}/upload` (multipart, поля `p12` и `password`).
+
+### Промокоды
+
+Оператор создаёт коды на бесплатные месяцы подписки — для магазинов или для клиентов.
+Только агентство, остальным `403`.
+
+```
+GET    /admin/v1/promo-codes?audience=merchant|client&includeDeleted=true
+POST   /admin/v1/promo-codes
+       { "code"?: "SUMMER-2026", "audience": "merchant", "months": 2,
+         "maxUses"?: 100, "expiresAt"?: "2026-12-31T23:59:59+06:00", "note"?: "…" }
+PATCH  /admin/v1/promo-codes/{id}      { "active"?, "maxUses"?, "expiresAt"?, "note"? }
+DELETE /admin/v1/promo-codes/{id}
+GET    /admin/v1/promo-codes/{id}/redemptions
+```
+
+Промокод в ответе:
+
+```json
+{ "id": "...", "code": "SUMMER-2026", "audience": "merchant", "months": 2,
+  "maxUses": 100, "uses": 7, "expiresAt": null, "active": true,
+  "note": "летняя акция", "createdAt": "..." }
+```
+
+- `audience`: `merchant` — продлевает подписку магазина (право принимать бонусы),
+  `client` — подписку карты клиента. Код одной аудитории другой не подходит.
+- `code` можно не присылать — сервер сгенерирует вида `LOAL-7KX2QM` (без похожих
+  символов 0/O, 1/I/L). Свой код: 4–32 символа, латиница, цифры, дефис; хранится
+  заглавными, повтор существующего — `409`.
+- `months` — 1–36. Код многоразовый: им пользуется сколько угодно магазинов или клиентов,
+  но каждый — один раз. `maxUses` и `expiresAt` необязательны (`null` — без ограничения).
+- `DELETE` убирает код из списка и выключает его, но история применений
+  (`/redemptions`: кто, когда, сколько месяцев) сохраняется.
+- Смена `months` и `audience` после создания не предусмотрена — выпустите новый код.
+
+### Отчёт по взаиморасчётам
+
+Сколько баллов принял каждый магазин за месяц — по этим суммам агентство
+рассчитывается с магазинами деньгами. Только для агентства, магазину `403`.
+
+```
+GET /admin/v1/reports/settlements?month=2026-09
+→ { "month": "2026-09",
+    "from": "2026-08-31T18:00:00.000Z", "to": "2026-09-30T18:00:00.000Z",
+    "rows": [ { "merchantId": "...", "merchantName": "Кофейня", "points": 12500,
+                "operations": 14, "items": 31 } ],
+    "totalPoints": 12500 }
+
+GET /admin/v1/reports/settlements?month=2026-09&format=csv
+→ файл settlements-2026-09.csv (UTF-8 с BOM, разделитель «;», последняя строка — «Итого»)
+```
+
+- `month` — `ГГГГ-ММ`, иначе `400`. Месяц считается **по Бишкеку**: `from`/`to` в
+  ответе — его границы в UTC.
+- `points` — сумма тех же строк, что в журнале магазина (`/merchants/{id}/deductions`) за
+  этот месяц, поэтому отчёт и журнал сходятся. `operations` — чеков, `items` — позиций.
+- Строки отсортированы по `points`, от большего. Магазины без списаний в отчёт не
+  попадают; удалённые — тоже: их строки в реестре уже без магазина.
+- `merchantName` — `null`, если core-service в этот момент не ответил; `merchantId` есть
+  всегда.
+
+### Лиды, аудит, настройки платформы
+
+```
+GET /admin/v1/leads                  заявки с лендинга
+PUT /admin/v1/leads/{id}/status      { "status": "new" | "contacted" | "closed" }
+GET /admin/v1/audit-logs             что делало агентство
+GET   /admin/v1/platform-settings    { infoText, infoUrl }
+PATCH /admin/v1/platform-settings
+```
+
+`platform-settings` — текст «о нашей компании», который дописывается на оборот **каждой**
+выпущенной карты.
+
+### Бонусные товары
+
+```
+GET /admin/v1/bonus-items?status=active|redeemed&page=&pageSize=&search=
+```
+
+Наследие прежнего продукта: именованные подарки на карте. К подписке Cashup отношения не
+имеют.
 
 ---
+
+## Партнёрский кабинет
+
+Адреса, ключом к которым служит не магазин, а сам партнёр (`memberId`). Доступны
+партнёру, о котором речь, и агентству.
+
+```
+GET  /admin/v1/members/{memberId}                  своя запись: QR по умолчанию, бонус
+GET  /admin/v1/members/{memberId}/employees        свои сотрудники
+POST /admin/v1/members/{memberId}/employees        { userId }
+GET  /admin/v1/partners/{memberId}/payments?page=&pageSize=&search=&sortBy=&sortDir=
+POST /admin/v1/members/{memberId}/octopay/payments { clientPhone, amount }
+```
+
+Сотрудник партнёра наследует его единственную операцию — выбирать нечего, поэтому в
+теле только `userId`.
+
+Последняя ручка выставляет клиенту счёт через OctōPAY. Когда он оплатит, бонусы
+спишутся с его карты автоматически, без кассира — в журнале это будет одна строка
+«Оплата через OctōPAY».
+
+## Протокол Apple и Google Wallet
+
+Эти адреса вызывают **телефоны**, а не фронтенд. Перечислены, чтобы их случайно не
+приняли за наши и не сломали.
+
+```
+GET    /v1/passes/{passTypeId}/{serial}                                  отдать .pkpass
+POST   /v1/devices/{deviceId}/registrations/{passTypeId}/{serial}        телефон подписался
+DELETE /v1/devices/{deviceId}/registrations/{passTypeId}/{serial}        отписался
+GET    /v1/devices/{deviceId}/registrations/{passTypeId}                 что обновилось
+POST   /v1/log                                                           Apple шлёт сюда свои ошибки
+```
+
+Аутентификация у них своя — токен самой карты, не наш JWT.
+
+Для веба есть публичные:
+
+```
+GET /v1/public/passes/{serial}                   файл .pkpass для Apple Wallet
+GET /v1/public/passes/{serial}/info              данные для этой страницы
+GET /v1/public/passes/{serial}/google-save-link  ссылка «Добавить в Google Wallet»
+GET /v1/public/template-assets/{filename}        картинки карт
+GET /v1/public/library-assets/{filename}         картинки заготовок
+```
 
 ## Без токена
 
@@ -560,11 +1308,16 @@ POST /admin/v1/templates/{id}/publish
 | `GET` | `/v1/public/partners` | Витрина: магазины-участники с действующей подпиской, см. ниже |
 | `GET` | `/v1/public/card-examples` | Примеры карт для лендинга |
 | `GET` | `/v1/public/enroll/{templateId}` | Данные для страницы самостоятельной выдачи |
-| `POST` | `/v1/public/enroll/{templateId}/{programId}` | Клиент заводит себе карту |
+| `GET` | `/v1/public/enroll` | То же для карты платформы по умолчанию — без идентификаторов |
+| `POST` | `/v1/public/enroll` | Клиент заводит себе карту платформы: `{ firstName, lastName, phone }` |
+| `POST` | `/v1/public/enroll/{templateId}/{programId}` | То же, но карту называют явно |
 | `POST` | `/v1/public/leads` | Заявка с лендинга |
-| `GET` | `/v1/public/passes/{serial}` | Страница карты и ссылка на добавление в Wallet |
+| `GET` | `/v1/public/passes/{serial}` | Файл `.pkpass` — добавить карту в Apple Wallet. Данные карты — `…/info`, Google Wallet — `…/google-save-link` |
 | `GET` | `/v1/public/onec-card/{token}/{serial}` | Для 1С: что на карте |
 | `POST` | `/v1/public/onec-webhook/{token}` | Для 1С: списание |
+| `POST` | `/v1/public/octopay/subscriptions` | Оплата по телефону: `{ phone, months, firstName?, lastName? }`. Карту найдут по номеру или выдадут — счёт вернётся уже с ней |
+| `POST` | `/v1/public/octopay/subscriptions/{serial}` | То же для человека, у которого карта уже есть: `{ months }` |
+| `POST` | `/v1/public/octopay/partners/{memberId}` | Партнёр оплачивает свой доступ: `{ months }` → счёт |
 | `POST` | `/v1/public/octopay/webhook` | Колбэк OctōPAY |
 
 Ответ витрины — массив магазинов по алфавиту, у каждого профиль целиком:
@@ -572,10 +1325,12 @@ POST /admin/v1/templates/{id}/publish
 ```json
 [{ "id": "...", "name": "Кофе Хаус", "contactPhone": "996700000000",
    "category": "Кофейня", "description": "...", "logoUrl": "https://...",
-   "photos": ["https://..."], "instagramUrl": null, "twogisUrl": "https://..." }]
+   "photos": ["https://..."], "instagramUrl": null, "twogisUrl": "https://...",
+   "maxCoveragePercent": 20 }]
 ```
 
 Магазин с незаполненным профилем в списке тоже есть, у него поля `null`, а `photos` пустой.
+`maxCoveragePercent` — потолок процента, «до N%» на карточке; `null` — магазин его не задал.
 
 Адреса `/v1/devices/*`, `/v1/passes/*`, `/v1/log` — протокол Apple Wallet, их вызывают
 телефоны, а не фронт.
@@ -584,7 +1339,29 @@ POST /admin/v1/templates/{id}/publish
 
 ## Наследие
 
-`/v1/scan/preview`, `/v1/cards/{serial}/scan-confirm*`, `/v1/pos-settings`,
-`/admin/v1/merchants/{id}/sales` — начисление и списание баллов из продукта, из которого
-вырос Cashup. Работают, но к Cashup отношения не имеют: здесь баллы выдаёт подписка, а
-списывает касса через `/v1/redemptions`. Новый код на них лучше не завязывать.
+Начисление и списание баллов из продукта, из которого вырос Cashup: штампы, уровни,
+купоны, бонусные товары. Всё работает, но к Cashup отношения не имеет — здесь баллы
+выдаёт подписка, а списывает касса через `/v1/redemptions`. Новый код на это лучше не
+завязывать.
+
+```
+GET  /v1/scan/preview?serial=&purchaseAmount=&mode=           посчитать, не записывая
+POST /v1/cards/{serial}/points                                { delta, source, staffUserId }
+POST /v1/cards/{serial}/punch                                 { count, staffUserId }
+POST /v1/cards/{serial}/redeem                                { staffUserId }
+POST /v1/cards/{serial}/partner-bonus                         { staffUserId }
+POST /v1/cards/{serial}/scan-confirm                          сумма покупки → баллы
+POST /v1/cards/{serial}/scan-confirm-count                    счётчик покупок
+POST /v1/cards/{serial}/scan-confirm-redeem                   списание по сумме чека
+POST /v1/cards/{serial}/scan-confirm-redeem-manual            сумма + баллы + способ оплаты
+POST /v1/cards/{serial}/scan-confirm-redeem-discount          фиксированная скидка
+POST /v1/cards/{serial}/scan-confirm-mixed                    часть баллами, часть деньгами
+POST /v1/cards/{serial}/scan-confirm-combo                    всё сразу, одной записью
+POST /v1/cards/{serial}/bonus-item/earn                       { staffUserId, value? }
+POST /v1/cards/{serial}/bonus-item/redeem                     { staffUserId, itemId }
+GET  /v1/cards/{serial}/bonus-items/active
+GET  /admin/v1/merchants/{id}/sales                           «Продажи» магазина
+```
+
+`mode` у превью: пусто — начисление, `redeem`, `discount`, `mixed`. Превью и подтверждение
+считают одним кодом, поэтому показанное число совпадёт со списанным.

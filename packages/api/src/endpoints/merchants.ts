@@ -47,6 +47,10 @@ export const merchantsApi = (api: ApiClient) => ({
   suspend: (merchantId: string) =>
     api.request(merchantSchema, `/admin/v1/merchants/${merchantId}/suspend`, { method: "POST", body: {} }),
 
+  /** Обратно в работу после приостановки. Только агентство. */
+  activate: (merchantId: string) =>
+    api.request(merchantSchema, `/admin/v1/merchants/${merchantId}/activate`, { method: "POST", body: {} }),
+
   members: (merchantId: string) =>
     api.request(z.array(merchantMemberSchema), `/admin/v1/merchants/${merchantId}/members`),
 

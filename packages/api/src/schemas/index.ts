@@ -10,5 +10,7 @@ export * from "./merchant";
 export * from "./merchant-ops";
 export * from "./partner";
 export * from "./platform";
+export * from "./promo";
 export * from "./redemption";
 export * from "./template";
+export * from "./categories";

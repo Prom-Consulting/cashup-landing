@@ -15,7 +15,9 @@ export function LoginPage() {
         Введите телефон — пришлём код в WhatsApp. Карта, баланс и история привяжутся к этому номеру.
       </p>
       <div className="mt-8">
-        <PhoneSignInForm onDone={() => navigate("/", { replace: true })} />
+        <PhoneSignInForm
+          onDone={({ isNewAccount }) => navigate("/", { replace: true, state: { welcome: isNewAccount } })}
+        />
       </div>
     </div>
   );

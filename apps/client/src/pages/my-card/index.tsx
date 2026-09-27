@@ -4,6 +4,7 @@ import { useSession } from "@loal/app-kit";
 import { CardQr } from "../../widgets/card-qr";
 import { WalletButtons } from "../../widgets/wallet-buttons";
 import { Button, Card, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
+import { useLocation } from "react-router";
 import { useMyCard } from "../../entities/me/api";
 import { FirstCardForm } from "../../features/subscription/first-card-form";
 import { PaySubscriptionForm } from "../../features/subscription/pay-form";
@@ -15,6 +16,17 @@ const money = new Intl.NumberFormat("ru-RU");
  * Своя карта. Сервер читает человека из токена, поэтому номера в адресе нет —
  * чужую карту спросить нельзя в принципе.
  */
+/** Сразу после регистрации по телефону — короткое приветствие, один раз. */
+function Welcome() {
+  const location = useLocation();
+  if (!(location.state as { welcome?: boolean } | null)?.welcome) return null;
+  return (
+    <p role="status" className="brand-gradient rounded-[22px] px-5 py-4 text-lg font-bold text-white">
+      Аккаунт создан — добро пожаловать в Loal!
+    </p>
+  );
+}
+
 export function MyCardPage() {
   const { session } = useSession();
   const card = useMyCard();
@@ -28,6 +40,7 @@ export function MyCardPage() {
 
     return (
       <section className="flex flex-col gap-5">
+        <Welcome />
         <h1 className="display text-[clamp(1.75rem,7vw,2.25rem)] leading-[1.1]">Карты пока нет</h1>
         <p className="text-lg text-muted-foreground">
           Оформите подписку — карта появится в Apple Wallet сразу после оплаты, а на ней 15 000 бонусов на оплаченный
@@ -45,6 +58,7 @@ export function MyCardPage() {
 
   return (
     <section className="flex flex-col gap-6">
+      <Welcome />
       <div className="rounded-[28px] bg-graphite px-6 pt-6 pb-3 text-white shadow-[0_1.5rem_3rem_rgb(22_21_21/0.18)]">
         <div className="flex items-baseline justify-between gap-3">
           <p className="font-brand text-2xl font-bold">Loal</p>

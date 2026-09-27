@@ -90,6 +90,22 @@ export const createMerchantInputSchema = z.object({
 });
 export type CreateMerchantInput = z.infer<typeof createMerchantInputSchema>;
 
+/**
+ * Форма нового заведения в админке. Адрес (`slug`) человек не вводит — он собирается из
+ * названия (`slugify`); категория и описание уходят сразу в витрину.
+ */
+export const createMerchantFormSchema = z.object({
+  name: z.string().trim().min(2, "Введите название").max(120, "Слишком длинное название"),
+  category: z.string().trim().min(1, "Выберите категорию"),
+  contactPhone: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || value.replace(/\D/g, "").length >= 9, "Проверьте номер телефона"),
+  contactEmail: z.union([z.literal(""), z.email("Похоже, в почте опечатка")]),
+  description: z.string().trim().max(2000, "Не длиннее 2000 символов"),
+});
+export type CreateMerchantForm = z.infer<typeof createMerchantFormSchema>;
+
 export const updateMerchantInputSchema = z.object({
   name: z.string().trim().min(2, "Введите название").optional(),
   contactEmail: z.union([z.literal(""), z.email("Похоже, в почте опечатка")]).optional(),
