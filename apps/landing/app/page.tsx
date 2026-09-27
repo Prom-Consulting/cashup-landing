@@ -55,7 +55,7 @@ const worthIt = [
 
 const included = [
   "15 000 бонусов на каждый оплаченный месяц",
-  "Карта Loal в Apple Wallet",
+  "Карта Loal в Apple Wallet и Google Wallet",
   "Каталог партнёров с их процентами",
   "Кабинет: баланс, история трат, продление",
 ];
@@ -105,7 +105,7 @@ const subscriptionLd = {
   "@type": "Product",
   name: "Подписка Loal",
   description:
-    "Подписка Loal за 990 сом в месяц: карта в Apple Wallet и 15 000 бонусов на оплаченный период. Бонусами закрывается часть покупки у партнёров в Бишкеке.",
+    "Подписка Loal за 990 сом в месяц: карта в Apple Wallet или Google Wallet и 15 000 бонусов на оплаченный период. Бонусами закрывается часть покупки у партнёров в Бишкеке.",
   brand: { "@type": "Brand", name: "Loal" },
   offers: {
     "@type": "Offer",
@@ -171,7 +171,7 @@ export default function Home() {
               data-hero-fade
               className="mt-7 max-w-[760px] text-[1.1875rem] leading-snug font-bold sm:text-xl"
             >
-              Loal — подписка за 990 сом в месяц. Вы получаете карту в Apple Wallet и 15&nbsp;000 бонусов на оплаченный
+              Loal — подписка за 990 сом в месяц. Вы получаете карту в Apple Wallet или Google Wallet и 15&nbsp;000 бонусов на оплаченный
               период, а бонусами закрываете часть покупки у партнёров.
             </p>
             {/* Главное действие первого экрана: сразу показать, где тратить бонусы */}

@@ -45,7 +45,7 @@ export function PageFrame({ children }: { children?: ReactNode }) {
               15 000 бонусов на каждый месяц
             </p>
             <p className="mt-4 max-w-[40ch] text-xl leading-snug text-white/90">
-              Карта в Apple Wallet, баланс и история — в одном кабинете. Бонусами закрывается часть покупки у партнёров
+              Карта в Apple Wallet и Google Wallet, баланс и история — в одном кабинете. Бонусами закрывается часть покупки у партнёров
               в Бишкеке.
             </p>
           </div>

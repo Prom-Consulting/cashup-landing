@@ -47,7 +47,7 @@ export function IssueCardDialog({ cardUrl }: { cardUrl?: (serial: string) => str
 
       <DialogContent
         title="Выпуск карты"
-        description="Заведите гостя — карта появится у него в Apple Wallet по ссылке."
+        description="Заведите гостя — карта появится у него в Apple Wallet или Google Wallet по ссылке."
       >
         {issued ? (
           <div className="flex flex-col gap-4">
@@ -64,7 +64,7 @@ export function IssueCardDialog({ cardUrl }: { cardUrl?: (serial: string) => str
               </>
             ) : (
               <p className="text-base text-muted-foreground">
-                Отправьте гостю ссылку на карту — по ней он добавит её в Apple Wallet.
+                Отправьте гостю ссылку на карту — по ней он добавит её в Apple Wallet или Google Wallet.
               </p>
             )}
             <div className="flex flex-wrap gap-3">

@@ -34,7 +34,7 @@ const steps: Step[] = [
     imageWidth: 591,
   },
   {
-    title: "Добавляете карту\nв Apple Wallet",
+    title: "Добавляете карту\nв Apple или Google Wallet",
     text: "Одна кнопка в кабинете — и карта Loal у вас в телефоне, на ней 15 000 бонусов. Это Wallet, а не Apple Pay: картой не платят, её показывают.",
     balance: 15_000,
     image: stepWallet,

@@ -65,7 +65,7 @@ export function BusinessSection({ partnerUrl }: { partnerUrl: string }) {
           >
             <Image
               src={businessPhone}
-              alt="Телефон с картой Loal в Apple Wallet"
+              alt="Телефон с картой Loal в Wallet"
               placeholder="blur"
               sizes="(min-width: 1024px) 1014px, 118vw"
               className="h-auto w-full"

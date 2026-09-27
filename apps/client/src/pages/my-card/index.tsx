@@ -83,7 +83,7 @@ export function MyCardPage() {
         <Welcome />
         <h1 className="display text-[clamp(1.75rem,7vw,2.25rem)] leading-[1.1]">Карты пока нет</h1>
         <p className="text-lg text-muted-foreground">
-          Оформите подписку — карта появится в Apple Wallet сразу после оплаты, а на ней 15 000 бонусов на оплаченный
+          Оформите подписку — карта появится в Apple Wallet или Google Wallet сразу после оплаты, а на ней 15 000 бонусов на оплаченный
           период.
         </p>
         <Card>
