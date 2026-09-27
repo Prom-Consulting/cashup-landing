@@ -61,7 +61,25 @@ const orNull = (value: string) => (value.trim() === "" ? null : value.trim());
  * Витрина заведения: то, что клиент видит в каталоге. Картинки грузятся отдельно
  * и до сохранения, а сам профиль уходит целиком — бэкенд заменяет его одним PUT.
  */
-export function StorefrontForm({ merchantId, profile }: { merchantId: string; profile: MerchantProfile }) {
+/**
+ * Каталог на лендинге кэшируется. После сохранения витрины просим его перечитать данные —
+ * новое фото или точка на карте видны сразу. Не получилось — не беда: он обновится сам за минуту.
+ */
+export function refreshPublicCatalog(siteUrl: string) {
+  void fetch(`${siteUrl.replace(/\/$/, "")}/api/revalidate-partners`, { method: "POST", mode: "no-cors" }).catch(
+    () => undefined,
+  );
+}
+
+export function StorefrontForm({
+  merchantId,
+  profile,
+  onSaved,
+}: {
+  merchantId: string;
+  profile: MerchantProfile;
+  onSaved?: () => void;
+}) {
   const save = useSaveProfile(merchantId);
   const upload = useUploadAsset(merchantId);
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl);
@@ -107,6 +125,7 @@ export function StorefrontForm({ merchantId, profile }: { merchantId: string; pr
             twogisUrl: orNull(values.twogisUrl),
           });
           helpers.setStatus("Витрина сохранена");
+          onSaved?.();
         } catch (error) {
           applyServerIssues(error, helpers);
         } finally {

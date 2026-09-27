@@ -9,8 +9,9 @@ import {
   type Merchant,
   type UpdateMerchantInput,
 } from "@loal/api";
-import { useApi } from "@loal/app-kit";
+import { refreshPublicCatalog, useApi } from "@loal/app-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { SITE_URL } from "../../shared/config/env";
 
 /** Заведения платформы. Клиенты и карты сюда не входят — они платформенные. */
 export const merchantKeys = {
@@ -82,7 +83,10 @@ export function useCreateMerchant() {
       }
       return { merchant, storefrontError };
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.all }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: merchantKeys.all });
+      refreshPublicCatalog(SITE_URL);
+    },
   });
 }
 
@@ -94,6 +98,7 @@ export function useActivateMerchant(merchantId: string) {
     onSuccess: (merchant) => {
       queryClient.setQueryData(merchantKeys.detail(merchantId), merchant);
       queryClient.invalidateQueries({ queryKey: merchantKeys.all });
+      refreshPublicCatalog(SITE_URL);
     },
   });
 }
@@ -106,6 +111,7 @@ export function useSuspendMerchant(merchantId: string) {
     onSuccess: (merchant) => {
       queryClient.setQueryData(merchantKeys.detail(merchantId), merchant);
       queryClient.invalidateQueries({ queryKey: merchantKeys.all });
+      refreshPublicCatalog(SITE_URL);
     },
   });
 }

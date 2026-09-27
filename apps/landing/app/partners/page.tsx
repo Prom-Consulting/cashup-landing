@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { JsonLd } from "../_components/json-ld";
 import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
@@ -23,8 +22,8 @@ export const metadata: Metadata = {
   },
 };
 
-/** Список обновляется раз в пять минут: страница статическая, данные живые. */
-export const revalidate = 300;
+/** Страница статическая, данные живые: раз в минуту и сразу после сохранения витрины. */
+export const revalidate = 60;
 
 export default async function PartnersPage() {
   const partners = await getPublicPartners();
@@ -60,24 +59,6 @@ export default async function PartnersPage() {
 
       <main className="flex-1 bg-cream">
         <PartnersExplorer partners={partners} />
-
-        {partners.length === 0 && (
-          <div className="mx-auto max-w-[1512px] px-5 pb-16 sm:px-12">
-            <div className="rounded-[32px] bg-paper px-6 py-16 text-center">
-              <p className="display text-[clamp(1.5rem,3vw,2.25rem)]">Каталог скоро наполнится</p>
-              <p className="mx-auto mt-4 max-w-[52ch] text-lg leading-snug text-slate">
-                Заведение появляется здесь, когда оплатило доступ и заполнило витрину в своём кабинете. Хотите быть
-                первым — оставьте заявку, поможем настроить.
-              </p>
-              <Link
-                href="/become-partner"
-                className="mt-8 inline-flex items-center rounded-full bg-flame px-6 py-4 text-[1.1875rem] font-bold text-white transition-colors hover:bg-graphite"
-              >
-                Оставить заявку
-              </Link>
-            </div>
-          </div>
-        )}
       </main>
 
       <SiteFooter />

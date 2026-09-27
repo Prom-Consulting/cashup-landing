@@ -6,7 +6,7 @@ import {
   invoiceState,
   type BuyMonthsInput,
 } from "@loal/api";
-import { CoverageLimitForm, StorefrontForm, useMerchantProfile } from "@loal/app-kit";
+import { CoverageLimitForm, StorefrontForm, refreshPublicCatalog, useMerchantProfile } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Form, Formik } from "formik";
@@ -38,6 +38,7 @@ import {
   useActivateMerchant,
 } from "../../entities/merchant/api";
 import { EditMerchantForm } from "../../features/merchant/edit-merchant-form";
+import { SITE_URL } from "../../shared/config/env";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
 
 const money = new Intl.NumberFormat("ru-RU");
@@ -47,7 +48,9 @@ function Storefront({ merchantId }: { merchantId: string }) {
   const profile = useMerchantProfile(merchantId);
   if (profile.isPending) return <Loading rows={2} />;
   if (profile.isError) return <ErrorState error={profile.error} onRetry={() => profile.refetch()} />;
-  return <StorefrontForm merchantId={merchantId} profile={profile.data} />;
+  return (
+    <StorefrontForm merchantId={merchantId} profile={profile.data} onSaved={() => refreshPublicCatalog(SITE_URL)} />
+  );
 }
 
 /** Карточка заведения: реквизиты, команда и коды приглашения владельца. */
