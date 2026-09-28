@@ -15,6 +15,7 @@ import { StorefrontPage } from "../pages/storefront";
 import { TeamPage } from "../pages/team";
 import { WebhooksPage } from "../pages/webhooks";
 import { AppLayout } from "../widgets/app-layout";
+import { OwnerOnly } from "../widgets/owner-only";
 
 /** Кабинет открыт тем, кто состоит хотя бы в одном магазине. */
 export function AppRouter() {
@@ -35,13 +36,48 @@ export function AppRouter() {
         <Route index element={<DashboardPage />} />
         <Route path="redeem" element={<RedeemPage />} />
         <Route path="partner" element={<PartnerPage />} />
-        <Route path="deductions" element={<DeductionsPage />} />
+        <Route
+          path="deductions"
+          element={
+            <OwnerOnly title="Списания">
+              <DeductionsPage />
+            </OwnerOnly>
+          }
+        />
         <Route path="storefront" element={<StorefrontPage />} />
-        <Route path="billing" element={<BillingPage />} />
-        <Route path="team" element={<TeamPage />} />
+        <Route
+          path="billing"
+          element={
+            <OwnerOnly title="Оплата">
+              <BillingPage />
+            </OwnerOnly>
+          }
+        />
+        <Route
+          path="team"
+          element={
+            <OwnerOnly title="Команда">
+              <TeamPage />
+            </OwnerOnly>
+          }
+        />
         <Route path="pos" element={<PosPage />} />
-        <Route path="webhooks" element={<WebhooksPage />} />
-        <Route path="onec" element={<OnecPage />} />
+        <Route
+          path="webhooks"
+          element={
+            <OwnerOnly title="Вебхуки">
+              <WebhooksPage />
+            </OwnerOnly>
+          }
+        />
+        <Route
+          path="onec"
+          element={
+            <OwnerOnly title="Обмен с 1С">
+              <OnecPage />
+            </OwnerOnly>
+          }
+        />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

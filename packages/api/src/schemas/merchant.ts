@@ -187,3 +187,20 @@ export type CoverageLimitInput = z.infer<typeof coverageLimitInputSchema>;
 
 /** Предел приложения-кассы, общий для всех магазинов (docs/API.md). */
 export const SCANNER_MAX_COVERAGE_PERCENT = 30;
+
+/**
+ * Роль человека в магазине (merchants[].role в токене) и что она даёт. Права проверяет
+ * сервер; фронт по роли только решает, что показывать.
+ */
+export const MERCHANT_ROLE_LABELS: Record<string, { title: string; can: string }> = {
+  admin: { title: "Владелец магазина", can: "Управляет всем: командой, оплатой, 1С, витриной и потолком процента." },
+  staff: { title: "Кассир", can: "Списывает бонусы и смотрит витрину. Настройки меняет владелец." },
+  partner: {
+    title: "Партнёр-продавец",
+    can: "Продаёт от имени магазина и принимает бонусы. Настройки меняет владелец.",
+  },
+  partner_employee: { title: "Сотрудник партнёра", can: "Принимает бонусы от имени партнёра." },
+};
+
+/** Управлять магазином может только владелец (и агентство — у него своя админка). */
+export const isMerchantOwner = (role: string | null | undefined) => role === "admin";

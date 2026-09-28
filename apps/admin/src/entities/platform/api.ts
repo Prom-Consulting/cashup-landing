@@ -14,6 +14,7 @@ import {
   type GoogleMessageInput,
   type ImageSlot,
   type PassDesign,
+  type PlatformPricesInput,
   type PlatformSettingsInput,
   type Template,
   type TierInput,
@@ -371,6 +372,19 @@ export function useSavePlatformSettings() {
   return useMutation({
     mutationFn: (input: PlatformSettingsInput) => platformApi(api).savePlatformSettings(input),
     onSuccess: (saved) => queryClient.setQueryData(platformKeys.settings, saved),
+  });
+}
+
+export function useSavePlatformPrices() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PlatformPricesInput) => platformApi(api).savePlatformPrices(input),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(platformKeys.settings, saved);
+      // Смена цены пишется в журнал — перечитаем его
+      queryClient.invalidateQueries({ queryKey: platformKeys.audit });
+    },
   });
 }
 

@@ -286,7 +286,13 @@ export const bonusItemPageSchema = z.looseObject({
 });
 
 /** Текст «о компании», который дописывается на оборот каждой выпущенной карты. */
-export const platformSettingsSchema = z.looseObject({ infoText: z.string().nullish(), infoUrl: z.string().nullish() });
+export const platformSettingsSchema = z.looseObject({
+  infoText: z.string().nullish(),
+  infoUrl: z.string().nullish(),
+  /** Цены платформы, целые сомы за месяц: доступ магазина и подписка клиента. */
+  merchantAccessPriceKgs: z.number().nullish(),
+  cardSubscriptionPriceKgs: z.number().nullish(),
+});
 export type PlatformSettings = z.infer<typeof platformSettingsSchema>;
 
 export const platformSettingsInputSchema = z.object({
@@ -297,6 +303,22 @@ export const platformSettingsInputSchema = z.object({
     .refine((value) => value === "" || /^https?:\/\//i.test(value), "Адрес должен начинаться с http:// или https://"),
 });
 export type PlatformSettingsInput = z.infer<typeof platformSettingsInputSchema>;
+
+const priceKgs = z.coerce
+  .number({ error: "Введите цену числом" })
+  .int("Целые сомы, без тийинов")
+  .min(1, "Цена больше нуля")
+  .max(10_000_000, "Слишком большая цена");
+
+/** Экран цен у агентства. Новая цена действует со следующего счёта, выставленные не меняются. */
+export const platformPricesInputSchema = z.object({
+  merchantAccessPriceKgs: priceKgs,
+  cardSubscriptionPriceKgs: priceKgs,
+});
+export type PlatformPricesInput = {
+  merchantAccessPriceKgs: number | string;
+  cardSubscriptionPriceKgs: number | string;
+};
 
 export const auditLogSchema = z.looseObject({
   id: z.string(),

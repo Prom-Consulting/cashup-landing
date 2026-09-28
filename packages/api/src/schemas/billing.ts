@@ -97,11 +97,11 @@ export const buyMonthsInputSchema = z.object({
 });
 export type BuyMonthsInput = z.infer<typeof buyMonthsInputSchema>;
 
+/**
+ * Счёт магазину на продление доступа. Сумму считает сервер: цена месяца доступа из
+ * настроек платформы × месяцы. Лишнее поле в теле (amount и т. п.) — 400.
+ */
 export const createInvoiceInputSchema = z.object({
-  amount: z.coerce
-    .number({ error: "Введите сумму числом" })
-    .positive("Сумма больше нуля")
-    .max(100_000_000, "Слишком большая сумма"),
   months: z.coerce.number().int("Целое число месяцев").min(1, "Минимум месяц").max(24, "Не больше двух лет"),
 });
 export type CreateInvoiceInput = z.infer<typeof createInvoiceInputSchema>;

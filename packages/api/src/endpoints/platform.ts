@@ -26,6 +26,8 @@ import {
   googleMessageInputSchema,
   issueCardByPhoneInputSchema,
   platformSettingsInputSchema,
+  platformPricesInputSchema,
+  type PlatformPricesInput,
   platformSettingsSchema,
   programMemberSchema,
   programSchema,
@@ -362,6 +364,13 @@ export const platformApi = (api: ApiClient) => ({
     api.request(platformSettingsSchema, "/admin/v1/platform-settings", {
       method: "PATCH",
       body: platformSettingsInputSchema.parse(input),
+    }),
+
+  /** PATCH принимает любое подмножество полей — цены шлём отдельно от текста сноски. */
+  savePlatformPrices: (input: PlatformPricesInput) =>
+    api.request(platformSettingsSchema, "/admin/v1/platform-settings", {
+      method: "PATCH",
+      body: platformPricesInputSchema.parse(input),
     }),
 
   auditLogs: () => api.request(z.array(auditLogSchema), "/admin/v1/audit-logs"),

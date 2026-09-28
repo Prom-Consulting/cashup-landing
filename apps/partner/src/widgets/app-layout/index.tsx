@@ -17,25 +17,29 @@ import { useId } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { useCurrentMerchant } from "../../entities/session/model";
 
-const nav: (NavItem & { icon: IconSvg })[] = [
+type Item = NavItem & { icon: IconSvg; ownerOnly?: boolean };
+
+/** ownerOnly — разделы владельца: кассиру и партнёру сервер там ответит 403. */
+const nav: Item[] = [
   { to: "/", label: "Обзор", icon: Chart01Icon },
   { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
   { to: "/storefront", label: "Витрина", icon: Store01Icon },
-  { to: "/deductions", label: "Списания", icon: CreditCardIcon },
-  { to: "/billing", label: "Оплата", icon: Invoice01Icon },
-  { to: "/team", label: "Команда", icon: UserGroupIcon },
+  { to: "/deductions", label: "Списания", icon: CreditCardIcon, ownerOnly: true },
+  { to: "/billing", label: "Оплата", icon: Invoice01Icon, ownerOnly: true },
+  { to: "/team", label: "Команда", icon: UserGroupIcon, ownerOnly: true },
   { to: "/pos", label: "Касса", icon: CashierIcon },
-  { to: "/webhooks", label: "Вебхуки", icon: LinkSquare02Icon },
-  { to: "/onec", label: "Обмен с 1С", icon: Settings02Icon },
+  { to: "/webhooks", label: "Вебхуки", icon: LinkSquare02Icon, ownerOnly: true },
+  { to: "/onec", label: "Обмен с 1С", icon: Settings02Icon, ownerOnly: true },
 ];
 
 /** Раздел партнёра виден только партнёрам и их сотрудникам. */
 const partnerNav: NavItem & { icon: IconSvg } = { to: "/partner", label: "Я партнёр", icon: Agreement02Icon };
 
 export function AppLayout() {
-  const { label, logout, memberships, merchantId, selectMerchant, membership } = useCurrentMerchant();
+  const { label, logout, memberships, merchantId, selectMerchant, membership, canManage } = useCurrentMerchant();
   const isPartner = membership?.role === "partner" || membership?.role === "partner_employee";
-  const items = isPartner ? [nav[0], partnerNav, ...nav.slice(1)] : nav;
+  const allowed = nav.filter((item) => canManage || !item.ownerOnly);
+  const items = isPartner ? [allowed[0]!, partnerNav, ...allowed.slice(1)] : allowed;
   const location = useLocation();
   const selectId = useId();
 

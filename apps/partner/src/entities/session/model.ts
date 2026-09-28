@@ -1,3 +1,4 @@
+import { isMerchantOwner } from "@loal/api";
 import { useSession } from "@loal/app-kit";
 import { useMemo, useState } from "react";
 
@@ -44,8 +45,12 @@ export function useCurrentMerchant() {
     memberships,
     membership,
     merchantId: membership?.merchantId ?? null,
-    /** Витрину и оплату меняет владелец или партнёр, сотрудник только смотрит. */
-    canManage: membership?.role === "admin" || membership?.role === "partner",
+    role: membership?.role ?? null,
+    /**
+     * Управляет магазином только владелец (admin): команда, оплата, 1С, вебхуки, журнал,
+     * правка витрины, потолка и кассы. Остальным сервер ответит 403 — не показываем.
+     */
+    canManage: isMerchantOwner(membership?.role),
     label: session?.email ?? "",
     selectMerchant,
   };

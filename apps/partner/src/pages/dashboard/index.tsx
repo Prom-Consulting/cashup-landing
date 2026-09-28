@@ -1,4 +1,4 @@
-import { planLabel } from "@loal/api";
+import { MERCHANT_ROLE_LABELS, planLabel } from "@loal/api";
 import { Badge, Card, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Link } from "react-router";
 import { useDeductions, useMerchant, useSubscription } from "../../entities/merchant/api";
@@ -7,8 +7,51 @@ import { formatDate, formatDateTime } from "../../shared/lib/format";
 
 const money = new Intl.NumberFormat("ru-RU");
 
+/**
+ * Главный экран кассира и партнёра: подписка и журнал им закрыты (сервер ответит 403),
+ * поэтому здесь только то, что они делают каждый день.
+ */
+function TeamDashboard() {
+  const { merchantId, role } = useCurrentMerchant();
+  const merchant = useMerchant(merchantId ?? "");
+  const who = role ? MERCHANT_ROLE_LABELS[role] : undefined;
+
+  return (
+    <section className="flex flex-col gap-6">
+      <PageHeader title={merchant.data?.name ?? "Кабинет магазина"} description={who?.title} />
+      <div className="grid gap-4 md:grid-cols-[1.4fr_1fr]">
+        <Card className="brand-gradient flex flex-col gap-4 text-white">
+          <h2 className="display text-[clamp(1.8rem,3vw,2.4rem)] leading-tight">Клиент с картой Loal?</h2>
+          <p className="max-w-[46ch] text-lg leading-snug text-white/90">
+            Отсканируйте QR с его карты, добавьте покупку — бонусы закроют часть цены.
+          </p>
+          <Link
+            to="/redeem"
+            className="inline-flex w-fit items-center rounded-full bg-graphite px-7 py-4 text-lg font-bold text-white transition-colors hover:bg-white hover:text-graphite"
+          >
+            Списать бонусы
+          </Link>
+        </Card>
+        <Card className="flex flex-col gap-3">
+          <h2 className="text-xl font-bold">Что вам доступно</h2>
+          <p className="text-base leading-snug text-muted-foreground">{who?.can}</p>
+          <Link to="/storefront" className="text-base text-destructive underline underline-offset-4">
+            Посмотреть витрину магазина
+          </Link>
+        </Card>
+      </div>
+    </section>
+  );
+}
+
 /** Главный экран: можно ли принимать бонусы и что списали последним. */
 export function DashboardPage() {
+  const { canManage } = useCurrentMerchant();
+  return canManage ? <OwnerDashboard /> : <TeamDashboard />;
+}
+
+/** Владелец: подписка, приём бонусов и последние списания. */
+function OwnerDashboard() {
   const { merchantId } = useCurrentMerchant();
   const merchant = useMerchant(merchantId ?? "");
   const subscription = useSubscription(merchantId ?? "");

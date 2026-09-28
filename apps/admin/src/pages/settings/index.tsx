@@ -1,11 +1,133 @@
-import { platformSettingsInputSchema, type PlatformSettingsInput } from "@loal/api";
+import {
+  platformPricesInputSchema,
+  platformSettingsInputSchema,
+  type PlatformPricesInput,
+  type PlatformSettings,
+  type PlatformSettingsInput,
+} from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
-import { Button, Card, ErrorState, Input, Label, Loading, PageHeader, Textarea } from "@loal/ui/shadcn";
+import {
+  Button,
+  Card,
+  ErrorState,
+  FormField,
+  FormStatus,
+  Input,
+  Label,
+  Loading,
+  PageHeader,
+  Textarea,
+} from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
-import { useAuditLogs, usePlatformSettings, useSavePlatformSettings } from "../../entities/platform/api";
+import { useState } from "react";
+import {
+  useAuditLogs,
+  usePlatformSettings,
+  useSavePlatformPrices,
+  useSavePlatformSettings,
+} from "../../entities/platform/api";
 import { formatDateTime } from "../../shared/lib/format";
 
-/** Текст «о компании» уходит на оборот каждой выпущенной карты. */
+const money = new Intl.NumberFormat("ru-RU");
+
+const PRICE_FIELDS = [
+  {
+    name: "merchantAccessPriceKgs",
+    label: "Доступ магазина",
+    hint: "Месяц приёма бонусов. По ней считается счёт магазину и оплата доступа партнёром.",
+  },
+  {
+    name: "cardSubscriptionPriceKgs",
+    label: "Подписка клиента",
+    hint: "Месяц с 15 000 бонусов. По ней считаются оплаты клиентов по телефону и по карте.",
+  },
+] as const;
+
+/** Цены платформы: сервер сам считает по ним каждый счёт. Смена — со следующего счёта. */
+function PricesCard({ settings }: { settings: PlatformSettings }) {
+  const save = useSavePlatformPrices();
+  // Отдельно от status: после сохранения форма пересоздаётся с новыми ценами и сбрасывает status
+  const [saved, setSaved] = useState(false);
+  const initialValues: PlatformPricesInput = {
+    merchantAccessPriceKgs: settings.merchantAccessPriceKgs ?? "",
+    cardSubscriptionPriceKgs: settings.cardSubscriptionPriceKgs ?? "",
+  };
+
+  return (
+    <Card>
+      <h2 className="text-xl font-bold">Цены</h2>
+      <p className="mt-1 max-w-[70ch] text-base text-muted-foreground">
+        Целые сомы за месяц. Счёт считает сервер: цена × месяцы. Новая цена действует со следующего счёта — уже
+        выставленные не меняются. Каждая смена попадает в журнал ниже.
+      </p>
+      <Formik
+        initialValues={initialValues}
+        enableReinitialize
+        validate={zodValidate(platformPricesInputSchema)}
+        onSubmit={async (values, helpers) => {
+          helpers.setStatus(undefined);
+          setSaved(false);
+          try {
+            await save.mutateAsync(values);
+            setSaved(true);
+          } catch (error) {
+            applyServerIssues(error, helpers, "Не удалось сохранить цены");
+          } finally {
+            helpers.setSubmitting(false);
+          }
+        }}
+      >
+        {(form) => (
+          <Form className="mt-5 flex flex-col gap-5" noValidate>
+            <FocusFirstError form={form} />
+            <div className="grid gap-5 md:grid-cols-2">
+              {PRICE_FIELDS.map((field) => {
+                const value = Number(form.values[field.name]);
+                return (
+                  <FormField
+                    key={field.name}
+                    label={field.label}
+                    hint={value > 0 ? `${field.hint} 3 месяца = ${money.format(value * 3)} сом.` : field.hint}
+                    error={fieldError(form, field.name)}
+                  >
+                    {(parts) => (
+                      <div className="relative">
+                        <Input
+                          {...parts}
+                          name={field.name}
+                          inputMode="numeric"
+                          className="pr-20 text-xl tabular-nums"
+                          value={String(form.values[field.name] ?? "")}
+                          onChange={form.handleChange}
+                          onBlur={form.handleBlur}
+                        />
+                        <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-base text-muted-foreground">
+                          сом/мес
+                        </span>
+                      </div>
+                    )}
+                  </FormField>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap items-center gap-4">
+              <Button type="submit" disabled={form.isSubmitting || !form.dirty}>
+                {form.isSubmitting ? "Сохраняем…" : "Сохранить цены"}
+              </Button>
+              <FormStatus message={formError(form)} />
+              <FormStatus
+                tone="success"
+                message={saved && !form.dirty ? "Цены сохранены — действуют со следующего счёта" : undefined}
+              />
+            </div>
+          </Form>
+        )}
+      </Formik>
+    </Card>
+  );
+}
+
+/** Цены подписок и текст «о компании» на обороте каждой выпущенной карты. */
 export function SettingsPage() {
   const settings = usePlatformSettings();
   const save = useSavePlatformSettings();
@@ -15,20 +137,25 @@ export function SettingsPage() {
     <section className="flex flex-col gap-6">
       <PageHeader
         title="Настройки платформы"
-        description="Этот текст дописывается на оборот каждой карты — его видят все держатели."
+        description="Цены подписок и сноска на обороте карт — общие для всей платформы."
       />
+
+      {settings.isSuccess && <PricesCard settings={settings.data} />}
 
       {settings.isPending && <Loading rows={2} />}
       {settings.isError && <ErrorState error={settings.error} onRetry={() => settings.refetch()} />}
 
       {settings.isSuccess && (
         <Card>
+          <h2 className="text-xl font-bold">Сноска на обороте карты</h2>
+          <p className="mt-1 mb-5 max-w-[70ch] text-base text-muted-foreground">
+            Её видят все держатели в Apple Wallet (в Google Wallet сноски нет). Пока поля пустые, там стоит «Карты
+            лояльности» и loal.kg. Выданные карты получат изменение при следующем обновлении; чтобы разослать всем
+            сразу, пересохраните шаблон карты.
+          </p>
           <Formik
             initialValues={
-              {
-                infoText: settings.data.infoText ?? "",
-                infoUrl: settings.data.infoUrl ?? "",
-              } as PlatformSettingsInput
+              { infoText: settings.data.infoText ?? "", infoUrl: settings.data.infoUrl ?? "" } as PlatformSettingsInput
             }
             validate={zodValidate(platformSettingsInputSchema)}
             onSubmit={async (values, helpers) => {
