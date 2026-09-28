@@ -1,0 +1,36 @@
+name: CI
+
+# Каждый пуш и пул-реквест в main: типы и сборка всех четырёх приложений.
+# Сборка кабинетов уже включает tsc --noEmit, лендинга — проверку типов Next.
+# Красный CI до сервера не доходит: CD запускается только после зелёного.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Typecheck and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        # Версию берёт из packageManager в package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all apps
+        run: pnpm -r --filter "./apps/*" build

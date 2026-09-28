@@ -88,6 +88,14 @@ docker compose -f infra/docker-compose.yml build
 docker compose -f infra/docker-compose.yml up -d
 ```
 
+После первой настройки деплой автоматический: пуш в `main` → GitHub Actions `CI` (типы и
+сборка всех приложений) → при зелёном CI `CD` заходит на сервер по SSH, ставит тот коммит
+(`git reset --hard`), собирает образы, поднимает их и проверяет, что все четыре сайта отвечают 200.
+Секреты репозитория: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` (открытый ключ — в
+`~/.ssh/authorized_keys` на сервере), необязательные `DEPLOY_PORT` и `FRONT_PATH`
+(по умолчанию `/var/www/cashup-landing`). Перезапустить вручную: Actions → CD → Run workflow.
+Правки, сделанные прямо на сервере в отслеживаемых файлах, деплой затирает; `infra/.env` не трогает.
+
 Имя сети Traefik проверяется так:
 
 ```bash

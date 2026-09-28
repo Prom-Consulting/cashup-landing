@@ -1,0 +1,80 @@
+name: CD
+
+# Выкатывает main на прод после зелёного CI на том же коммите. На сервере делает
+# ровно то, что раньше делали руками: подтянуть код, собрать образы, поднять.
+#
+# Секреты репозитория (Settings → Secrets and variables → Actions):
+#   DEPLOY_HOST      адрес сервера
+#   DEPLOY_USER      пользователь SSH (root)
+#   DEPLOY_SSH_KEY   закрытый ключ, чей открытый лежит в ~/.ssh/authorized_keys на сервере
+#   DEPLOY_PORT      необязательно, по умолчанию 22
+#   FRONT_PATH       необязательно, по умолчанию /var/www/cashup-landing
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  # Ручной перезапуск: откат или повтор после починки сервера
+  workflow_dispatch:
+
+concurrency:
+  # Два деплоя разом собирали бы одни и те же образы вперемешку. Начатый не отменяем:
+  # прерванный на полпути оставит часть приложений старыми.
+  group: front-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Pull, build and start on the server
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          # Коммит, на котором прошёл CI, — его и выкатываем, даже если в main уже есть новее
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: SHA
+          command_timeout: 25m
+          script: |
+            set -euo pipefail
+            APP_DIR="${{ secrets.FRONT_PATH || '/var/www/cashup-landing' }}"
+            cd "$APP_DIR"
+
+            echo "▸ Код: $SHA"
+            # Сервер только выкатывает: правки, сделанные на нём руками, не сохраняем.
+            # infra/.env и прочие неотслеживаемые файлы reset не трогает.
+            git fetch --quiet origin main
+            git reset --hard "$SHA"
+
+            echo "▸ Сборка"
+            docker compose -f infra/docker-compose.yml build
+
+            echo "▸ Запуск"
+            docker compose -f infra/docker-compose.yml up -d --remove-orphans
+
+            # Старые слои копятся с каждой сборкой; висячие образы убираем, кэш сборки
+            # не трогаем — он общий с бэкендом и ускоряет следующую сборку
+            docker image prune -f > /dev/null
+
+            docker compose -f infra/docker-compose.yml ps
+            echo "✓ Готово"
+
+      - name: Check the sites answer
+        run: |
+          set -eu
+          for url in https://loal.kg/ https://partner.loal.kg/ https://client.loal.kg/ https://admin.loal.kg/; do
+            for attempt in 1 2 3 4 5 6; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$url" || true)
+              [ "$code" = "200" ] && break
+              sleep 10
+            done
+            echo "$url → $code"
+            [ "$code" = "200" ] || { echo "::error::$url отвечает $code"; exit 1; }
+          done
