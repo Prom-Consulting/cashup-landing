@@ -4,3 +4,6 @@ export const SITE_URL = import.meta.env.VITE_SITE_URL ?? "https://loal.kg";
 
 /** Ключ хранения не используется — входа у держателя карты нет. */
 export const TOKEN_STORAGE_KEY = "loal.client.token";
+
+/** Цена месяца подписки для показа. Счёт выставляет бэкенд (OCTOPAY_SUBSCRIPTION_PRICE_KGS) — держите их равными. */
+export const SUBSCRIPTION_PRICE_KGS = Number(import.meta.env.VITE_SUBSCRIPTION_PRICE_KGS ?? 990);

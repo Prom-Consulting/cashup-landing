@@ -9,6 +9,7 @@ import { useMyCard, useMyHistory } from "../../entities/me/api";
 import { FirstCardForm } from "../../features/subscription/first-card-form";
 import { PaySubscriptionForm } from "../../features/subscription/pay-form";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
+import { recallPhone } from "../../shared/lib/remembered-phone";
 
 const money = new Intl.NumberFormat("ru-RU");
 
@@ -79,16 +80,9 @@ export function MyCardPage() {
     if (!noCard) return <ErrorState error={card.error} onRetry={() => card.refetch()} />;
 
     return (
-      <section className="flex flex-col gap-5 lg:max-w-[560px]">
+      <section className="flex flex-col gap-6">
         <Welcome />
-        <h1 className="display text-[clamp(1.75rem,7vw,2.25rem)] leading-[1.1]">Карты пока нет</h1>
-        <p className="text-lg text-muted-foreground">
-          Оформите подписку — карта появится в Apple Wallet или Google Wallet сразу после оплаты, а на ней 15 000 бонусов на оплаченный
-          период.
-        </p>
-        <Card>
-          <FirstCardForm phone={session?.email ? null : null} />
-        </Card>
+        <FirstCardForm phone={recallPhone() || null} />
       </section>
     );
   }

@@ -14,3 +14,4 @@ export * from "./promo";
 export * from "./redemption";
 export * from "./template";
 export * from "./categories";
+export { DEFAULT_PHONE_COUNTRY, toPhoneDigits } from "./phone";

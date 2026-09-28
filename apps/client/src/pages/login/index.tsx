@@ -1,5 +1,6 @@
 import { PhoneSignInForm } from "@loal/app-kit";
 import { useNavigate } from "react-router";
+import { rememberPhone } from "../../shared/lib/remembered-phone";
 
 /**
  * Держатель карты входит и регистрируется одинаково — по телефону и коду из WhatsApp.
@@ -16,7 +17,10 @@ export function LoginPage() {
       </p>
       <div className="mt-8">
         <PhoneSignInForm
-          onDone={({ isNewAccount }) => navigate("/", { replace: true, state: { welcome: isNewAccount } })}
+          onDone={({ isNewAccount, phone }) => {
+            rememberPhone(phone);
+            navigate("/", { replace: true, state: { welcome: isNewAccount } });
+          }}
         />
       </div>
     </div>

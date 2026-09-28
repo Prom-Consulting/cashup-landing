@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { phoneSchema } from "./auth";
+import { optionalPhoneSchema } from "./phone";
 
 /**
  * Клиент платформы. Почти все поля необязательны: иногда известен только телефон.
@@ -35,7 +35,7 @@ export const createCustomerInputSchema = z
     firstName: z.string().trim().max(60, "Слишком длинное имя").optional(),
     lastName: z.string().trim().max(60, "Слишком длинная фамилия").optional(),
     // Номер с кодом страны (сервер проверяет libphonenumber); пусто — телефона нет
-    phone: z.union([z.literal(""), phoneSchema]).optional(),
+    phone: optionalPhoneSchema.optional(),
     email: z.union([z.literal(""), z.email("Похоже, в почте опечатка")]).optional(),
   })
   .refine((v) => Boolean(v.firstName || v.lastName || v.phone || v.email), {

@@ -1,4 +1,4 @@
-import { ApiError, otpLoginInputSchema, otpRequestInputSchema, type OtpLoginInput } from "@loal/api";
+import { ApiError, otpLoginInputSchema, otpRequestInputSchema, toPhoneDigits, type OtpLoginInput } from "@loal/api";
 import { FocusFirstError, fieldError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Button, OtpInput, PhoneInput, Spinner } from "@loal/ui/inputs";
@@ -44,7 +44,12 @@ function useCooldown() {
  * Код проверяется один раз, а войти или создать аккаунт решает сервер: в ответе
  * isNewAccount. Человеку не нужно знать, заходил ли он раньше.
  */
-export function PhoneSignInForm({ onDone }: { onDone?: (result: { isNewAccount: boolean }) => void }) {
+export function PhoneSignInForm({
+  onDone,
+}: {
+  /** phone — номер, с которым вошли, цифрами с кодом страны: кабинет может его запомнить. */
+  onDone?: (result: { isNewAccount: boolean; phone: string }) => void;
+}) {
   const requestOtp = useRequestOtp();
   const loginByOtp = useLoginByOtp();
   const { endedReason } = useSession();
@@ -72,7 +77,7 @@ export function PhoneSignInForm({ onDone }: { onDone?: (result: { isNewAccount: 
   const submitCode = async (values: OtpLoginInput, helpers: FormikHelpers<OtpLoginInput>) => {
     try {
       const tokens = await loginByOtp.mutateAsync(values);
-      onDone?.({ isNewAccount: tokens.isNewAccount === true });
+      onDone?.({ isNewAccount: tokens.isNewAccount === true, phone: toPhoneDigits(values.phone) ?? values.phone });
     } catch (error) {
       if (isWrongCode(error)) return helpers.setFieldError("otp", "Неверный код");
       if (isSpentCode(error)) {

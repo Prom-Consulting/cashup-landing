@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { phoneSchema } from "./phone";
+
+/** Телефон — общий для всех схем, правила в ./phone. */
+export { phoneSchema };
 
 /**
  * Схемы ответов описаны как looseObject: бэкенд добавляет поля чаще, чем мы их
@@ -56,25 +60,6 @@ export const loginInputSchema = z.object({
   password: z.string().min(1, "Введите пароль"),
 });
 export type LoginInput = z.infer<typeof loginInputSchema>;
-
-/**
- * Телефон бэкенд ждёт цифрами, без плюса и пробелов: 996700000001. Принимаем оба
- * привычных вида записи — 0700 12 34 56 и +996 700 123 456 — и приводим к одному.
- */
-export const phoneSchema = z
-  .string()
-  .trim()
-  .min(1, "Введите номер телефона")
-  .transform((value) => {
-    // Поле уже показывает +996, поэтому человек может дописать и 0700…, и 700…
-    let local = value.replace(/\D/g, "");
-    if (local.startsWith("996")) local = local.slice(3);
-    if (local.startsWith("0")) local = local.slice(1);
-    // Если цифр не девять, возвращаем как есть: проверка ниже должна отклонить номер,
-    // а не «починить» его до чужого
-    return local.length === 9 ? `996${local}` : local;
-  })
-  .refine((digits) => /^996\d{9}$/.test(digits), "Проверьте номер: девять цифр после +996");
 
 /** Код из сообщения: ровно шесть цифр, иначе сервер всё равно откажет. */
 export const otpSchema = z

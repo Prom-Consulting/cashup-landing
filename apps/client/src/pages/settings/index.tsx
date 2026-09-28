@@ -5,6 +5,7 @@ import { Button, Card, ConfirmDialog, Icon, cn } from "@loal/ui/shadcn";
 import { Link, useNavigate } from "react-router";
 import { useMyCard, useRedeemPromo } from "../../entities/me/api";
 import { BACKGROUNDS, useBackground } from "../../shared/lib/background";
+import { forgetPhone } from "../../shared/lib/remembered-phone";
 
 /** Настройки держателя карты: кто вошёл, промокод, фон кабинета и выход. */
 export function SettingsPage() {
@@ -93,6 +94,7 @@ export function SettingsPage() {
         description="Карта в Wallet останется и продолжит работать. Войти снова можно по номеру телефона."
         confirmLabel="Выйти"
         onConfirm={() => {
+          forgetPhone();
           logout();
           navigate("/login", { replace: true });
         }}

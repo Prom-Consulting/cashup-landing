@@ -2,6 +2,7 @@ import { ApiError, createCustomerInputSchema, type CreateCustomerInput } from "@
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Badge, Button, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, Input, Label } from "@loal/ui/shadcn";
 import { CreditCardIcon, UserAdd01Icon } from "@hugeicons/core-free-icons";
+import { PhoneInput } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
 import { useId, useState } from "react";
 import { CardLink } from "./card-link";
@@ -150,15 +151,19 @@ export function IssueCardDialog({ cardUrl }: { cardUrl?: (serial: string) => str
                   </div>
                   <div>
                     <Label htmlFor="phone">Телефон</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      inputMode="tel"
-                      className="mt-2"
-                      value={form.values.phone ?? ""}
-                      onChange={form.handleChange}
-                      onBlur={form.handleBlur}
-                    />
+                    <div className="mt-2">
+                      <PhoneInput
+                        id="phone"
+                        name="phone"
+                        value={form.values.phone ?? ""}
+                        onValueChange={(value) => form.setFieldValue("phone", value)}
+                        onBlur={() => form.setFieldTouched("phone", true)}
+                        invalid={Boolean(fieldError(form, "phone"))}
+                      />
+                    </div>
+                    {fieldError(form, "phone") && (
+                      <p className="mt-2 text-base text-destructive">{fieldError(form, "phone")}</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="email">Почта</Label>

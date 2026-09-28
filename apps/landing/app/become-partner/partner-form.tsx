@@ -6,7 +6,7 @@ import { useGSAP } from "@gsap/react";
 import { Field } from "@loal/ui/field";
 import { Button, ChoiceCards, PhoneInput, Spinner, Textarea, TextInput } from "@loal/ui/inputs";
 import { Select } from "@loal/ui/select";
-import { createApiClient, createTokenStore, leadsApi } from "@loal/api";
+import { createApiClient, createTokenStore, leadsApi, toPhoneDigits } from "@loal/api";
 import { categories } from "../_data/categories";
 import { API_URL, EMAIL, PARTNER_APP_URL } from "../_data/site";
 
@@ -41,12 +41,10 @@ const rules: Record<FieldName, (v: Values) => string> = {
     if (!/^[А-Яа-яЁёA-Za-z\s-]+$/.test(value)) return "Только буквы, пробел и дефис";
     return "";
   },
+  // Те же правила номера, что у бэкенда: код страны и проверка по стране
   phone: ({ phone }) => {
-    const digits = phone.replace(/\D/g, "").replace(/^996/, "");
-    if (!digits) return "Оставьте телефон для связи";
-    if (digits.length < 9) return "В номере 9 цифр после +996";
-    if (!/^[2-9]/.test(digits)) return "Проверьте код оператора";
-    return "";
+    if (!phone.trim()) return "Оставьте телефон для связи";
+    return toPhoneDigits(phone) ? "" : "Проверьте номер: не хватает цифр или неверный код страны";
   },
   comment: ({ comment }) => (comment.length > 500 ? "Не длиннее 500 символов" : ""),
 };
