@@ -117,6 +117,8 @@ export type UpdateMerchantInput = z.infer<typeof updateMerchantInputSchema>;
 /**
  * Витрина заведения: то, что клиент видит в каталоге. PUT заменяет профиль целиком —
  * все шесть полей обязательны, пустое поле шлётся как null, фотографии как [].
+ * Адрес и координаты — необязательные: без них сервер оставит прежние; lat и lng
+ * ходят только парой (или оба null).
  */
 export const merchantProfileSchema = z.object({
   category: z.string().trim().min(1).max(60).nullable(),
@@ -125,6 +127,9 @@ export const merchantProfileSchema = z.object({
   photos: z.array(z.string()).max(10),
   instagramUrl: z.string().nullable(),
   twogisUrl: z.string().nullable(),
+  address: z.string().nullish(),
+  lat: z.number().min(-90).max(90).nullish(),
+  lng: z.number().min(-180).max(180).nullish(),
 });
 export type MerchantProfile = z.infer<typeof merchantProfileSchema>;
 
@@ -144,6 +149,7 @@ export const merchantProfileFormSchema = z.object({
     "Это не похоже на ссылку в Instagram",
   ),
   twogisUrl: optionalUrl.refine((value) => value === "" || /2gis\./i.test(value), "Это не похоже на ссылку в 2ГИС"),
+  address: z.string().trim().max(200, "Не длиннее 200 символов"),
 });
 export type MerchantProfileForm = z.infer<typeof merchantProfileFormSchema>;
 
@@ -204,3 +210,25 @@ export const MERCHANT_ROLE_LABELS: Record<string, { title: string; can: string }
 
 /** Управлять магазином может только владелец (и агентство — у него своя админка). */
 export const isMerchantOwner = (role: string | null | undefined) => role === "admin";
+
+/**
+ * Координаты из ссылки 2ГИС: в ссылке «Поделиться» они есть (`…?m=74.59,42.87/16` или
+ * `…/geo/74.59,42.87`). Берём только пару, похожую на Кыргызстан, — выдуманная точка
+ * хуже никакой.
+ */
+export function coordsFrom2gis(url: string | null | undefined): { lat: number; lng: number } | null {
+  if (!url) return null;
+  let text = url;
+  try {
+    text = decodeURIComponent(url);
+  } catch {
+    // битая кодировка — ищем в исходной строке
+  }
+  const numbers = text.match(/\d{2}\.\d{3,}/g)?.map(Number) ?? [];
+  for (let i = 0; i < numbers.length - 1; i += 1) {
+    const [a, b] = [numbers[i]!, numbers[i + 1]!];
+    if (a >= 69 && a <= 81 && b >= 39 && b <= 44) return { lng: a, lat: b };
+    if (b >= 69 && b <= 81 && a >= 39 && a <= 44) return { lng: b, lat: a };
+  }
+  return null;
+}

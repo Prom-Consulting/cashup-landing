@@ -1,4 +1,4 @@
-import { cardsApi, meApi, promoApi, type PaySubscriptionByPhoneInput, type RedeemPromoInput } from "@loal/api";
+import { cardsApi, meApi, promoApi, subscriptionApi, type PaySubscriptionByPhoneInput, type RedeemPromoInput } from "@loal/api";
 import { useApi } from "@loal/app-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -25,6 +25,20 @@ export function useMyHistory(page: number) {
 }
 
 /** Предложение подписки v2: цена, срок и баланс цикла — с сервера. Без карты — 404. */
+/**
+ * Цена подписки без входа. Старый шлюз этой ручки не знает — тогда показываем цену из
+ * настроек кабинета (SUBSCRIPTION_PRICE_KGS), и только для показа.
+ */
+export function usePublicOffer() {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["subscription", "public-offer"],
+    queryFn: () => subscriptionApi(api).publicOffer(),
+    retry: false,
+    staleTime: 10 * 60_000,
+  });
+}
+
 export function useSubscriptionOffer(enabled = true) {
   const api = useApi();
   return useQuery({ queryKey: meKeys.offer, queryFn: () => meApi(api).subscriptionOffer(), enabled, retry: false });

@@ -1,6 +1,7 @@
 import {
   ApiError,
   PARTNER_CATEGORIES,
+  coordsFrom2gis,
   merchantProfileFormSchema,
   type MerchantProfile,
   type MerchantProfileForm,
@@ -54,6 +55,15 @@ function categoryOptions(current: string | null) {
     : options;
 }
 
+/**
+ * Точка на карте каталога — из ссылки 2ГИС. Ссылку убрали — убираем и точку; в ссылке
+ * координат нет — не шлём их вовсе, и сервер оставит прежние.
+ */
+function geoOf(twogisUrl: string): { lat: number | null; lng: number | null } | Record<string, never> {
+  if (twogisUrl.trim() === "") return { lat: null, lng: null };
+  return coordsFrom2gis(twogisUrl) ?? {};
+}
+
 /** Пустая строка в поле — это «очистить», а бэкенд ждёт для этого null. */
 const orNull = (value: string) => (value.trim() === "" ? null : value.trim());
 
@@ -93,6 +103,7 @@ export function StorefrontForm({
     description: profile.description ?? "",
     instagramUrl: profile.instagramUrl ?? "",
     twogisUrl: profile.twogisUrl ?? "",
+    address: profile.address ?? "",
   };
 
   const pick = async (slot: "merchantLogo" | "merchantPhoto", file: File | undefined) => {
@@ -123,6 +134,8 @@ export function StorefrontForm({
             photos,
             instagramUrl: orNull(values.instagramUrl),
             twogisUrl: orNull(values.twogisUrl),
+            address: orNull(values.address),
+            ...geoOf(values.twogisUrl),
           });
           helpers.setStatus("Витрина сохранена");
           onSaved?.();
@@ -190,6 +203,24 @@ export function StorefrontForm({
             </div>
 
             <div>
+              <Label htmlFor="address">Адрес</Label>
+              <Input
+                id="address"
+                name="address"
+                placeholder="Бишкек, ул. Киевская, 95"
+                autoComplete="street-address"
+                className="mt-2"
+                value={form.values.address}
+                onChange={form.handleChange}
+                onBlur={form.handleBlur}
+                invalid={Boolean(fieldError(form, "address"))}
+              />
+              {fieldError(form, "address") && (
+                <p className="mt-2 text-base text-destructive">{fieldError(form, "address")}</p>
+              )}
+            </div>
+
+            <div>
               <Label htmlFor="twogisUrl">Карточка в 2ГИС</Label>
               <Input
                 id="twogisUrl"
@@ -201,8 +232,14 @@ export function StorefrontForm({
                 onBlur={form.handleBlur}
                 invalid={Boolean(fieldError(form, "twogisUrl"))}
               />
-              {fieldError(form, "twogisUrl") && (
+              {fieldError(form, "twogisUrl") ? (
                 <p className="mt-2 text-base text-destructive">{fieldError(form, "twogisUrl")}</p>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {form.values.twogisUrl.trim() && !coordsFrom2gis(form.values.twogisUrl)
+                    ? "В этой ссылке нет координат — точки на карте не будет. В 2ГИС нажмите «Поделиться» и скопируйте ссылку оттуда."
+                    : "По ней заведение появится точкой на карте каталога."}
+                </p>
               )}
             </div>
           </div>

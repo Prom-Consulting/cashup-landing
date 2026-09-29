@@ -8,6 +8,54 @@
 
 ---
 
+## Обновление 29 сентября 2026: frontend backend requests
+
+### Публичное предложение подписки
+
+`GET /v1/public/subscription/offer` без авторизации возвращает
+`{ planId, price, currency, cycleDays, cycleBalance }`. Цена берётся из общей настройки
+платформы. `GET /v1/me/subscription/offer` возвращает `intent: "initial"` и для аккаунта
+без карты. При первом `POST /v1/me/subscription/payments` backend сам создаёт карту.
+
+В `return_url` нового v2-счёта добавляется query-параметр `paymentId` с UUID локального
+платежа: `/payment/return?paymentId={id}`.
+
+### Профиль и завершение сессии
+
+- `GET /auth/me/profile` возвращает `{ id, email, phone, fullName, role }`.
+- `POST /auth/logout` с Bearer access token возвращает `204` и отзывает текущую
+  server-side сессию. После этого её access/refresh tokens получают `401`.
+
+### Стабильные коды ошибок
+
+| `error` | HTTP | Сценарий |
+|---|---:|---|
+| `OTP_INVALID` | 401 | неверный код |
+| `OTP_EXPIRED` | 401 | код отсутствует, истёк или уже использован |
+| `OTP_TOO_MANY_ATTEMPTS` | 429 | исчерпаны попытки |
+| `OTP_RATE_LIMITED` | 429 | повторный запрос слишком рано; есть `retryAfter` |
+| `OTP_UNAVAILABLE` | 503 | хранилище/конфигурация OTP недоступны |
+| `CARD_REQUIRED` | 404 | для промокода нужна карта |
+| `PROMO_NOT_FOUND` | 404 | промокод отсутствует или выключен |
+| `PROMO_ALREADY_USED` | 409 | код уже применён |
+| `PROMO_WRONG_AUDIENCE` | 400 | код предназначен другой аудитории |
+| `PROMO_EXPIRED` | 400 | срок кода истёк |
+| `PROMO_EXHAUSTED` | 400 | закончились использования |
+| `MERCHANT_SLUG_TAKEN` | 409 | slug заведения занят |
+| `CUSTOMER_PHONE_TAKEN` | 409 | клиент с телефоном уже существует |
+| `EMAIL_TAKEN` | 409 | e-mail аккаунта занят |
+| `COVERAGE_LIMIT_LOCKED` | 409 | есть `nextChangeAt` |
+| `INSUFFICIENT_POINTS` | 409 | недостаточно баллов |
+
+### География каталога
+
+`GET/PUT /admin/v1/merchants/{id}/profile` и `GET /v1/public/partners` содержат
+`address`, `lat`, `lng`. Координаты передаются вместе или оба `null`. Старые PUT без
+новых полей сохраняют прежнюю географию. Изменение профиля, потолка, статуса или
+подписки запускает best-effort обновление через `CATALOG_REVALIDATE_URL`.
+
+---
+
 ## Что изменилось 23 сентября 2026: карта принадлежит платформе
 
 Раньше карту, клиента и программу «держал» магазин — тот самый, который в системе
@@ -179,7 +227,7 @@ POST /auth/otp/request
 Content-Type: application/json
 
 { "phone": "+996700000001" }
-→ 201 { "ok": true, "expiresInSeconds": 300 }
+→ 200 { "ok": true, "expiresInSeconds": 300 }
 ```
 
 Номер — с кодом страны (см. «Общее»), иначе `400`. Код состоит из 6 цифр, уходит в WhatsApp и живёт
@@ -211,7 +259,7 @@ Content-Type: application/json
   "deviceId": "7ce8e4d2-4621-43f4-a57c-b85b1d26d124",
   "referralCode": "AbCdEf12"
 }
-→ 201 { "accessToken": "...", "expiresIn": "12h",
+→ 200 { "accessToken": "...", "expiresIn": "12h",
         "refreshToken": "...", "refreshExpiresIn": "30d", "isNewAccount": true }
 ```
 
@@ -270,6 +318,9 @@ Content-Type: application/json
 → { "accessToken": "...", "expiresIn": "12h", "refreshToken": "...", "refreshExpiresIn": "30d" } (по почте)
 → тот же ответ с `isNewAccount: false` (по телефону)
 ```
+
+Успешный вход возвращает `200 OK`. OTP поглощается этим запросом; повторно отправлять
+`/auth/login` после успешного `200` нельзя — повтор получит `401 OTP_EXPIRED`.
 
 Нельзя смешивать две формы. Для входа по email нужны `email + password + deviceId`.
 Для входа по телефону нужны `phone + otp + deviceId`, причём сначала надо вызвать
@@ -358,7 +409,8 @@ INVALID_REFRESH_TOKEN` означает истёкший или неверный
 | Метод | Адрес | Что делает |
 |---|---|---|
 | `GET` | `/auth/me` | Разбор токена: `sub`, `email`, `role`, `merchants[]`, `sessionId`. Отвечает `401`, если сессия заменена |
-| `GET` | `/auth/me/profile` | `{ id, email, fullName, role }`; у зарегистрированных по телефону `email` и `fullName` — `null` |
+| `GET` | `/auth/me/profile` | `{ id, email, phone, fullName, role }`; у зарегистрированных по телефону `email` и `fullName` — `null` |
+| `POST` | `/auth/logout` | `204`; отзывает текущую server-side сессию |
 | `PUT` | `/auth/me` | Смена имени и почты (так клиент добавляет их позже); возвращает новый токен |
 | `PUT` | `/auth/me/password` | `{ currentPassword, newPassword }` |
 | `DELETE` | `/v1/me/account` | Безвозвратно удалить текущий аккаунт и все клиентские данные; успех `204` без тела |

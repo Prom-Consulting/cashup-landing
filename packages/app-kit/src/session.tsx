@@ -71,6 +71,10 @@ function SessionProvider({
     };
     const logout = () => {
       clearEndedReason();
+      // Гасим сессию и на сервере, чтобы украденный refresh не жил свои 30 дней. Токен в
+      // заголовок попадает синхронно, поэтому локально стираем сразу и ответа не ждём:
+      // выход не должен зависеть от сети (и от старого шлюза, где этой ручки нет)
+      if (api.tokens.read()) authApi(api).logout().catch(() => undefined);
       api.tokens.write(null);
       setHasToken(false);
       queryClient.clear();

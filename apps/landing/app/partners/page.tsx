@@ -46,6 +46,12 @@ export default async function PartnersPage() {
           ...(partner.description ? { description: partner.description } : {}),
           ...(partner.logoUrl ? { image: partner.logoUrl } : {}),
           ...(partner.contactPhone ? { telephone: `+${partner.contactPhone.replace(/\D/g, "")}` } : {}),
+          ...(partner.address
+            ? { address: { "@type": "PostalAddress", streetAddress: partner.address, addressLocality: "Бишкек" } }
+            : {}),
+          ...(typeof partner.lat === "number" && typeof partner.lng === "number"
+            ? { geo: { "@type": "GeoCoordinates", latitude: partner.lat, longitude: partner.lng } }
+            : {}),
           areaServed: "Бишкек",
           url: `${SITE_URL}/partners`,
         },

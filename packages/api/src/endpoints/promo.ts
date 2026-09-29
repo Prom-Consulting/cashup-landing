@@ -51,6 +51,21 @@ export const promoApi = (api: ApiClient) => ({
 export function promoErrorText(error: unknown): string {
   const status = (error as { status?: number })?.status;
   const message = (error as Error)?.message ?? "";
+  switch ((error as { code?: string | null })?.code) {
+    case "CARD_REQUIRED":
+      return "Сначала получите карту";
+    case "PROMO_NOT_FOUND":
+      return "Промокод не найден";
+    case "PROMO_ALREADY_USED":
+      return "Вы уже использовали этот промокод";
+    case "PROMO_WRONG_AUDIENCE":
+      return "Этот промокод не для вас: он для другой аудитории";
+    case "PROMO_EXPIRED":
+      return "Срок действия промокода закончился";
+    case "PROMO_EXHAUSTED":
+      return "Промокод больше не действует: использования закончились";
+  }
+  // Шлюз без кодов ошибок: по статусу и тексту
   if (status === 404 && /^Сначала получите карту/i.test(message)) return "Сначала получите карту";
   if (status === 404) return "Промокод не найден";
   if (status === 409) return "Вы уже использовали этот промокод";

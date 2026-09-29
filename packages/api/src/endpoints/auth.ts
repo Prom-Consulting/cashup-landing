@@ -71,6 +71,9 @@ export const authApi = (api: ApiClient) => ({
 
   profile: () => api.request(profileSchema, "/auth/me/profile"),
 
+  /** Гасит сессию на сервере: и access, и refresh этого входа дальше получат 401. Ответ — 204. */
+  logout: () => api.request(z.undefined(), "/auth/logout", { method: "POST" }),
+
   updateProfile: (input: UpdateProfileInput) => {
     const { fullName, email } = updateProfileInputSchema.parse(input);
     return api.request(authTokensSchema, "/auth/me", {

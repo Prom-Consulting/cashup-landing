@@ -8,20 +8,26 @@ import { useLoginByOtp, useRegisterByPhone, useRequestOtp, useSession } from "./
 
 type Step = "phone" | "code";
 
+// Коды шлюза; текст — запасной путь для шлюза, который ещё отвечал без кода
 const isSpentCode = (error: unknown) =>
-  error instanceof ApiError && error.status === 401 && /missing or expired/i.test(error.message);
+  error instanceof ApiError &&
+  (error.code === "OTP_EXPIRED" || (error.status === 401 && /missing or expired/i.test(error.message)));
 const isWrongCode = (error: unknown) =>
-  error instanceof ApiError && error.status === 401 && /invalid otp/i.test(error.message);
+  error instanceof ApiError &&
+  (error.code === "OTP_INVALID" || (error.status === 401 && /invalid otp/i.test(error.message)));
 
 function readable(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.isTooManyRequests)
-      return /attempts/i.test(error.message)
-        ? "Слишком много неверных попыток. Запросите новый код."
-        : error.message.replace(/^Try again in (\d+) seconds$/i, "Повторить можно через $1 с");
+    if (error.code === "OTP_TOO_MANY_ATTEMPTS" || (error.isTooManyRequests && /attempts/i.test(error.message)))
+      return "Слишком много неверных попыток. Запросите новый код.";
+    if (error.isTooManyRequests) {
+      const wait = error.retryAfter ?? Number(error.message.match(/(\d+) seconds/i)?.[1] ?? 0);
+      return wait ? `Повторить можно через ${wait} с` : "Слишком часто. Попробуйте через минуту.";
+    }
     if (isSpentCode(error)) return "Код истёк или уже использован. Запросите новый.";
     // 503 — недоступно хранилище кодов (или WhatsApp): это не «неверный код», а временный сбой
-    if (error.status === 503) return "Сервис кодов временно недоступен. Попробуйте через минуту.";
+    if (error.code === "OTP_UNAVAILABLE" || error.status === 503)
+      return "Сервис кодов временно недоступен. Попробуйте через минуту.";
     if (error.status === 502) return "WhatsApp сейчас не отвечает. Попробуйте через минуту.";
     return error.message;
   }

@@ -76,6 +76,7 @@ export function PartnerDialog({ partner, onClose }: { partner: PublicPartner | n
             </div>
 
             {partner.description && <p className="text-lg leading-snug whitespace-pre-line">{partner.description}</p>}
+            {partner.address && <p className="text-lg leading-snug text-slate">{partner.address}</p>}
 
             <div className="flex flex-wrap gap-x-6 gap-y-2 text-lg">
               {partner.contactPhone && (

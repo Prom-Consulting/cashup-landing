@@ -29,15 +29,23 @@ export const myCardSchema = z.looseObject({
 export type MyCard = z.infer<typeof myCardSchema>;
 
 /**
- * Предложение подписки v2 — всё из настроек сервера, ничего не хардкодим: цена в сомах,
- * длина цикла в сутках, баланс цикла. intent: initial — первая, renewal — продление.
+ * Цена подписки для всех, без входа (`GET /v1/public/subscription/offer`): цена в сомах,
+ * длина цикла в сутках, баланс цикла. Берётся из настроек платформы.
  */
-export const subscriptionOfferSchema = z.looseObject({
+export const publicSubscriptionOfferSchema = z.looseObject({
   planId: z.string(),
   price: z.number(),
   currency: z.string(),
   cycleDays: z.number(),
   cycleBalance: z.number(),
+});
+export type PublicSubscriptionOffer = z.infer<typeof publicSubscriptionOfferSchema>;
+
+/**
+ * Предложение подписки v2 для вошедшего — всё из настроек сервера, ничего не хардкодим.
+ * intent: initial — первая (сервер сам выпустит карту при оплате), renewal — продление.
+ */
+export const subscriptionOfferSchema = publicSubscriptionOfferSchema.extend({
   intent: z.string(),
   available: z.boolean(),
   unavailableReason: z.string().nullish(),

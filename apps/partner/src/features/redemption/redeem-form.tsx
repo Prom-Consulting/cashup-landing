@@ -31,6 +31,7 @@ function redeemErrorText(error: unknown): string {
     // По стабильному коду, а не по тексту: сервер вправе переформулировать сообщение
     if (error.code === "CARD_FROZEN")
       return "Карта клиента заморожена: его подписка закончилась. Пусть продлит её в кабинете Loal. Ничего не списано.";
+    if (error.code === "INSUFFICIENT_POINTS") return "На карте не хватает бонусов на эту сумму. Ничего не списано.";
     if (error.status === 409) return `${error.message || "Не хватает баллов или карта не активна"}. Ничего не списано.`;
     return `${error.message}. Ничего не списано.`;
   }

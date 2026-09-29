@@ -85,7 +85,7 @@ export function CoverageLimitForm({
             } catch (error) {
               const text =
                 error instanceof ApiError && error.isConflict
-                  ? error.message || "Менять потолок можно не чаще раза в месяц"
+                  ? lockedText(error)
                   : "Не удалось сохранить потолок";
               applyServerIssues(error, helpers, text);
             } finally {
@@ -143,4 +143,13 @@ export function CoverageLimitForm({
       </p>
     </div>
   );
+}
+
+/** 409 COVERAGE_LIMIT_LOCKED несёт nextChangeAt — называем дату, а не «через месяц». */
+function lockedText(error: ApiError): string {
+  const next = (error.payload as { nextChangeAt?: unknown } | null)?.nextChangeAt;
+  const date = typeof next === "string" ? new Date(next) : null;
+  if (error.code === "COVERAGE_LIMIT_LOCKED" && date && !Number.isNaN(date.getTime()))
+    return `Менять потолок можно раз в месяц — следующий раз ${date.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}`;
+  return error.message || "Менять потолок можно не чаще раза в месяц";
 }

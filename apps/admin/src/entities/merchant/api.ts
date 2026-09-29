@@ -59,7 +59,10 @@ export function useCreateMerchant() {
             contactPhone: values.contactPhone,
           });
         } catch (error) {
-          if (!(error instanceof ApiError && error.isConflict) || attempt >= 8) throw error;
+          // Занят адрес — пробуем следующий; иной 409 (или код не тот) — настоящая ошибка
+          const slugTaken =
+            error instanceof ApiError && (error.code === "MERCHANT_SLUG_TAKEN" || (error.isConflict && !error.code));
+          if (!slugTaken || attempt >= 8) throw error;
         }
       }
 

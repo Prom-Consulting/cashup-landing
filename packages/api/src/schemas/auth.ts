@@ -40,6 +40,8 @@ export type Session = z.infer<typeof sessionSchema>;
 export const profileSchema = z.looseObject({
   id: z.string(),
   email: z.string().nullish(),
+  /** Телефон аккаунта, 996…; старый шлюз его не отдавал. */
+  phone: z.string().nullish(),
   fullName: z.string().nullish(),
   role: platformRoleSchema,
 });

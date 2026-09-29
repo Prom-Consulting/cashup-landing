@@ -27,6 +27,15 @@ export class ApiError extends Error {
     return typeof raw === "string" && /^[A-Z][A-Z0-9_]+$/.test(raw) ? raw : null;
   }
 
+  /** Секунд до повтора — у OTP_RATE_LIMITED; null, если сервер не сказал. */
+  get retryAfter(): number | null {
+    const raw =
+      typeof this.payload === "object" && this.payload !== null
+        ? (this.payload as { retryAfter?: unknown }).retryAfter
+        : null;
+    return typeof raw === "number" && raw > 0 ? Math.ceil(raw) : null;
+  }
+
   /** Refresh-токен истёк или неверный — нужен обычный вход. */
   get isRefreshInvalid() {
     return this.status === 401 && this.code === "INVALID_REFRESH_TOKEN";

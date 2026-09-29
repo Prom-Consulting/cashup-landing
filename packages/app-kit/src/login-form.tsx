@@ -16,12 +16,17 @@ import { useLogin, useLoginByOtp, useRequestOtp, useSession } from "./session";
 /** Одно понятное сообщение вместо технической ошибки шлюза. */
 function loginErrorText(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.status === 401 && /invalid otp/i.test(error.message)) return "Неверный код";
-    if (error.status === 401 && /missing or expired/i.test(error.message))
+    // Коды шлюза; текст — запасной путь для шлюза, который ещё отвечал без кода
+    if (error.code === "OTP_INVALID" || (error.status === 401 && /invalid otp/i.test(error.message)))
+      return "Неверный код";
+    if (error.code === "OTP_EXPIRED" || (error.status === 401 && /missing or expired/i.test(error.message)))
       return "Код истёк или уже использован — запросите новый";
     if (error.status === 401) return "Неверные данные для входа";
-    if (error.status === 503) return "Сервис кодов временно недоступен. Попробуйте через минуту.";
-    if (error.isTooManyRequests) return error.message || "Слишком часто. Попробуйте через минуту";
+    if (error.code === "OTP_TOO_MANY_ATTEMPTS") return "Слишком много неверных попыток. Запросите новый код.";
+    if (error.code === "OTP_UNAVAILABLE" || error.status === 503)
+      return "Сервис кодов временно недоступен. Попробуйте через минуту.";
+    if (error.isTooManyRequests)
+      return error.retryAfter ? `Повторить можно через ${error.retryAfter} с` : "Слишком часто. Попробуйте через минуту";
     return error.message;
   }
   return error instanceof Error ? error.message : "Не удалось войти";
