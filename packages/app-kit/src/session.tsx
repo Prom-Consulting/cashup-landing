@@ -171,11 +171,11 @@ export function useRequestOtp() {
   return useMutation({ mutationFn: (input: { phone: string }) => authApi(api).requestOtp(input) });
 }
 
-/** Регистрация клиента по телефону и коду: сразу выдаёт токен. */
+/** Регистрация клиента по телефону и коду (и по приглашению — с referralCode): сразу выдаёт токен. */
 export function useRegisterByPhone() {
   const { api, signIn } = useSession();
   return useMutation({
-    mutationFn: (input: { phone: string; otp: string }) => authApi(api).registerByPhone(input),
+    mutationFn: (input: { phone: string; otp: string; referralCode?: string }) => authApi(api).registerByPhone(input),
     onSuccess: (tokens) => signIn(tokens),
   });
 }

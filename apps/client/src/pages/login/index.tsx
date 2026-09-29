@@ -1,6 +1,8 @@
 import { PhoneSignInForm } from "@loal/app-kit";
 import { useNavigate } from "react-router";
 import { rememberPhone } from "../../shared/lib/remembered-phone";
+import { forgetReferral, recallReferral } from "../../shared/lib/referral";
+import { useState } from "react";
 
 /**
  * Держатель карты входит и регистрируется одинаково — по телефону и коду из WhatsApp.
@@ -8,6 +10,7 @@ import { rememberPhone } from "../../shared/lib/remembered-phone";
  */
 export function LoginPage() {
   const navigate = useNavigate();
+  const [referral, setReferral] = useState(recallReferral);
 
   return (
     <div className="mx-auto max-w-[420px]">
@@ -17,7 +20,14 @@ export function LoginPage() {
       </p>
       <div className="mt-8">
         <PhoneSignInForm
+          // Открывали ссылку приглашения, а регистрируются отсюда — код всё равно учитываем
+          referralCode={referral}
+          onReferralRejected={() => {
+            forgetReferral();
+            setReferral(undefined);
+          }}
           onDone={({ isNewAccount, phone }) => {
+            forgetReferral();
             rememberPhone(phone);
             navigate("/", { replace: true, state: { welcome: isNewAccount } });
           }}

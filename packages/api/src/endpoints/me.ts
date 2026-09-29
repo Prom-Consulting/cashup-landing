@@ -1,5 +1,11 @@
 import type { ApiClient } from "../http";
-import { historyPageSchema, myCardSchema, subscriptionOfferSchema, subscriptionPaymentSchema } from "../schemas/me";
+import {
+  historyPageSchema,
+  myCardSchema,
+  referralDashboardSchema,
+  subscriptionOfferSchema,
+  subscriptionPaymentSchema,
+} from "../schemas/me";
 
 /** Кабинет держателя карты: своя карта и своя история, обе — по токену. */
 export const meApi = (api: ApiClient) => ({
@@ -18,6 +24,15 @@ export const meApi = (api: ApiClient) => ({
    */
   paySubscription: (planId: string) =>
     api.request(subscriptionPaymentSchema, "/v1/me/subscription/payments", { method: "POST", body: { planId } }),
+
+  /** REF-01: ссылка, статистика и приглашённые. 404 — программу ещё не подключали. */
+  referrals: () => api.request(referralDashboardSchema, "/v1/me/referrals"),
+
+  /**
+   * Стать реферером. Карта создаётся, если её нет, 2 000 бонусов начисляются один раз —
+   * повтор безопасен. Ответ тот же, что у GET /v1/me/referrals.
+   */
+  enrollReferrals: () => api.request(referralDashboardSchema, "/v1/me/referrals/enroll", { method: "POST", body: {} }),
 
   /** Опрос после возврата с OctōPAY; сам повторяет применение, если оно не прошло. */
   subscriptionPayment: (paymentId: string) =>

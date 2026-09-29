@@ -5,6 +5,7 @@ import { Sparkle } from "@loal/ui/logo";
 import bannerGlass from "@/public/images/brand/banner-glass.jpg";
 import { BonusCalculator } from "./_components/bonus-calculator";
 import { BusinessLink } from "./_components/business-section";
+import { ReferralStrip } from "./_components/referral-strip";
 import { Faq } from "./_components/faq";
 import { HeroCards } from "./_components/hero-cards";
 import { JsonLd } from "./_components/json-ld";
@@ -105,7 +106,7 @@ const subscriptionLd = {
   "@type": "Product",
   name: "Подписка Loal",
   description:
-    "Подписка Loal за 990 сом в месяц: карта в Apple Wallet или Google Wallet и 15 000 бонусов на оплаченный период. Бонусами закрывается часть покупки у партнёров в Бишкеке.",
+    "Подписка Loal — 990 сом за 90 дней: карта в Apple Wallet или Google Wallet и 15 000 бонусов на каждый цикл. Бонусами закрывается часть покупки у партнёров в Бишкеке.",
   brand: { "@type": "Brand", name: "Loal" },
   offers: {
     "@type": "Offer",
@@ -419,7 +420,10 @@ export default function Home() {
 
         {/* Вопросы 9–10: Loal Corporate */}
         <div className="py-16 sm:py-24">
-          <BusinessLink href="/become-partner" />
+          <div className="flex flex-col gap-6">
+            <ReferralStrip />
+            <BusinessLink href="/become-partner" />
+          </div>
         </div>
 
         {/* Вопросы */}

@@ -57,7 +57,7 @@ export const subscriptionPaymentSchema = z.looseObject({
 export type SubscriptionPayment = z.infer<typeof subscriptionPaymentSchema>;
 
 /** Что было с баллами: трата, выдача подписки, приветственные при выдаче карты, сгорание. */
-export const historyKindSchema = z.enum(["spend", "grant", "welcome", "burn", "other"]);
+export const historyKindSchema = z.enum(["spend", "grant", "welcome", "burn", "referral", "other"]);
 export type HistoryKind = z.infer<typeof historyKindSchema>;
 
 export const HISTORY_KIND_LABELS: Record<HistoryKind, string> = {
@@ -65,6 +65,7 @@ export const HISTORY_KIND_LABELS: Record<HistoryKind, string> = {
   grant: "Начислено по подписке",
   welcome: "Приветственные баллы",
   burn: "Сгорело",
+  referral: "За приглашение",
   other: "Изменение",
 };
 
@@ -99,3 +100,25 @@ export const paySubscriptionByPhoneInputSchema = z.object({
   months: z.coerce.number().int().min(1).max(24),
 });
 export type PaySubscriptionByPhoneInput = z.infer<typeof paySubscriptionByPhoneInputSchema>;
+
+/**
+ * REF-01, кабинет реферера. Приглашённые обезличены: ни телефонов, ни имён. 404 — программу
+ * ещё не подключали. referralUrl ведёт на loal.kg/ref/{code}, лендинг переводит в кабинет клиента.
+ */
+export const referralDashboardSchema = z.looseObject({
+  code: z.string(),
+  referralUrl: z.string(),
+  stats: z.looseObject({ visits: z.number(), registrations: z.number(), paid: z.number(), pointsEarned: z.number() }),
+  referrals: z
+    .array(
+      z.looseObject({
+        id: z.string(),
+        registeredAt: z.string().nullish(),
+        paid: z.boolean(),
+        rewardedAt: z.string().nullish(),
+        points: z.number().nullish(),
+      }),
+    )
+    .default([]),
+});
+export type ReferralDashboard = z.infer<typeof referralDashboardSchema>;

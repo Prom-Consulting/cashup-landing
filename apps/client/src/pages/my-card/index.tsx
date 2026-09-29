@@ -184,7 +184,7 @@ export function MyCardPage() {
                 </Button>
               </DialogTrigger>
               <DialogContent title={subscription ? "Продлить подписку" : "Оформить подписку"}>
-                <RenewSubscription active={subscription?.status === "active"} />
+                <RenewSubscription active={subscription?.status === "active"} serial={serialNumber} />
               </DialogContent>
             </Dialog>
           </div>

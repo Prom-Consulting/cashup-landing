@@ -99,6 +99,11 @@ app → pages → widgets → features → entities → shared
   лендинге и в кабинете клиента — только для показа, держать равной цене в админке;
 - самозаписи с программой в адресе больше нет: только `/v1/public/enroll`; старые QR
   `/enroll/:templateId/:programId` клиентский кабинет переводит на `/enroll`;
+- рефералы (REF-01, `docs/referrals/`): сервер раздаёт ссылки `loal.kg/ref/{code}`, лендинг редиректит их
+  в кабинет клиента `/ref/{code}` — там `POST /v1/public/referrals/{code}/visit { deviceId }` (404 — нет кода,
+  409 — своя ссылка), код живёт на устройстве 30 дней, регистрация — `/auth/register` с `referralCode` и тем
+  же `deviceId`. Раздел «Друзья»: `GET /v1/me/referrals` (404 — не подключён), `POST /v1/me/referrals/enroll`
+  (карта + 2 000 один раз); приглашённые обезличены. В истории — `kind: "referral"`;
 - ручки `/v1/scan/*`, `/v1/cards/{serial}/scan-confirm*`, `/v1/pos-settings` помечены как наследие,
   новый код на них не завязываем.
 

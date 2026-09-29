@@ -30,6 +30,15 @@ export function useSubscriptionOffer(enabled = true) {
   return useQuery({ queryKey: meKeys.offer, queryFn: () => meApi(api).subscriptionOffer(), enabled, retry: false });
 }
 
+/**
+ * Запасной путь, пока на сервере нет подписки v2: старая оплата по номеру карты на один
+ * период. Убрать, когда бэкенд с /v1/me/subscription/* будет на проде.
+ */
+export function useLegacyRenewal(serial: string) {
+  const api = useApi();
+  return useMutation({ mutationFn: () => cardsApi(api).paySubscription(serial, { months: 1 }) });
+}
+
 /** Счёт на подписку по planId из offer; повтор до оплаты вернёт тот же счёт. */
 export function usePayForSubscription() {
   const api = useApi();

@@ -4,7 +4,7 @@ import { Field } from "@loal/ui/field";
 import { Button, OtpInput, PhoneInput, Spinner } from "@loal/ui/inputs";
 import { Form, Formik, type FormikHelpers } from "formik";
 import { useEffect, useState } from "react";
-import { useLoginByOtp, useRequestOtp, useSession } from "./session";
+import { useLoginByOtp, useRegisterByPhone, useRequestOtp, useSession } from "./session";
 
 type Step = "phone" | "code";
 
@@ -46,12 +46,19 @@ function useCooldown() {
  */
 export function PhoneSignInForm({
   onDone,
+  referralCode,
+  onReferralRejected,
 }: {
   /** phone — номер, с которым вошли, цифрами с кодом страны: кабинет может его запомнить. */
   onDone?: (result: { isNewAccount: boolean; phone: string }) => void;
+  /** REF-01: пришли по приглашению — регистрируемся с кодом (известный номер просто войдёт). */
+  referralCode?: string;
+  /** Приглашение не приняли (404 — недействительно, 409 — своё же): кабинет забывает код. */
+  onReferralRejected?: () => void;
 }) {
   const requestOtp = useRequestOtp();
   const loginByOtp = useLoginByOtp();
+  const registerByPhone = useRegisterByPhone();
   const { endedReason } = useSession();
   const cooldown = useCooldown();
   const [step, setStep] = useState<Step>("phone");
@@ -76,10 +83,21 @@ export function PhoneSignInForm({
 
   const submitCode = async (values: OtpLoginInput, helpers: FormikHelpers<OtpLoginInput>) => {
     try {
-      const tokens = await loginByOtp.mutateAsync(values);
+      const tokens = referralCode
+        ? await registerByPhone.mutateAsync({ ...values, referralCode })
+        : await loginByOtp.mutateAsync(values);
       onDone?.({ isNewAccount: tokens.isNewAccount === true, phone: toPhoneDigits(values.phone) ?? values.phone });
     } catch (error) {
       if (isWrongCode(error)) return helpers.setFieldError("otp", "Неверный код");
+      // Приглашение не приняли — говорим почему и даём продолжить без него
+      if (referralCode && error instanceof ApiError && (error.status === 404 || error.status === 409)) {
+        onReferralRejected?.();
+        return helpers.setStatus(
+          error.status === 409
+            ? "Это ваше собственное приглашение — по нему можно звать друзей. Нажмите «Войти» ещё раз, чтобы войти как обычно."
+            : "Приглашение больше не действует. Нажмите «Войти» ещё раз — войдём без него.",
+        );
+      }
       if (isSpentCode(error)) {
         clearCode(helpers);
         return helpers.setStatus("Код истёк или уже использован. Запросите новый.");

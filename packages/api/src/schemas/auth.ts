@@ -88,8 +88,19 @@ export type OtpLoginInput = z.infer<typeof otpLoginInputSchema>;
  * Регистрация по телефону — всё, что нужно клиенту: номер и код из WhatsApp. Сервер
  * принимает ровно эти поля (плюс deviceId), лишние дают 400. Код одноразовый.
  */
-export const phoneRegisterInputSchema = z.object({ phone: phoneSchema, otp: otpSchema });
-export type PhoneRegisterInput = z.infer<typeof phoneRegisterInputSchema>;
+/** Код приглашения из ссылки /ref/{code}: латиница, цифры, дефис и подчёркивание. */
+export const referralCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z0-9_-]{3,64}$/, "Ссылка приглашения повреждена");
+
+export const phoneRegisterInputSchema = z.object({
+  phone: phoneSchema,
+  otp: otpSchema,
+  /** REF-01: по приглашению. Тот же deviceId, что ушёл в visit, — по нему сервер отсекает самореферал. */
+  referralCode: referralCodeSchema.optional(),
+});
+export type PhoneRegisterInput = { phone: string; otp: string; referralCode?: string };
 
 /**
  * Регистрация владельца заведения по коду приглашения: почта, пароль, телефон и код
