@@ -23,8 +23,8 @@ type SessionState = {
   error: unknown;
   /** Почему сессия закончилась: например, вход с другого устройства. */
   endedReason: string | null;
-  /** Сохранить токен после входа и сразу перечитать профиль. */
-  signIn: (accessToken: string) => Promise<void>;
+  /** Сохранить пару токенов после входа (или смены профиля) и сразу перечитать профиль. */
+  signIn: (tokens: { accessToken: string; refreshToken?: string | null }) => Promise<void>;
   logout: () => void;
 };
 
@@ -63,9 +63,9 @@ function SessionProvider({
   });
 
   const value = useMemo<SessionState>(() => {
-    const signIn = async (accessToken: string) => {
+    const signIn = async (tokens: { accessToken: string; refreshToken?: string | null }) => {
       clearEndedReason();
-      api.tokens.write(accessToken);
+      api.tokens.writeSession(tokens);
       setHasToken(true);
       await queryClient.refetchQueries({ queryKey: ["session"] });
     };
@@ -124,7 +124,7 @@ export function AppProviders({
   queryClient.current ??= new QueryClient({
     defaultOptions: {
       queries: {
-        // Повторять бессмысленно: 401 без refresh-токена требует входа заново,
+        // 401 уже обработал клиент (refresh и один повтор), 4xx повторять незачем,
         // а разошедшийся контракт сам собой не сойдётся
         retry: (count, error) =>
           !(error instanceof ApiError && error.status < 500) && !(error instanceof ApiShapeError) && count < 2,
@@ -161,7 +161,7 @@ export function useLogin() {
   const { api, signIn } = useSession();
   return useMutation({
     mutationFn: (input: { email: string; password: string }) => authApi(api).login(input),
-    onSuccess: (tokens) => signIn(tokens.accessToken),
+    onSuccess: (tokens) => signIn(tokens),
   });
 }
 
@@ -176,7 +176,7 @@ export function useRegisterByPhone() {
   const { api, signIn } = useSession();
   return useMutation({
     mutationFn: (input: { phone: string; otp: string }) => authApi(api).registerByPhone(input),
-    onSuccess: (tokens) => signIn(tokens.accessToken),
+    onSuccess: (tokens) => signIn(tokens),
   });
 }
 
@@ -184,7 +184,7 @@ export function useLoginByOtp() {
   const { api, signIn } = useSession();
   return useMutation({
     mutationFn: (input: { phone: string; otp: string }) => authApi(api).loginByOtp(input),
-    onSuccess: (tokens) => signIn(tokens.accessToken),
+    onSuccess: (tokens) => signIn(tokens),
   });
 }
 
@@ -199,6 +199,6 @@ export function useUpdateProfile() {
   const { api, signIn } = useSession();
   return useMutation({
     mutationFn: (input: { fullName: string; email: string }) => authApi(api).updateProfile(input),
-    onSuccess: (tokens) => signIn(tokens.accessToken),
+    onSuccess: (tokens) => signIn(tokens),
   });
 }

@@ -4,14 +4,14 @@ import { PhoneInput } from "@loal/ui/inputs";
 import { Button, FormField, FormStatus, Input } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useNavigate } from "react-router";
-import { useEnroll, type EnrollTarget } from "../../entities/enroll/api";
+import { useEnroll } from "../../entities/enroll/api";
 
 /**
  * Карта без регистрации: имя, фамилия и телефон — и она сразу ваша. Баллы на неё
  * приносит подписка; без подписки карта просто ждёт.
  */
-export function EnrollForm({ info, target, via }: { info: EnrollInfo; target?: EnrollTarget; via?: string }) {
-  const enroll = useEnroll(target);
+export function EnrollForm({ info, via }: { info: EnrollInfo; via?: string }) {
+  const enroll = useEnroll();
   const navigate = useNavigate();
   const initialValues: EnrollInput = { firstName: "", lastName: "", phone: "", customField1: "", customField2: "" };
 

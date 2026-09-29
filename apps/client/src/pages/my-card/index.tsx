@@ -1,4 +1,4 @@
-import { ApiError, HISTORY_KIND_LABELS, type HistoryKind } from "@loal/api";
+import { ApiError, HISTORY_KIND_LABELS, type HistoryKind, type MyCard } from "@loal/api";
 import { RefreshIcon } from "@hugeicons/core-free-icons";
 import { useSession } from "@loal/app-kit";
 import { CardQr } from "../../widgets/card-qr";
@@ -7,11 +7,13 @@ import { Button, Card, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, L
 import { Link, useLocation } from "react-router";
 import { useMyCard, useMyHistory } from "../../entities/me/api";
 import { FirstCardForm } from "../../features/subscription/first-card-form";
-import { PaySubscriptionForm } from "../../features/subscription/pay-form";
+import { RenewSubscription } from "../../features/subscription/renew-subscription";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
 import { recallPhone } from "../../shared/lib/remembered-phone";
 
 const money = new Intl.NumberFormat("ru-RU");
+/** Дата посреди фразы — без «г.»: «до 18 октября 2026, …». */
+const formatDay = (value: string) => formatDate(value).replace(/\s?г\.$/, "");
 
 /** Последние операции рядом с картой — только на компьютере, на телефоне для них вкладка. */
 function RecentHistory() {
@@ -68,6 +70,37 @@ function Welcome() {
   );
 }
 
+/** Что с подпиской — словами, по датам с сервера. */
+function SubscriptionNote({ subscription, frozen }: { subscription: MyCard["subscription"]; frozen: boolean }) {
+  if (frozen)
+    return (
+      <p role="status" className="rounded-2xl bg-flame/10 p-4 text-base leading-snug">
+        <span className="font-bold">Подписка закончилась — карта заморожена.</span>{" "}
+        {subscription?.bonusBurnAt
+          ? `Если не продлить до ${formatDay(subscription.bonusBurnAt)}, бонусы сгорят.`
+          : "Бонусы остаются до сгорания — продлите, чтобы снова ими платить."}
+      </p>
+    );
+  if (subscription?.cycleEndsAt)
+    return (
+      <p className="text-base leading-snug text-muted-foreground">
+        Цикл идёт до {formatDay(subscription.cycleEndsAt)}. Потом карта заморозится, а через 30 дней несгоревшие бонусы
+        сгорят. Продлить можно заранее.
+      </p>
+    );
+  if (subscription)
+    return (
+      <p className="text-base leading-snug text-muted-foreground">
+        Оплачено периодов: {subscription.periodsTotal ?? "—"}, выдано {subscription.periodsGranted ?? "—"}.
+      </p>
+    );
+  return (
+    <p className="text-base leading-snug text-muted-foreground">
+      Подписки нет: на карте остаток, и его ничто не продлевает. Оформите — и баланс снова станет полным.
+    </p>
+  );
+}
+
 export function MyCardPage() {
   const { session } = useSession();
   const card = useMyCard();
@@ -88,6 +121,7 @@ export function MyCardPage() {
   }
 
   const { serialNumber, pointsBalance, walletUrl, subscription, customer } = card.data;
+  const frozen = card.data.status === "frozen" || subscription?.status === "frozen";
   const name = [customer?.firstName, customer?.lastName].filter(Boolean).join(" ");
 
   return (
@@ -99,9 +133,13 @@ export function MyCardPage() {
           <div className="rounded-[28px] bg-graphite px-6 pt-6 pb-3 text-white shadow-[0_1.5rem_3rem_rgb(22_21_21/0.18)]">
             <div className="flex items-baseline justify-between gap-3">
               <p className="font-brand text-2xl font-bold">Loal</p>
-              {subscription?.currentPeriodEnd && (
+              {frozen ? (
+                <p className="rounded-full bg-white/15 px-3 py-1 text-sm font-bold text-white">заморожена</p>
+              ) : subscription?.cycleEndsAt ? (
+                <p className="text-base text-slate-soft">до {formatDate(subscription.cycleEndsAt)}</p>
+              ) : subscription?.currentPeriodEnd ? (
                 <p className="text-base text-slate-soft">сгорит {formatDate(subscription.currentPeriodEnd)}</p>
-              )}
+              ) : null}
             </div>
 
             <p className="mt-8 text-base text-slate-soft">{name ? `${name}, ваш баланс` : "Баланс бонусов"}</p>
@@ -110,9 +148,17 @@ export function MyCardPage() {
             </p>
             <p className="mt-2 text-lg text-slate-soft">бонусов — тратьте у партнёров</p>
 
-            <div className="-mx-3 mt-7">
-              <CardQr value={serialNumber} />
-            </div>
+            {/* Замороженной картой платить нельзя: QR прячем, чтобы касса не пыталась */}
+            {frozen ? (
+              <div className="mt-7 mb-3 rounded-[20px] border-2 border-dashed border-white/25 p-5 text-center">
+                <p className="text-lg font-bold">QR выключен</p>
+                <p className="mt-1 text-base text-slate-soft">Продлите подписку — и карта снова заработает на кассе.</p>
+              </div>
+            ) : (
+              <div className="-mx-3 mt-7">
+                <CardQr value={serialNumber} />
+              </div>
+            )}
           </div>
         </div>
 
@@ -121,37 +167,29 @@ export function MyCardPage() {
             <h1 className="display text-[2.25rem] leading-tight">
               {name ? `Здравствуйте, ${customer?.firstName ?? name}` : "Моя карта"}
             </h1>
-            <p className="mt-2 text-lg text-muted-foreground">Покажите QR на кассе — бонусы спишутся с этой карты.</p>
+            <p className="mt-2 text-lg text-muted-foreground">
+              {frozen
+                ? "Карта заморожена — продлите подписку, чтобы снова платить бонусами."
+                : "Покажите QR на кассе — бонусы спишутся с этой карты."}
+            </p>
           </div>
           <div className="flex flex-col gap-3">
             {walletUrl && <WalletButtons serial={serialNumber} appleUrl={walletUrl} />}
 
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="lg">
+                <Button variant={frozen ? "primary" : "outline"} size="lg">
                   <Icon icon={RefreshIcon} />
                   {subscription ? "Продлить подписку" : "Оформить подписку"}
                 </Button>
               </DialogTrigger>
-              <DialogContent
-                title={subscription ? "Продлить подписку" : "Оформить подписку"}
-                description="Каждый оплаченный месяц — снова 15 000 бонусов. Остаток прошлого месяца не переносится."
-              >
-                <PaySubscriptionForm serial={serialNumber} />
+              <DialogContent title={subscription ? "Продлить подписку" : "Оформить подписку"}>
+                <RenewSubscription active={subscription?.status === "active"} />
               </DialogContent>
             </Dialog>
           </div>
 
-          {subscription ? (
-            <p className="text-base leading-snug text-muted-foreground">
-              Оплачено периодов: {subscription.periodsTotal ?? "—"}, выдано {subscription.periodsGranted ?? "—"}.
-              Купленные месяцы приходят по очереди — баллы за них выдаются в начале каждого периода.
-            </p>
-          ) : (
-            <p className="text-base leading-snug text-muted-foreground">
-              Подписки нет: на карте остаток, и его ничто не продлевает. Оплатите месяц — баланс снова станет полным.
-            </p>
-          )}
+          <SubscriptionNote subscription={subscription} frozen={frozen} />
           <RecentHistory />
         </div>
       </div>

@@ -27,7 +27,12 @@ import { TierList } from "../../features/program/tier-list";
 const money = new Intl.NumberFormat("ru-RU");
 const date = new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium" });
 
-const CARD_STATUS: Record<string, string> = { active: "действует", suspended: "приостановлена", revoked: "отозвана" };
+const CARD_STATUS: Record<string, string> = {
+  active: "действует",
+  frozen: "заморожена",
+  suspended: "приостановлена",
+  revoked: "отозвана",
+};
 
 function Members({ programId }: { programId: string }) {
   const members = useProgramMembers(programId);

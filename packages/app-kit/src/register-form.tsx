@@ -45,7 +45,7 @@ export function RegisterForm({ onDone }: { onDone?: () => void }) {
             return;
           }
           const tokens = await authApi(api).register(values);
-          await signIn(tokens.accessToken);
+          await signIn(tokens);
           onDone?.();
         } catch (error) {
           applyServerIssues(error, helpers, errorText(error));

@@ -51,6 +51,9 @@ export const authTokensSchema = z.looseObject({
   expiresIn: z.string(),
   /** Вход по телефону: true — аккаунт только что создан. Вход по почте поля не присылает. */
   isNewAccount: z.boolean().optional(),
+  /** 30 дней; меняется при каждом refresh. Старые ответы без него — сессия просто не продлится. */
+  refreshToken: z.string().nullish(),
+  refreshExpiresIn: z.string().nullish(),
 });
 export type AuthTokens = z.infer<typeof authTokensSchema>;
 

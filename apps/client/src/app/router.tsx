@@ -1,11 +1,12 @@
 import { RequireAuth } from "@loal/app-kit";
 import { Route, Routes } from "react-router";
 import { CardPage } from "../pages/card";
-import { EnrollPage } from "../pages/enroll";
+import { EnrollPage, LegacyEnrollRedirect } from "../pages/enroll";
 import { HistoryPage } from "../pages/history";
 import { LoginPage } from "../pages/login";
 import { MyCardPage } from "../pages/my-card";
 import { NotFoundPage } from "../pages/not-found";
+import { PaymentReturnPage } from "../pages/payment-return";
 import { SettingsPage } from "../pages/settings";
 import { AppLayout } from "../widgets/app-layout";
 import { PageFrame } from "../widgets/page-frame";
@@ -23,7 +24,8 @@ export function AppRouter() {
         <Route path="/register" element={<LoginPage />} />
         <Route path="c/:serial" element={<CardPage />} />
         <Route path="enroll" element={<EnrollPage />} />
-        <Route path="enroll/:templateId/:programId" element={<EnrollPage />} />
+        {/* Самозапись с явной программой бэкенд убрал: старые QR ведут на карту платформы */}
+        <Route path="enroll/:templateId/:programId" element={<LegacyEnrollRedirect />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 
@@ -37,6 +39,8 @@ export function AppRouter() {
         <Route index element={<MyCardPage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        {/* Сюда OctōPAY возвращает после оплаты подписки (OCTOPAY_CLIENT_RETURN_URL) */}
+        <Route path="payment/return" element={<PaymentReturnPage />} />
       </Route>
     </Routes>
   );

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { phoneSchema } from "./auth";
+import { cycleFields } from "./billing";
 
 /**
  * Кабинет держателя карты. Идентификатора в адресе нет: сервер читает человека
@@ -21,10 +22,39 @@ export const myCardSchema = z.looseObject({
       periodsTotal: z.number().nullish(),
       periodsGranted: z.number().nullish(),
       currentPeriodEnd: z.string().nullish(),
+      ...cycleFields,
     })
     .nullish(),
 });
 export type MyCard = z.infer<typeof myCardSchema>;
+
+/**
+ * Предложение подписки v2 — всё из настроек сервера, ничего не хардкодим: цена в сомах,
+ * длина цикла в сутках, баланс цикла. intent: initial — первая, renewal — продление.
+ */
+export const subscriptionOfferSchema = z.looseObject({
+  planId: z.string(),
+  price: z.number(),
+  currency: z.string(),
+  cycleDays: z.number(),
+  cycleBalance: z.number(),
+  intent: z.string(),
+  available: z.boolean(),
+  unavailableReason: z.string().nullish(),
+});
+export type SubscriptionOffer = z.infer<typeof subscriptionOfferSchema>;
+
+/** Платёж подписки. Готово только при status: "paid" и fulfilled: true. */
+export const subscriptionPaymentSchema = z.looseObject({
+  id: z.string(),
+  amount: z.number().nullish(),
+  currency: z.string().nullish(),
+  paymentUrl: z.string().nullish(),
+  status: z.string(),
+  fulfilled: z.boolean().nullish(),
+  createdAt: z.string().nullish(),
+});
+export type SubscriptionPayment = z.infer<typeof subscriptionPaymentSchema>;
 
 /** Что было с баллами: трата, выдача подписки, приветственные при выдаче карты, сгорание. */
 export const historyKindSchema = z.enum(["spend", "grant", "welcome", "burn", "other"]);

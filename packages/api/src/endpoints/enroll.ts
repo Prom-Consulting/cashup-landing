@@ -2,8 +2,7 @@ import type { ApiClient } from "../http";
 import { enrollInfoSchema, enrollInputSchema, enrollResultSchema, type EnrollInput } from "../schemas/enroll";
 
 /**
- * Самостоятельная выдача карты по QR — без токена. Без идентификаторов в адресе
- * выдаётся карта платформы по умолчанию; с ними — названная явно.
+ * Самостоятельная выдача карты по QR — без токена: карта платформы по умолчанию.
  */
 export const enrollApi = (api: ApiClient) => ({
   info: (templateId?: string) =>
@@ -11,11 +10,14 @@ export const enrollApi = (api: ApiClient) => ({
       anonymous: true,
     }),
 
-  /** Если карта у человека уже есть, сервер вернёт её же, а не выпустит вторую. */
-  enroll: (input: EnrollInput, target?: { templateId: string; programId: string }) =>
-    api.request(
-      enrollResultSchema,
-      target ? `/v1/public/enroll/${target.templateId}/${target.programId}` : "/v1/public/enroll",
-      { method: "POST", body: enrollInputSchema.parse(input), anonymous: true },
-    ),
+  /**
+   * Карта платформы по умолчанию. Если карта у человека уже есть, сервер вернёт её же.
+   * Выдачу «названной» программы (/enroll/{templateId}/{programId}) бэкенд убрал.
+   */
+  enroll: (input: EnrollInput) =>
+    api.request(enrollResultSchema, "/v1/public/enroll", {
+      method: "POST",
+      body: enrollInputSchema.parse(input),
+      anonymous: true,
+    }),
 });

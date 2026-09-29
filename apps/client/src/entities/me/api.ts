@@ -1,15 +1,13 @@
-import {
-  cardsApi,
-  meApi,
-  promoApi,
-  type BuyMonthsInput,
-  type PaySubscriptionByPhoneInput,
-  type RedeemPromoInput,
-} from "@loal/api";
+import { cardsApi, meApi, promoApi, type PaySubscriptionByPhoneInput, type RedeemPromoInput } from "@loal/api";
 import { useApi } from "@loal/app-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export const meKeys = { card: ["me", "card"] as const, history: (page: number) => ["me", "history", page] as const };
+export const meKeys = {
+  card: ["me", "card"] as const,
+  history: (page: number) => ["me", "history", page] as const,
+  offer: ["me", "subscription", "offer"] as const,
+  payment: (id: string) => ["me", "subscription", "payment", id] as const,
+};
 
 /** 404 значит «карты ещё нет» — это состояние экрана, а не ошибка. */
 export function useMyCard() {
@@ -26,10 +24,41 @@ export function useMyHistory(page: number) {
   });
 }
 
-/** Оплата подписки по уже выпущенной карте. */
-export function usePaySubscription(serial: string) {
+/** Предложение подписки v2: цена, срок и баланс цикла — с сервера. Без карты — 404. */
+export function useSubscriptionOffer(enabled = true) {
   const api = useApi();
-  return useMutation({ mutationFn: (input: BuyMonthsInput) => cardsApi(api).paySubscription(serial, input) });
+  return useQuery({ queryKey: meKeys.offer, queryFn: () => meApi(api).subscriptionOffer(), enabled, retry: false });
+}
+
+/** Счёт на подписку по planId из offer; повтор до оплаты вернёт тот же счёт. */
+export function usePayForSubscription() {
+  const api = useApi();
+  return useMutation({ mutationFn: (planId: string) => meApi(api).paySubscription(planId) });
+}
+
+/**
+ * Статус платежа после возврата с OctōPAY. Опрашиваем, пока он не оплачен и не применён
+ * (paid + fulfilled) или не отменён; потом перечитываем карту — на ней новый цикл.
+ */
+export function useSubscriptionPayment(paymentId: string | null) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: meKeys.payment(paymentId ?? ""),
+    queryFn: async () => {
+      const payment = await meApi(api).subscriptionPayment(paymentId!);
+      if (payment.status === "paid" && payment.fulfilled)
+        await queryClient.invalidateQueries({ queryKey: meKeys.card });
+      return payment;
+    },
+    enabled: Boolean(paymentId),
+    retry: false,
+    refetchInterval: (query) => {
+      const payment = query.state.data;
+      if (!payment) return query.state.error ? false : 2500;
+      return (payment.status === "paid" && payment.fulfilled) || payment.status === "cancelled" ? false : 2500;
+    },
+  });
 }
 
 /**

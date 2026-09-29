@@ -30,8 +30,18 @@ import { formatDate } from "../../shared/lib/format";
 import { IssueCardPanel } from "./issue-card-panel";
 
 const money = new Intl.NumberFormat("ru-RU");
-const CARD_STATUS: Record<string, string> = { active: "действует", suspended: "приостановлена", revoked: "отозвана" };
-const SUBSCRIPTION_STATUS: Record<string, string> = { active: "идёт", canceled: "отменена", expired: "закончилась" };
+const CARD_STATUS: Record<string, string> = {
+  active: "действует",
+  frozen: "заморожена",
+  suspended: "приостановлена",
+  revoked: "отозвана",
+};
+const SUBSCRIPTION_STATUS: Record<string, string> = {
+  active: "идёт",
+  frozen: "заморожена",
+  canceled: "отменена",
+  expired: "закончилась",
+};
 
 /** Подписка держателя: сколько периодов оплачено, когда сгорят баллы, продлить или отменить. */
 function Subscription({ serial }: { serial: string }) {
@@ -48,7 +58,17 @@ function Subscription({ serial }: { serial: string }) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl bg-muted p-4">
       <p className="text-base">
-        {data ? (
+        {data && data.cycleEndsAt ? (
+          // Подписка по циклу (90 дней): даты цикла вместо месяцев
+          <>
+            Подписка {SUBSCRIPTION_STATUS[data.status] ?? data.status}
+            {data.status === "frozen"
+              ? `: заморожена ${data.frozenAt ? formatDate(data.frozenAt).replace(/\s?г\.$/, "") : ""}${
+                  data.bonusBurnAt ? `, баллы сгорят ${formatDate(data.bonusBurnAt).replace(/\s?г\.$/, "")}` : ""
+                }.`
+              : `: цикл до ${formatDate(data.cycleEndsAt).replace(/\s?г\.$/, "")}.`}
+          </>
+        ) : data ? (
           <>
             Подписка {SUBSCRIPTION_STATUS[data.status] ?? data.status}: выдано {data.periodsGranted} из{" "}
             {data.periodsTotal} мес.

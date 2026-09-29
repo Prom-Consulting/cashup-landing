@@ -28,6 +28,9 @@ function redeemErrorText(error: unknown): string {
     if (error.status === 403)
       return "Подписка заведения неактивна — принимать бонусы сейчас нельзя. Ничего не списано.";
     if (error.status === 404) return "Карты с таким номером нет. Ничего не списано.";
+    // По стабильному коду, а не по тексту: сервер вправе переформулировать сообщение
+    if (error.code === "CARD_FROZEN")
+      return "Карта клиента заморожена: его подписка закончилась. Пусть продлит её в кабинете Loal. Ничего не списано.";
     if (error.status === 409) return `${error.message || "Не хватает баллов или карта не активна"}. Ничего не списано.`;
     return `${error.message}. Ничего не списано.`;
   }
@@ -106,7 +109,10 @@ export function RedeemForm({ ceiling, merchantId }: { ceiling: number | null; me
                         void form.setFieldTouched("cardSerialNumber", true, false);
                         // Карта считана — дальше вводят товар
                         setTimeout(
-                          () => document.querySelector<HTMLInputElement>('input[name="whatPurchased.0.productName"]')?.focus(),
+                          () =>
+                            document
+                              .querySelector<HTMLInputElement>('input[name="whatPurchased.0.productName"]')
+                              ?.focus(),
                           50,
                         );
                       }}

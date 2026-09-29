@@ -2,16 +2,15 @@ import { CreditCardIcon, GiftIcon, Store01Icon, Wallet01Icon } from "@hugeicons/
 import { paySubscriptionByPhoneInputSchema, type PaySubscriptionByPhoneInput } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { PhoneInput } from "@loal/ui/inputs";
-import { Button, Icon, Input, Label, cn } from "@loal/ui/shadcn";
+import { Button, Icon, Input, Label } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { usePaySubscriptionByPhone } from "../../entities/me/api";
 import { SUBSCRIPTION_PRICE_KGS } from "../../shared/config/env";
 
-const MONTHS = [1, 3, 6, 12];
 const money = new Intl.NumberFormat("ru-RU");
 
 const perks = [
-  { icon: GiftIcon, title: "15 000 бонусов каждый месяц", text: "Приходят в начале каждого оплаченного месяца." },
+  { icon: GiftIcon, title: "15 000 бонусов сразу", text: "Приходят на карту, как только пройдёт оплата." },
   {
     icon: Wallet01Icon,
     title: "Карта в Apple и Google Wallet",
@@ -40,7 +39,7 @@ function CardPreview({ name }: { name: string }) {
         {name.trim() ? `${name.trim()}, ваш баланс` : "Ваш баланс"}
       </p>
       <p className="display relative text-[3.2rem] leading-none text-amber tabular-nums">15 000</p>
-      <p className="relative mt-1 text-base text-slate-soft">бонусов в первый же месяц</p>
+      <p className="relative mt-1 text-base text-slate-soft">бонусов сразу после оплаты</p>
     </div>
   );
 }
@@ -75,7 +74,7 @@ export function FirstCardForm({ phone }: { phone?: string | null }) {
       }}
     >
       {(form) => {
-        const total = SUBSCRIPTION_PRICE_KGS * Number(form.values.months || 1);
+        const total = SUBSCRIPTION_PRICE_KGS;
         return (
           <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-start lg:gap-12">
             <div className="flex min-w-0 flex-col gap-6">
@@ -146,33 +145,11 @@ export function FirstCardForm({ phone }: { phone?: string | null }) {
                 ) : null}
               </div>
 
-              <fieldset>
-                <legend className="text-base font-medium">Срок</legend>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  {MONTHS.map((months) => {
-                    const active = Number(form.values.months) === months;
-                    return (
-                      <button
-                        key={months}
-                        type="button"
-                        aria-pressed={active}
-                        onClick={() => form.setFieldValue("months", months)}
-                        className={cn(
-                          "flex flex-col items-start rounded-2xl border-2 px-4 py-3 text-left transition-colors",
-                          active ? "border-primary bg-primary/8" : "border-border hover:border-foreground",
-                        )}
-                      >
-                        <span className="text-base font-bold">
-                          {months} {months === 1 ? "месяц" : months < 5 ? "месяца" : "месяцев"}
-                        </span>
-                        <span className="text-sm text-muted-foreground tabular-nums">
-                          {money.format(SUBSCRIPTION_PRICE_KGS * months)} сом
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
+              {/* Первая карта — одна покупка. Продлевают потом с карты, по условиям сервера */}
+              <div className="flex items-baseline justify-between gap-3 rounded-2xl bg-muted px-4 py-3">
+                <span className="text-base">Подписка Loal</span>
+                <span className="text-lg font-bold tabular-nums">{money.format(SUBSCRIPTION_PRICE_KGS)} сом</span>
+              </div>
 
               {formError(form) && (
                 <p role="alert" className="text-base font-medium text-destructive">
@@ -185,7 +162,7 @@ export function FirstCardForm({ phone }: { phone?: string | null }) {
                 {form.isSubmitting ? "Готовим счёт…" : `Оплатить ${money.format(total)} сом`}
               </Button>
               <p className="-mt-1 text-center text-sm text-muted-foreground">
-                Оплата через OctōPAY. {money.format(SUBSCRIPTION_PRICE_KGS)} сом в месяц, 15 000 бонусов за каждый.
+                Оплата через OctōPAY. Продлить потом можно прямо с карты.
               </p>
             </Form>
           </div>

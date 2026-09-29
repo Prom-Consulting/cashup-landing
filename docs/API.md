@@ -126,6 +126,11 @@
   "issues": [{ "path": ["deviceId"], "message": "String must contain at least 8 character(s)" }] }
 ```
 
+**Адрес — как есть.** Сегменты `.` и `..` в пути (в том числе закодированные `%2e`),
+закодированные `/` и `\` шлюз отклоняет с `400`, не пытаясь их «исправить». Обычный
+фронт таких адресов не строит; если собирать путь из пользовательского ввода, его
+надо кодировать `encodeURIComponent`.
+
 **CORS** открыт для любого origin: gateway отражает присланный `Origin`, разрешает
 `GET, POST, PUT, PATCH, DELETE, OPTIONS` и заголовки `Content-Type, Authorization`.
 Cookies не используются, `credentials: "include"` ставить не надо.
@@ -205,7 +210,8 @@ Content-Type: application/json
   "otp": "123456",
   "deviceId": "7ce8e4d2-4621-43f4-a57c-b85b1d26d124"
 }
-→ 201 { "accessToken": "...", "expiresIn": "12h", "isNewAccount": true }
+→ 201 { "accessToken": "...", "expiresIn": "12h",
+        "refreshToken": "...", "refreshExpiresIn": "30d", "isNewAccount": true }
 ```
 
 **Код вводится один раз.** Регистрация и вход по телефону — одно действие: код
@@ -255,8 +261,8 @@ Content-Type: application/json
 { "email": "client@example.com", "password": "password123", "deviceId": "..." }
    или
 { "phone": "+996700000001", "otp": "123456", "deviceId": "..." }
-→ { "accessToken": "...", "expiresIn": "12h" }                       (по почте)
-→ { "accessToken": "...", "expiresIn": "12h", "isNewAccount": false } (по телефону)
+→ { "accessToken": "...", "expiresIn": "12h", "refreshToken": "...", "refreshExpiresIn": "30d" } (по почте)
+→ тот же ответ с `isNewAccount: false` (по телефону)
 ```
 
 Нельзя смешивать две формы. Для входа по email нужны `email + password + deviceId`.
@@ -284,6 +290,33 @@ HTTP/1.1 401 Unauthorized
 Frontend обязан отдельно обработать `error === "SESSION_REPLACED"`: очистить токен,
 закрыть приватные экраны и показать `message`. Автоматически повторять такой запрос или
 молча обновлять сессию нельзя — это вернуло бы доступ старому устройству.
+
+### Обновление access token
+
+Access token живёт 12 часов, но его истечение **не завершает сессию**. Каждый ответ
+входа/регистрации также содержит `refreshToken` (по умолчанию 30 дней). При обычном
+`401` мобильное приложение один раз обновляет пару токенов и повторяет исходный запрос:
+
+```http
+POST /auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "..." }
+```
+
+```json
+{
+  "accessToken": "...",
+  "expiresIn": "12h",
+  "refreshToken": "...",
+  "refreshExpiresIn": "30d"
+}
+```
+
+Refresh разрешён только пока эта сессия остаётся активной. `401 SESSION_REPLACED`
+означает вход на другом устройстве и требует обычного входа. `401
+INVALID_REFRESH_TOKEN` означает истёкший или неверный refresh token. Refresh token
+нельзя передавать как Bearer: gateway принимает только access token.
 
 Вход по телефону с номером, у которого ещё нет аккаунта, **создаёт** его и входит
 (`isNewAccount: true`) — см. «Регистрация». Ошибки «номер не зарегистрирован» нет.
@@ -322,6 +355,7 @@ Frontend обязан отдельно обработать `error === "SESSION_
 | `GET` | `/auth/me/profile` | `{ id, email, fullName, role }`; у зарегистрированных по телефону `email` и `fullName` — `null` |
 | `PUT` | `/auth/me` | Смена имени и почты (так клиент добавляет их позже); возвращает новый токен |
 | `PUT` | `/auth/me/password` | `{ currentPassword, newPassword }` |
+| `DELETE` | `/v1/me/account` | Безвозвратно удалить текущий аккаунт и все клиентские данные; успех `204` без тела |
 
 В токене лежит `merchants[]` — список магазинов, где человек работает, с ролью и
 правами: `{ memberId, merchantId, role, permissions }`. По нему фронт решает, какие
@@ -331,6 +365,49 @@ Frontend обязан отдельно обработать `error === "SESSION_
 Внутри магазина у человека своя роль: `admin`, `staff`, `partner`, `partner_employee`.
 Названия ролей аккаунта остались прежними: переименование тронуло бы выданные токены
 ради одной только вывески.
+
+### PROF-01 — удаление аккаунта
+
+```http
+DELETE /v1/me/account
+Authorization: Bearer <accessToken>
+```
+
+Тела запроса нет. Идентификатор, телефон и серийный номер передавать нельзя: удаляется
+только владелец Bearer-токена. Успех — `204 No Content`, без JSON. Запрос идемпотентен:
+повтор с тем же, ещё криптографически действительным токеном также возвращает `204`.
+Это единственная ручка, которая допускает уже завершённую сессию **удалённого аккаунта** —
+только для безопасного повтора после потерянного ответа. У активного аккаунта sessionId
+обязан совпадать, поэтому токен со сменённого устройства удалить аккаунт не может.
+Все остальные ручки со старым токеном после успеха
+возвращают `401 SESSION_REPLACED`.
+
+При успехе сервер:
+
+- обезличивает профиль и освобождает телефон/почту для новой регистрации;
+- удаляет баланс, подписку, историю операций и связанные бонусные записи;
+- отзывает pass: Apple получает silent push и затем pass с `voided: true`, Google-объект
+  переводится в `EXPIRED`; QR больше не действует;
+- удаляет сессии, FCM/APNs-токены, настройки уведомлений и прекращает отправку;
+- удаляет членства пользователя в кабинетах магазинов.
+
+Для возможности повторить `DELETE` остаётся только обезличенная запись пользователя с
+`deleted_at`. Для асинхронного запроса Apple Wallet остаётся обезличенный технический
+pass-tombstone (`revoked`, нулевой баланс, без телефона, имени, истории и связи с аккаунтом).
+Это временное backend/legal-допущение до решения PD-P1; платёжная и промокодная отчётность
+сохраняется только без ссылки на человека. Повторная регистрация с тем же номером создаёт
+новый пустой аккаунт и не находит старую карту.
+
+| HTTP | `error` | Когда | Можно повторить | Действие приложения |
+|---|---|---|---|---|
+| `204` | — | удалено или уже было удалено | да | стереть локальный токен, открыть вход |
+| `401` | `Missing or invalid bearer token` | токен отсутствует, испорчен или истёк | после входа | открыть вход |
+| `503` | `ACCOUNT_DELETION_INCOMPLETE` | один из сервисов не закончил очистку | да | показать повтор; успех не считать |
+
+Ограничения частоты отдельно нет. Время и денежные поля отсутствуют. Операция не имеет
+промежуточных состояний в публичном контракте: `204` означает, что персональные данные
+очищены; ошибка означает, что клиент должен повторить запрос. Внутренние шаги сделаны
+идемпотентными, поэтому повтор не создаёт побочных эффектов.
 
 Пример общей обёртки запросов:
 
@@ -372,7 +449,11 @@ GET /v1/cards/{serial}
 
 `status`: `active` | `suspended` | `revoked`. Платить можно только активной.
 
-### Подписка клиента
+### Legacy: административная помесячная подписка клиента
+
+Этот раздел оставлен только для действующего web/admin API. Mobile v2 его не
+использует: не отправляет `months` и работает по Bearer-контракту
+`/v1/me/subscription/*`, описанному в разделе «SUB-01 + CARD-01» ниже.
 
 ```
 GET    /admin/v1/cards/{serial}/subscription   → подписка или null
@@ -411,7 +492,10 @@ DELETE /admin/v1/cards/{serial}/subscription   отмена
 так удобнее искать, — но в ответе `customerId`, и перевыпуск карты подписку не трогает:
 оплаченные месяцы продолжают приходить уже на новую карту.
 
-### Оплатить подписку
+### Legacy: публичная помесячная оплата
+
+Эти публичные ручки сохранены для обратной совместимости старого web-flow. Они
+не входят в mobile v2 и не должны вызываться новым приложением.
 
 ```
 POST /v1/public/octopay/subscriptions/{serial}
@@ -455,12 +539,15 @@ POST /v1/public/octopay/subscriptions
 ```
 GET /v1/me/card
 → {
-    "serialNumber": "...", "status": "active", "pointsBalance": 94571,
+    "serialNumber": "...", "status": "active", "pointsBalance": 15000,
     "walletUrl": "https://loal.promconsult.pro/v1/public/passes/...",
     "customer": { "firstName": "Иван", "lastName": "Петров", "phone": "996700000001" },
     "subscription": {
-      "status": "active", "periodsTotal": 3, "periodsGranted": 1,
-      "currentPeriodEnd": "2026-10-23T10:15:00.000Z"
+      "status": "active", "periodsTotal": 1, "periodsGranted": 1,
+      "currentPeriodEnd": "2026-12-27T10:15:00.000Z",
+      "cycleStartedAt": "2026-09-28T10:15:00.000Z",
+      "cycleEndsAt": "2026-12-27T10:15:00.000Z",
+      "frozenAt": null, "bonusBurnAt": null
     }
   }
 ```
@@ -471,9 +558,9 @@ Wallet» отдаёт `GET /v1/public/passes/{serialNumber}/google-save-link`
 (`{ "available": true, "saveUrl": "https://pay.google.com/..." }`; `available: false` —
 Google Wallet не настроен).
 
-`subscription` приходит `null`, когда подписку ни разу не покупали или последняя
-закончилась: тогда на карте лежит остаток и его ничто не продлевает.
-`currentPeriodEnd` — когда баллы текущего периода сгорят.
+`subscription` приходит `null`, когда цикла ещё не было. При `frozen`
+`bonusBurnAt` задаёт серверную дату сгорания; после сгорания карта
+остаётся `frozen` с нулевым балансом до новой оплаты.
 
 **`404`, если карты нет.** Это честный ответ человеку, которому её ещё не выпускали, —
 показывайте экран «карты пока нет», а не ошибку.
@@ -511,7 +598,73 @@ GET /v1/me/history?page=1&pageSize=20
 История собирается по человеку, а не по куску пластика: перевыпуск карты её не
 обнуляет, и строки со старой карты остаются на месте.
 
-### Промокод
+### Push-токен текущей сессии (PUSH-01)
+
+Все ручки ниже требуют Bearer. Владельцы `userId` и `sessionId` берутся только из
+проверенного токена; клиент не передаёт их в теле.
+
+```
+PUT /v1/me/push-token
+{ "token": "FCM registration token", "platform": "ios" }
+→ { "registered": true }
+
+DELETE /v1/me/push-token
+→ { "registered": false }
+```
+
+`platform`: `ios` или `android`. `PUT` идемпотентен: повтор обновляет привязку,
+а новый токен той же платформы заменяет старый. Один FCM-токен одновременно
+принадлежит только одной сессии. `DELETE` удаляет все токены текущей сессии и
+также идемпотентен. После входа на другом устройстве прежняя сессия перестаёт
+проходить проверку, и её токены не выбираются для адресной отправки; удаление
+аккаунта физически удаляет все его токены.
+
+### Настройки уведомлений (PUSH-01)
+
+```
+GET /v1/me/notification-preferences
+→ {
+  "subscriptionReminders": true,
+  "bonusActivity": true,
+  "promotions": false
+}
+
+PATCH /v1/me/notification-preferences
+{ "subscriptionReminders": true, "promotions": false }
+→ {
+  "subscriptionReminders": true,
+  "bonusActivity": true,
+  "promotions": false
+}
+```
+
+`PATCH` частичный, но хотя бы одно поле обязательно. Утверждённые defaults:
+`subscriptionReminders=true`, `bonusActivity=true`, `promotions=false`.
+
+Поддержанные значения `data.type`: `subscription_expiring`,
+`subscription_expires_today`, `subscription_frozen`, `bonus_burn_warning`,
+`bonus_activity`, `promotion`, `generic`. В каждом адресном payload будут
+`type` и `targetId` (идентификатор цикла, операции, акции или иной цели).
+Канал — native push через FCM HTTP v1. Для подписки сервер отправляет
+`subscription_expiring` за 7, 3 и 1 день до `cycleEndsAt`,
+`subscription_frozen` в момент окончания/заморозки и `bonus_burn_warning` за
+3 дня до `bonusBurnAt`. `targetId` для этих событий — стабильный ID подписки,
+`eventId` — ID записи outbox. Повторный запуск scheduler не создаёт дубль.
+
+Перед каждой попыткой доставки сервер выбирает только токен активной сессии.
+Неуспешные временные ответы повторяются с exponential backoff; постоянный отказ
+provider переводит событие в `failed`, отсутствие активного токена — в `skipped`.
+Без FCM HTTP v1 credentials событие не считается доставленным и повторяется до лимита.
+
+Notification-service имеет read-only runtime-зависимость от `card.subscriptions`,
+`card.customers` и `core.users`: первые две таблицы задают authoritative даты и
+владельца, последняя подтверждает активную сессию непосредственно перед push.
+Собственные записи scheduler хранит только в схеме `notify`.
+
+### Legacy: клиентский промокод
+
+Эта ручка пока остаётся для старого помесячного flow. Mobile v2 её не
+вызывает до отдельного продуктового контракта промокодов.
 
 Клиент вводит промокод оператора и получает бесплатные месяцы подписки своей карты.
 
@@ -1380,7 +1533,6 @@ GET /v1/public/library-assets/{filename}         картинки заготов
 | `GET` | `/v1/public/enroll/{templateId}` | Данные для страницы самостоятельной выдачи |
 | `GET` | `/v1/public/enroll` | То же для карты платформы по умолчанию — без идентификаторов |
 | `POST` | `/v1/public/enroll` | Клиент заводит себе карту платформы: `{ firstName, lastName, phone }` |
-| `POST` | `/v1/public/enroll/{templateId}/{programId}` | То же, но карту называют явно |
 | `POST` | `/v1/public/leads` | Заявка с лендинга |
 | `GET` | `/v1/public/passes/{serial}` | Файл `.pkpass` — добавить карту в Apple Wallet. Данные карты — `…/info`, Google Wallet — `…/google-save-link` |
 | `GET` | `/v1/public/onec-card/{token}/{serial}` | Для 1С: что на карте |
@@ -1416,10 +1568,10 @@ GET /v1/public/library-assets/{filename}         картинки заготов
 
 ```
 GET  /v1/scan/preview?serial=&purchaseAmount=&mode=           посчитать, не записывая
-POST /v1/cards/{serial}/points                                { delta, source, staffUserId }
-POST /v1/cards/{serial}/punch                                 { count, staffUserId }
-POST /v1/cards/{serial}/redeem                                { staffUserId }
-POST /v1/cards/{serial}/partner-bonus                         { staffUserId }
+POST /v1/cards/{serial}/points                                { delta, source }
+POST /v1/cards/{serial}/punch                                 { count }
+POST /v1/cards/{serial}/redeem
+POST /v1/cards/{serial}/partner-bonus
 POST /v1/cards/{serial}/scan-confirm                          сумма покупки → баллы
 POST /v1/cards/{serial}/scan-confirm-count                    счётчик покупок
 POST /v1/cards/{serial}/scan-confirm-redeem                   списание по сумме чека
@@ -1427,11 +1579,87 @@ POST /v1/cards/{serial}/scan-confirm-redeem-manual            сумма + ба�
 POST /v1/cards/{serial}/scan-confirm-redeem-discount          фиксированная скидка
 POST /v1/cards/{serial}/scan-confirm-mixed                    часть баллами, часть деньгами
 POST /v1/cards/{serial}/scan-confirm-combo                    всё сразу, одной записью
-POST /v1/cards/{serial}/bonus-item/earn                       { staffUserId, value? }
-POST /v1/cards/{serial}/bonus-item/redeem                     { staffUserId, itemId }
+POST /v1/cards/{serial}/bonus-item/earn                       { value? }
+POST /v1/cards/{serial}/bonus-item/redeem                     { itemId }
 GET  /v1/cards/{serial}/bonus-items/active
 GET  /admin/v1/merchants/{id}/sales                           «Продажи» магазина
 ```
 
+**Кассир — тот, кто вошёл.** Эти операции записываются на человека из токена; поле
+`staffUserId` в теле больше не читается. Вызывать их может только тот, кто работает в
+каком-нибудь магазине, и агентство; остальным (в том числе клиентскому аккаунту) — `403`.
+
 `mode` у превью: пусто — начисление, `redeem`, `discount`, `mixed`. Превью и подтверждение
 считают одним кодом, поэтому показанное число совпадёт со списанным.
+## SUB-01 + CARD-01 — подписка клиента v2 (готово)
+
+Мобильный контракт использует только Bearer-маршруты ниже. Старые публичные маршруты с `months`
+оставлены для совместимости, но mobile их не вызывает.
+
+### `GET /v1/me/subscription/offer`
+
+`Authorization: Bearer <accessToken>`. Сервер определяет клиента только по токену.
+
+```json
+{"planId":"loal-90d-v1","price":990,"currency":"KGS","cycleDays":90,"cycleBalance":15000,"intent":"initial","available":true,"unavailableReason":null}
+```
+
+Все числовые значения — серверные настройки. `price` — целые KGS, `cycleDays` — ровно 90 суток
+от серверного timestamp начала цикла. `intent`: `initial | renewal`. Досрочное продление разрешено.
+
+### `POST /v1/me/subscription/payments`
+
+```http
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{"planId":"loal-90d-v1"}
+```
+
+Лишние поля отклоняются (`400`). Успех возвращает объект платежа: `id`, `amount`, `currency`,
+`paymentUrl`, `status`, `fulfilled` и timestamps. Повтор до оплаты возвращает тот же незаконченный
+счёт; после его timeout сервер помечает его cancelled и создаёт новый. `409 SUBSCRIPTION_OFFER_CHANGED`
+означает, что предложение устарело. `409 SUBSCRIPTION_UNAVAILABLE` — карта suspended/revoked.
+
+### `GET /v1/me/subscription/payments/{paymentId}`
+
+Безопасный polling после возврата OctōPAY. Чужой или неизвестный ID даёт `404 PAYMENT_NOT_FOUND`.
+Mobile считает процесс завершённым только при `status:"paid", fulfilled:true`; `paid/false` — деньги
+получены, но применение цикла ещё повторяется сервером. Сам GET также безопасно повторяет delivery.
+
+После подписанного callback OctōPAY сервер ровно один раз создаёт цикл, заменяет текущий баланс на
+`cycleBalance` через журнал операций и переводит `frozen -> active`. Идемпотентность обеспечивают
+уникальный `(provider, provider_payment_id)` и `fulfilled_at`; повтор callback не создаёт цикл и не
+меняет баланс снова.
+
+### Состояние карты и даты
+
+`GET /v1/me/card.status`: полный enum `active | frozen | suspended | revoked`; отсутствие карты — `404`.
+`subscription.status`: `active | frozen | canceled | expired`. В `subscription` также возвращаются:
+`cycleStartedAt`, `cycleEndsAt`, `frozenAt`, `bonusBurnAt` (ISO 8601 UTC или `null`). Конец цикла —
+исключительная граница: при `now >= cycleEndsAt` сервер переводит `active -> frozen`, запрещает QR/spend
+и задаёт `frozenAt`, а authoritative `bonusBurnAt = frozenAt + 30 календарных суток`. В этот момент
+остаток сгорает через ledger ровно один раз. Подписка и карта остаются `frozen` до новой оплаты;
+внутренний `burnedAt` не даёт повторить burn. Списание: `409`, `error:"CARD_FROZEN"`.
+
+`frozen -> active` возможен только после успешной оплаты. `suspended` — административная блокировка,
+`revoked` — отозванная карта; ни одно из этих состояний не является заморозкой подписки.
+
+### Тестовый сценарий и готовность
+
+1. С Bearer тестового клиента вызвать offer: сервер возвращает актуальную
+   `cardSubscriptionPriceKgs` из настроек платформы, `90`, `15000`.
+2. Создать payment с тем же `planId`; сумма ответа обязана совпасть с ценой offer.
+3. Отправить подписанный paid callback дважды: `GET /v1/me/card` показывает один active-цикл,
+   `pointsBalance:15000`, одинаковые `cycleStartedAt/cycleEndsAt`, второй callback баланс не меняет.
+4. Сдвинуть `cycleEndsAt` в прошлое и вызвать rollover либо `GET /v1/me/card`: status становится
+   `frozen`, `frozenAt` заполнен, `bonusBurnAt` равен +30 дней; spend отвечает `409 CARD_FROZEN`.
+5. Оплатить frozen-карту: она снова `active`, новый цикл начинается от timestamp callback, баланс
+   снова ровно `15000`, а не `старый + 15000`.
+6. Оплатить active-карту: прежний цикл немедленно закрывается, неиспользованные дни не переносятся,
+   новый 90-дневный цикл начинается сейчас, баланс атомарно становится `15000`.
+7. Сдвинуть `bonusBurnAt` frozen-карты в прошлое и запустить sweep дважды: баланс `0`, одна burn-запись.
+
+Ready for mobile integration: **yes**. Приняты PD-S1 (досрочная оплата немедленно начинает новый
+цикл без переноса дней) и PD-S3 (остаток frozen-карты сгорает через 30 дней). `GET offer`, создание
+счёта до его завершения, callback и fulfillment безопасны для повторов.

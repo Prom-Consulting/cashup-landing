@@ -15,18 +15,31 @@ export const merchantSubscriptionSchema = z.looseObject({
 export type MerchantSubscription = z.infer<typeof merchantSubscriptionSchema>;
 
 /**
+ * Цикл подписки v2 (90 дней): ISO-даты UTC или null. cycleEndsAt — исключительная граница:
+ * с этого момента подписка frozen, а баланс сгорит в bonusBurnAt (frozenAt + 30 суток).
+ */
+export const cycleFields = {
+  cycleStartedAt: z.string().nullish(),
+  cycleEndsAt: z.string().nullish(),
+  frozenAt: z.string().nullish(),
+  bonusBurnAt: z.string().nullish(),
+};
+
+/**
  * Подписка клиента: пачка баллов на период, остаток в конце месяца сгорает.
  * Принадлежит человеку, а не карте: перевыпуск карты её не трогает.
  */
 export const cardSubscriptionSchema = z.looseObject({
   id: z.string(),
   customerId: z.string().nullish(),
-  status: z.enum(["active", "canceled", "expired"]),
-  pointsPerPeriod: z.number(),
-  periodsTotal: z.number(),
-  periodsGranted: z.number(),
+  status: z.enum(["active", "frozen", "canceled", "expired"]),
+  // Старая помесячная модель — у подписок по циклу этих полей может не быть
+  pointsPerPeriod: z.number().nullish(),
+  periodsTotal: z.number().nullish(),
+  periodsGranted: z.number().nullish(),
   currentPeriodStart: z.string().nullish(),
   currentPeriodEnd: z.string().nullish(),
+  ...cycleFields,
   createdAt: z.string().nullish(),
 });
 export type CardSubscription = z.infer<typeof cardSubscriptionSchema>;

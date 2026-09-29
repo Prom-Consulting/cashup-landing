@@ -1,9 +1,8 @@
 import { ApiError } from "@loal/api";
 import { ArrowLeft02Icon, RefreshIcon } from "@hugeicons/core-free-icons";
-import { Button, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
+import { Button, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
 import { Link, useParams } from "react-router";
 import { appleWalletUrl, usePassInfo } from "../../entities/card/api";
-import { PaySubscriptionForm } from "../../features/subscription/pay-form";
 import { CardView } from "../../widgets/card-view";
 import { WalletButtons } from "../../widgets/wallet-buttons";
 
@@ -42,20 +41,13 @@ export function CardPage() {
       <div className="flex flex-col gap-3">
         <WalletButtons serial={serial} appleUrl={appleWalletUrl(serial)} />
 
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="lg">
-              <Icon icon={RefreshIcon} />
-              Продлить подписку
-            </Button>
-          </DialogTrigger>
-          <DialogContent
-            title="Продлить подписку"
-            description="Каждый оплаченный месяц — снова 15 000 бонусов. Остаток прошлого месяца не переносится."
-          >
-            <PaySubscriptionForm serial={serial} />
-          </DialogContent>
-        </Dialog>
+        {/* Подписка оформляется по входу: сервер узнаёт человека по токену, а не по номеру карты */}
+        <Button asChild variant="outline" size="lg">
+          <Link to="/login">
+            <Icon icon={RefreshIcon} />
+            Войти и продлить подписку
+          </Link>
+        </Button>
       </div>
 
       <p className="text-base leading-snug text-muted-foreground">
