@@ -3,6 +3,7 @@ import { Badge, Card, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Link } from "react-router";
 import { useDeductions, useMerchant, useSubscription } from "../../entities/merchant/api";
 import { useCurrentMerchant } from "../../entities/session/model";
+import { OctopayIntegration } from "../../features/octopay/integration";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
 
 const money = new Intl.NumberFormat("ru-RU");
@@ -95,6 +96,7 @@ function OwnerDashboard() {
               <dd className="text-lg">{formatDate(subscription.data.expiresAt)}</dd>
             </div>
           </dl>
+          <OctopayIntegration key={merchantId} merchantId={merchantId ?? ""} />
         </Card>
 
         <Card>

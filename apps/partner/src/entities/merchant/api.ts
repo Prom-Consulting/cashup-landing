@@ -2,6 +2,7 @@ import {
   merchantCabinetApi,
   merchantsApi,
   promoApi,
+  type ConnectOctopayInput,
   type CreateBranchInput,
   type CreateInvoiceInput,
   type CreateWebhookInput,
@@ -14,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 export const merchantKeys = {
   detail: (id: string) => ["merchant", id] as const,
   subscription: (id: string) => ["merchant", id, "subscription"] as const,
+  octopay: (id: string) => ["merchant", id, "octopay"] as const,
   deductions: (id: string, query: DeductionQuery) => ["merchant", id, "deductions", query] as const,
   invoices: (id: string) => ["merchant", id, "invoices"] as const,
   onec: (id: string) => ["merchant", id, "onec"] as const,
@@ -154,6 +156,39 @@ export function useSubscription(merchantId: string) {
     queryKey: merchantKeys.subscription(merchantId),
     queryFn: () => merchantCabinetApi(api).subscription(merchantId),
     enabled: Boolean(merchantId),
+  });
+}
+
+export function useOctopayIntegration(merchantId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: merchantKeys.octopay(merchantId),
+    queryFn: () => merchantCabinetApi(api).octopayIntegration(merchantId),
+    enabled: Boolean(merchantId),
+  });
+}
+
+export function useConnectOctopay(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    gcTime: 0,
+    mutationFn: (input: ConnectOctopayInput) => merchantCabinetApi(api).connectOctopay(merchantId, input),
+    onSuccess: (data) => queryClient.setQueryData(merchantKeys.octopay(merchantId), data),
+  });
+}
+
+export function useDisconnectOctopay(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => merchantCabinetApi(api).disconnectOctopay(merchantId),
+    onSuccess: () =>
+      queryClient.setQueryData(merchantKeys.octopay(merchantId), {
+        connected: false,
+        octopayBusinessName: null,
+        connectedAt: null,
+      }),
   });
 }
 

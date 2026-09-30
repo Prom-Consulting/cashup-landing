@@ -7,11 +7,14 @@ import {
 } from "../schemas/client-payment";
 import {
   buyMonthsInputSchema,
+  connectOctopayInputSchema,
   createInvoiceInputSchema,
   invoiceSchema,
   merchantSubscriptionSchema,
+  octopayIntegrationSchema,
   onecIntegrationSchema,
   type BuyMonthsInput,
+  type ConnectOctopayInput,
   type CreateInvoiceInput,
 } from "../schemas/billing";
 import { deductionPageSchema } from "../schemas/deduction";
@@ -63,6 +66,21 @@ export const merchantCabinetApi = (api: ApiClient) => ({
     api.request(merchantSubscriptionSchema, `/admin/v1/merchants/${merchantId}/subscription`, {
       method: "POST",
       body: buyMonthsInputSchema.parse(input),
+    }),
+
+  octopayIntegration: (merchantId: string) =>
+    api.request(octopayIntegrationSchema, `/admin/v1/merchants/${merchantId}/octopay-integration`),
+
+  /** Код краткоживущий: передаём только в теле этого запроса и не кладём в query cache. */
+  connectOctopay: (merchantId: string, input: ConnectOctopayInput) =>
+    api.request(octopayIntegrationSchema, `/admin/v1/merchants/${merchantId}/octopay-integration`, {
+      method: "POST",
+      body: connectOctopayInputSchema.parse(input),
+    }),
+
+  disconnectOctopay: (merchantId: string) =>
+    api.request(z.undefined(), `/admin/v1/merchants/${merchantId}/octopay-integration`, {
+      method: "DELETE",
     }),
 
   invoices: (merchantId: string) => api.request(z.array(invoiceSchema), `/admin/v1/merchants/${merchantId}/payments`),
