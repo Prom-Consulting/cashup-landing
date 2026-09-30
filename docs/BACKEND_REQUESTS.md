@@ -134,8 +134,7 @@ v2 уже пишет «Подписка Loal» — нужно так же вез
 
 ## 30.09.2026
 
-- **Партнёр по телефону.** `POST /admin/v1/merchants/{id}/members/partners` принимает только `userId`,
-  а сотрудников и кассиров уже заводят по `{ fullName, phone }`. Нужен тот же вариант для партнёра:
-  `{ fullName, phone, scanOperation, branchId? }` — чтобы владельцу не просить у партнёра идентификатор.
+- **Партнёр и сотрудник партнёра по телефону** — описано в `docs/cashier.md`, фронт уже шлёт
+  `{ fullName, phone, … }`; в `master` бэкенда `/members/partners` и `/employees` пока принимают только `userId`.
 - **Подписка 30 дней.** В секрете `ENV`: `CLIENT_SUBSCRIPTION_CYCLE_DAYS=30` (и, вероятно, новый
   `CLIENT_SUBSCRIPTION_PLAN_ID`). Лендинг уже говорит «990 сом за 30 дней», кабинет клиента берёт срок из offer.

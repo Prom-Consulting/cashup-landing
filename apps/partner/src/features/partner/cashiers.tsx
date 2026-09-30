@@ -1,5 +1,6 @@
 import { Delete02Icon, UserAdd01Icon } from "@hugeicons/core-free-icons";
-import { ApiError, createCashierInputSchema, type Cashier, type CreateCashierInput } from "@loal/api";
+import { ApiError, createCashierInputSchema, type CreateCashierInput } from "@loal/api";
+import { useJustRegistered } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { PhoneInput, formatPhone } from "@loal/ui/inputs";
 import {
@@ -16,35 +17,12 @@ import {
   Toast,
 } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useCashiers, useCreateCashier, useRemoveCashier } from "../../entities/partner/api";
 import { CASHIER_APP_URL } from "../../shared/config/env";
 import { formatDate } from "../../shared/lib/format";
 
 const emptyCashier: CreateCashierInput = { fullName: "", phone: "" };
-
-/**
- * Замечаем, кто между двумя чтениями списка перешёл из pending в registered. Первое чтение
- * только запоминает статусы: иначе при каждом открытии страницы «регистрировались» бы все.
- */
-function useJustRegistered(cashiers: Cashier[] | undefined) {
-  const seen = useRef<Map<string, string> | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!cashiers) return;
-    const before = seen.current;
-    seen.current = new Map(cashiers.map((cashier) => [cashier.memberId, cashier.registrationStatus ?? ""]));
-    if (!before) return;
-    const fresh = cashiers.filter(
-      (cashier) => cashier.registrationStatus === "registered" && before.get(cashier.memberId) === "pending",
-    );
-    if (fresh.length === 1) setMessage(`Кассир зарегистрировался: ${fresh[0]!.fullName || "без имени"}`);
-    else if (fresh.length > 1) setMessage(`Кассиры зарегистрировались: ${fresh.length}`);
-  }, [cashiers]);
-
-  return { message, dismiss: useCallback(() => setMessage(null), []) };
-}
 
 /**
  * Кассиры филиала: партнёр заводит их по имени и телефону, филиал сервер назначает сам —
@@ -57,7 +35,11 @@ export function PartnerCashiers({ memberId }: { memberId: string }) {
   const remove = useRemoveCashier(memberId);
   const [added, setAdded] = useState<string>();
   const cabinet = CASHIER_APP_URL.replace(/^https?:\/\//, "").replace(/\/$/, "");
-  const registered = useJustRegistered(cashiers.data);
+  const registered = useJustRegistered(
+    cashiers.data,
+    (cashier) => cashier.memberId,
+    () => "Кассир",
+  );
 
   return (
     <div className="flex flex-col gap-5">

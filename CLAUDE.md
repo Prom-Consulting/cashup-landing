@@ -91,9 +91,14 @@ app → pages → widgets → features → entities → shared
 - промокоды на бесплатные месяцы — платформенные (`/admin/v1/promo-codes`, только агентству);
   магазин применяет свой через `/admin/v1/merchants/{id}/promo-code` (кассиру `403`), держатель
   карты — через `/v1/me/promo-code` (без карты — `404` «Сначала получите карту»);
-- сотрудника магазина заводят заранее: `POST /admin/v1/merchants/{id}/members { fullName, phone, role, branchId? }`,
-  `409` — номер занят; до первого входа `registrationStatus: "pending"`. Партнёра шлюз пока принимает только
-  по `userId` (`/members/partners`) — формат проверяет сервер, фронт UUID не требует;
+- людей заводят заранее по имени и телефону (`docs/cashier.md`), `userId` фронт не спрашивает и не шлёт
+  (лишний — `400`): сотрудник/владелец — `POST /admin/v1/merchants/{id}/members { fullName, phone, role, branchId? }`,
+  партнёр (администратор филиала) — `…/members/partners { fullName, phone, scanOperation, branchId? }`,
+  сотрудник партнёра — `/admin/v1/members/{partnerMemberId}/employees { fullName, phone }`, кассир — `…/cashiers`.
+  Форма «Сотрудник / Партнёр» общая — `AddMemberForm` в `@loal/app-kit` (кабинет партнёра и админка). `409` —
+  номер занят, у поля. До первого входа `registrationStatus: "pending"`: списки с такими перечитываются
+  (`refetchWhilePending`), переход в `registered` — `Toast` через `useJustRegistered`. Первый вход такого
+  человека отвечает `registrationCompleted: true` — в кабинете `WelcomeToast`;
 - один телефон — один клиент: `POST /admin/v1/customers` с занятым номером — `409`, показываем у поля;
 - баллы переезжают на новую карту человека и с отозванных карт; но новая карта (другой серийный
   номер) в Wallet сама не появляется — клиенту шлют ссылку. Внешний вид меняют правкой шаблона;

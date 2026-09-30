@@ -29,11 +29,12 @@ export const addMemberInputSchema = z.object({
 export type AddMemberInput = z.infer<typeof addMemberInputSchema>;
 
 /**
- * Партнёру выбирают одну операцию на всю жизнь: начислять или списывать. Его шлюз пока
- * заводит только по идентификатору пользователя — формат проверяет сервер.
+ * Партнёр — администратор филиала. Ему выбирают одну операцию на всю жизнь: начислять или
+ * списывать. Заводят, как и всех, по имени и телефону (docs/cashier.md).
  */
 export const addPartnerInputSchema = z.object({
-  userId: z.string().trim().min(1, "Укажите идентификатор пользователя"),
+  fullName: z.string().trim().min(2, "Введите имя").max(120, "Слишком длинное имя"),
+  phone: phoneSchema,
   scanOperation: z.enum(["earn", "redeem"]),
   branchId: z.string().trim().optional(),
 });

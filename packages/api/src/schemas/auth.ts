@@ -56,6 +56,9 @@ export const authTokensSchema = z.looseObject({
   /** 30 дней; меняется при каждом refresh. Старые ответы без него — сессия просто не продлится. */
   refreshToken: z.string().nullish(),
   refreshExpiresIn: z.string().nullish(),
+  /** Первый вход человека, которого заранее завёл администратор: аккаунт активирован. */
+  registrationCompleted: z.boolean().nullish(),
+  message: z.string().nullish(),
 });
 export type AuthTokens = z.infer<typeof authTokensSchema>;
 

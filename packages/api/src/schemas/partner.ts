@@ -39,9 +39,10 @@ export type PartnerPaymentQuery = {
   sortDir?: "asc" | "desc";
 };
 
-/** Сотрудник партнёра заводится по userId — операцию он наследует, выбирать нечего. */
+/** Сотрудник партнёра — по имени и телефону; операцию он наследует, выбирать нечего. */
 export const addEmployeeInputSchema = z.object({
-  userId: z.string().trim().uuid("Это не похоже на идентификатор пользователя"),
+  fullName: z.string().trim().min(2, "Введите имя").max(120, "Слишком длинное имя"),
+  phone: phoneSchema,
 });
 export type AddEmployeeInput = z.infer<typeof addEmployeeInputSchema>;
 

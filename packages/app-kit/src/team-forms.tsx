@@ -7,6 +7,7 @@ import {
   type AddMemberInput,
   type AddPartnerInput,
   type Branch,
+  merchantCabinetApi,
 } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import {
@@ -21,14 +22,21 @@ import {
   TabsTrigger,
 } from "@loal/ui/shadcn";
 import { PhoneInput, formatPhone } from "@loal/ui/inputs";
+import { useMutation } from "@tanstack/react-query";
 import { Form, Formik } from "formik";
 import { useState } from "react";
-import { useAddMember, useAddPartner } from "../../entities/merchant/api";
+import { useApi } from "./session";
 
-const USER_ID_HINT = "Партнёр сначала регистрируется сам, потом присылает свой идентификатор из профиля.";
+const PHONE_HINT = "По нему человек входит — код придёт в WhatsApp.";
 
-function StaffForm({ merchantId, branches }: { merchantId: string; branches: Branch[] }) {
-  const add = useAddMember(merchantId);
+type FormProps = { merchantId: string; branches: Branch[]; onAdded?: () => void };
+
+function StaffForm({ merchantId, branches, onAdded }: FormProps) {
+  const api = useApi();
+  const add = useMutation({
+    mutationFn: (input: AddMemberInput) => merchantCabinetApi(api).addMember(merchantId, input),
+    onSuccess: () => onAdded?.(),
+  });
   const [done, setDone] = useState<string>();
   const initialValues: AddMemberInput = { fullName: "", phone: "", role: "staff", branchId: "" };
 
@@ -73,7 +81,7 @@ function StaffForm({ merchantId, branches }: { merchantId: string; branches: Bra
             </FormField>
             <FormField
               label="Телефон"
-              hint="По нему человек входит — код придёт в WhatsApp."
+              hint={PHONE_HINT}
               error={fieldError(form, "phone")}
             >
               {(parts) => (
@@ -130,10 +138,14 @@ function StaffForm({ merchantId, branches }: { merchantId: string; branches: Bra
   );
 }
 
-function PartnerForm({ merchantId, branches }: { merchantId: string; branches: Branch[] }) {
-  const add = useAddPartner(merchantId);
+function PartnerForm({ merchantId, branches, onAdded }: FormProps) {
+  const api = useApi();
+  const add = useMutation({
+    mutationFn: (input: AddPartnerInput) => merchantCabinetApi(api).addPartner(merchantId, input),
+    onSuccess: () => onAdded?.(),
+  });
   const [done, setDone] = useState<string>();
-  const initialValues: AddPartnerInput = { userId: "", scanOperation: "earn", branchId: "" };
+  const initialValues: AddPartnerInput = { fullName: "", phone: "", scanOperation: "earn", branchId: "" };
 
   return (
     <Formik
@@ -145,8 +157,12 @@ function PartnerForm({ merchantId, branches }: { merchantId: string; branches: B
         try {
           await add.mutateAsync({ ...values, branchId: values.branchId || undefined });
           helpers.resetForm();
-          setDone("Партнёр подключён");
+          setDone(
+            `${values.fullName} — партнёр. Пусть войдёт в кабинет по номеру ${formatPhone(values.phone)} — код придёт в WhatsApp.`,
+          );
         } catch (error) {
+          if (error instanceof ApiError && error.isConflict)
+            return helpers.setFieldError("phone", error.message || "Этот номер уже занят");
           applyServerIssues(error, helpers, "Не удалось подключить партнёра");
         } finally {
           helpers.setSubmitting(false);
@@ -159,17 +175,31 @@ function PartnerForm({ merchantId, branches }: { merchantId: string; branches: B
           <p className="text-base text-muted-foreground">
             Партнёру выбирают одну операцию — навсегда. Сотрудники, которых он заведёт, унаследуют ровно её.
           </p>
-          <FormField label="Идентификатор пользователя" hint={USER_ID_HINT} error={fieldError(form, "userId")}>
-            {(parts) => (
-              <Input
-                {...parts}
-                name="userId"
-                value={form.values.userId}
-                onChange={form.handleChange}
-                onBlur={form.handleBlur}
-              />
-            )}
-          </FormField>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="Имя" error={fieldError(form, "fullName")}>
+              {(parts) => (
+                <Input
+                  {...parts}
+                  name="fullName"
+                  autoComplete="off"
+                  value={form.values.fullName}
+                  onChange={form.handleChange}
+                  onBlur={form.handleBlur}
+                />
+              )}
+            </FormField>
+            <FormField label="Телефон" hint={PHONE_HINT} error={fieldError(form, "phone")}>
+              {(parts) => (
+                <PhoneInput
+                  {...parts}
+                  name="phone"
+                  value={form.values.phone}
+                  onValueChange={(value) => form.setFieldValue("phone", value)}
+                  onBlur={() => form.setFieldTouched("phone", true)}
+                />
+              )}
+            </FormField>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField label="Что он делает">
               {(parts) => (
@@ -213,7 +243,12 @@ function PartnerForm({ merchantId, branches }: { merchantId: string; branches: B
   );
 }
 
-export function AddMemberForm({ merchantId, branches }: { merchantId: string; branches: Branch[] }) {
+/**
+ * Добавить человека в магазин: сотрудника или владельца — или партнёра (администратора
+ * филиала) с его единственной операцией. Всех — по имени и телефону; идентификатор
+ * пользователя фронт не спрашивает (docs/cashier.md). onAdded — перечитать список.
+ */
+export function AddMemberForm({ merchantId, branches, onAdded }: FormProps) {
   return (
     <Tabs defaultValue="staff" className="mt-6 border-t border-border pt-5">
       <TabsList>
@@ -221,10 +256,10 @@ export function AddMemberForm({ merchantId, branches }: { merchantId: string; br
         <TabsTrigger value="partner">Партнёр</TabsTrigger>
       </TabsList>
       <TabsContent value="staff" className="mt-5">
-        <StaffForm merchantId={merchantId} branches={branches} />
+        <StaffForm merchantId={merchantId} branches={branches} onAdded={onAdded} />
       </TabsContent>
       <TabsContent value="partner" className="mt-5">
-        <PartnerForm merchantId={merchantId} branches={branches} />
+        <PartnerForm merchantId={merchantId} branches={branches} onAdded={onAdded} />
       </TabsContent>
     </Tabs>
   );

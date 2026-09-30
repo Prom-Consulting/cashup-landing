@@ -12,3 +12,6 @@ export * from "./promo-code-form";
 export * from "./profile-form";
 export * from "./qr-scanner";
 export * from "./redeem-form";
+export * from "./registration";
+export * from "./team-forms";
+export * from "./welcome";

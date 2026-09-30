@@ -1,10 +1,11 @@
-import { createBranchInputSchema } from "@loal/api";
+import { MEMBER_ROLE_LABELS, createBranchInputSchema } from "@loal/api";
+import { AddMemberForm, useJustRegistered } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
-import { Button, Card, EmptyState, ErrorState, Input, Label, Loading, PageHeader } from "@loal/ui/shadcn";
+import { Button, Card, EmptyState, ErrorState, Input, Label, Loading, PageHeader, Toast } from "@loal/ui/shadcn";
+import { useQueryClient } from "@tanstack/react-query";
 import { Form, Formik } from "formik";
-import { useBranches, useCreateBranch, useMembers } from "../../entities/merchant/api";
+import { merchantKeys, useBranches, useCreateBranch, useMembers } from "../../entities/merchant/api";
 import { useCurrentMerchant } from "../../entities/session/model";
-import { AddMemberForm } from "../../features/team/add-member-form";
 import { MemberRow } from "../../features/team/member-row";
 
 /** Команда заведения: точки и люди, которые в них работают. */
@@ -13,9 +14,16 @@ export function TeamPage() {
   const branches = useBranches(merchantId ?? "");
   const members = useMembers(merchantId ?? "");
   const createBranch = useCreateBranch(merchantId ?? "");
+  const queryClient = useQueryClient();
+  const registered = useJustRegistered(
+    members.data,
+    (member) => member.id,
+    (member) => (member.role === "partner" ? "Администратор филиала" : (MEMBER_ROLE_LABELS[member.role] ?? "Сотрудник")),
+  );
 
   return (
     <section className="flex flex-col gap-6">
+      <Toast message={registered.message} onDismiss={registered.dismiss} />
       <PageHeader
         title="Команда"
         description="Точки заведения и сотрудники. Сотрудника добавляют по имени и телефону — он войдёт по коду из WhatsApp."
@@ -99,7 +107,13 @@ export function TeamPage() {
           ))}
         </ul>
 
-        {canManage && <AddMemberForm merchantId={merchantId ?? ""} branches={branches.data ?? []} />}
+        {canManage && (
+          <AddMemberForm
+            merchantId={merchantId ?? ""}
+            branches={branches.data ?? []}
+            onAdded={() => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId ?? "") })}
+          />
+        )}
       </Card>
     </section>
   );

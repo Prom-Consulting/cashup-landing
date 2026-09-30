@@ -1,4 +1,5 @@
 import { Chart01Icon, CoinsSwapIcon, Clock01Icon } from "@hugeicons/core-free-icons";
+import { WelcomeToast } from "@loal/app-kit";
 import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
 import { Icon, type IconSvg } from "@loal/ui/shadcn";
 import { Link, Outlet, useLocation } from "react-router";
@@ -40,6 +41,7 @@ export function AppLayout() {
       }}
     >
       <Outlet />
+      <WelcomeToast />
     </AppShell>
   );
 }

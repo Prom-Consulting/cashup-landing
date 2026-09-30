@@ -7,6 +7,7 @@ import {
   type ApiClient,
   type Session,
 } from "@loal/api";
+import { rememberWelcome } from "./welcome";
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, use, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -24,7 +25,11 @@ type SessionState = {
   /** Почему сессия закончилась: например, вход с другого устройства. */
   endedReason: string | null;
   /** Сохранить пару токенов после входа (или смены профиля) и сразу перечитать профиль. */
-  signIn: (tokens: { accessToken: string; refreshToken?: string | null }) => Promise<void>;
+  signIn: (tokens: {
+    accessToken: string;
+    refreshToken?: string | null;
+    registrationCompleted?: boolean | null;
+  }) => Promise<void>;
   logout: () => void;
 };
 
@@ -63,8 +68,14 @@ function SessionProvider({
   });
 
   const value = useMemo<SessionState>(() => {
-    const signIn = async (tokens: { accessToken: string; refreshToken?: string | null }) => {
+    const signIn = async (tokens: {
+      accessToken: string;
+      refreshToken?: string | null;
+      registrationCompleted?: boolean | null;
+    }) => {
       clearEndedReason();
+      // Первый вход человека, которого завёл администратор: поприветствуем уже в кабинете
+      if (tokens.registrationCompleted) rememberWelcome();
       api.tokens.writeSession(tokens);
       setHasToken(true);
       await queryClient.refetchQueries({ queryKey: ["session"] });

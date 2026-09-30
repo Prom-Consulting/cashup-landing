@@ -6,7 +6,16 @@ import {
   invoiceState,
   type BuyMonthsInput,
 } from "@loal/api";
-import { CoverageLimitForm, StorefrontForm, refreshPublicCatalog, useMerchantProfile } from "@loal/app-kit";
+import {
+  AddMemberForm,
+  CoverageLimitForm,
+  StorefrontForm,
+  refreshPublicCatalog,
+  useJustRegistered,
+  useMerchantProfile,
+} from "@loal/app-kit";
+import { formatPhone } from "@loal/ui/inputs";
+import { useQueryClient } from "@tanstack/react-query";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Form, Formik } from "formik";
@@ -20,9 +29,11 @@ import {
   Input,
   Loading,
   PageHeader,
+  Toast,
 } from "@loal/ui/shadcn";
 import { Link, useNavigate, useParams } from "react-router";
 import {
+  merchantKeys,
   useAcceptMember,
   useCreateInvite,
   useDeleteMerchant,
@@ -31,6 +42,7 @@ import {
   useMerchantDeductions,
   useMerchantInvites,
   useMerchantInvoices,
+  useMerchantBranches,
   useMerchantMembers,
   useMerchantSubscription,
   useRemoveMember,
@@ -58,6 +70,14 @@ export function MerchantDetailsPage() {
   const { merchantId = "" } = useParams();
   const merchant = useMerchant(merchantId);
   const members = useMerchantMembers(merchantId);
+  const branches = useMerchantBranches(merchantId);
+  const queryClient = useQueryClient();
+  const registered = useJustRegistered(
+    members.data,
+    (member) => member.id,
+    (member) =>
+      member.role === "partner" ? "Администратор филиала" : (MEMBER_ROLE_LABELS[member.role] ?? "Сотрудник"),
+  );
   const invites = useMerchantInvites(merchantId);
   const createInvite = useCreateInvite(merchantId);
   const subscription = useMerchantSubscription(merchantId);
@@ -206,9 +226,15 @@ export function MerchantDetailsPage() {
               key={member.id}
               className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3"
             >
-              <span>
-                <span className="text-lg">{MEMBER_ROLE_LABELS[member.role] ?? member.role}</span>
-                <span className="block text-sm text-muted-foreground tabular-nums">{member.userId}</span>
+              <span className="min-w-0">
+                <span className="flex flex-wrap items-center gap-2 text-lg">
+                  {member.role === "partner" ? "Администратор филиала" : (MEMBER_ROLE_LABELS[member.role] ?? member.role)}
+                  {member.registrationStatus === "pending" && <Badge tone="quiet">ждёт первого входа</Badge>}
+                </span>
+                <span className="block text-sm text-muted-foreground tabular-nums">
+                  {[member.fullName, member.phone ? formatPhone(member.phone) : null].filter(Boolean).join(" · ") ||
+                    "—"}
+                </span>
               </span>
               <span className="flex flex-wrap items-center gap-2">
                 {member.acceptedAt ? (
@@ -239,6 +265,12 @@ export function MerchantDetailsPage() {
           ))}
         </ul>
         {accept.isError && <ErrorState error={accept.error} />}
+        <AddMemberForm
+          merchantId={merchantId}
+          branches={branches.data ?? []}
+          onAdded={() => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) })}
+        />
+        <Toast message={registered.message} onDismiss={registered.dismiss} />
       </Card>
 
       <Card>

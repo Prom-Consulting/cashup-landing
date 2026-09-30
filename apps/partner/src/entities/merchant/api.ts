@@ -2,15 +2,13 @@ import {
   merchantCabinetApi,
   merchantsApi,
   promoApi,
-  type AddMemberInput,
-  type AddPartnerInput,
   type CreateBranchInput,
   type CreateInvoiceInput,
   type CreateWebhookInput,
   type DeductionQuery,
   type RedeemPromoInput,
 } from "@loal/api";
-import { useApi } from "@loal/app-kit";
+import { refetchWhilePending, useApi } from "@loal/app-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const merchantKeys = {
@@ -50,25 +48,7 @@ export function useMembers(merchantId: string) {
     queryKey: merchantKeys.members(merchantId),
     queryFn: () => merchantCabinetApi(api).members(merchantId),
     enabled: Boolean(merchantId),
-  });
-}
-
-export function useAddMember(merchantId: string) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: AddMemberInput) => merchantCabinetApi(api).addMember(merchantId, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
-  });
-}
-
-/** Партнёру выбирают одну операцию навсегда, поэтому ручка отдельная. */
-export function useAddPartner(merchantId: string) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: AddPartnerInput) => merchantCabinetApi(api).addPartner(merchantId, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
+    refetchInterval: refetchWhilePending,
   });
 }
 

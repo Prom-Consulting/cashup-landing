@@ -19,6 +19,7 @@ import { useState, type ReactNode } from "react";
 import { usePartnerMe, usePartnerPayments } from "../../entities/partner/api";
 import { useCurrentMerchant } from "../../entities/session/model";
 import { PartnerCashiers } from "../../features/partner/cashiers";
+import { PartnerEmployees } from "../../features/partner/employees";
 import { InvoiceClientForm } from "../../features/partner/invoice-client-form";
 import { PayAccessForm } from "../../features/partner/pay-access";
 import { formatDateTime } from "../../shared/lib/format";
@@ -199,6 +200,15 @@ export function PartnerPage() {
       >
         <Payments memberId={memberId} />
       </Section>
+
+      {isPartner && (
+        <Section
+          title="Сотрудники"
+          description="Работают в приложении-сканере и делают ровно то же, что и вы, — другую операцию им не выбрать."
+        >
+          <PartnerEmployees memberId={memberId} />
+        </Section>
+      )}
 
       {isPartner && (
         <Section

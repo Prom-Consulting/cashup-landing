@@ -9,7 +9,7 @@ import {
   type Merchant,
   type UpdateMerchantInput,
 } from "@loal/api";
-import { refreshPublicCatalog, useApi } from "@loal/app-kit";
+import { refetchWhilePending, refreshPublicCatalog, useApi } from "@loal/app-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SITE_URL } from "../../shared/config/env";
 
@@ -18,6 +18,7 @@ export const merchantKeys = {
   all: ["merchants"] as const,
   detail: (id: string) => ["merchants", id] as const,
   members: (id: string) => ["merchants", id, "members"] as const,
+  branches: (id: string) => ["merchants", id, "branches"] as const,
   invites: (id: string) => ["merchants", id, "invites"] as const,
   subscription: (id: string) => ["merchants", id, "subscription"] as const,
   deductions: (id: string, query: DeductionQuery) => ["merchants", id, "deductions", query] as const,
@@ -121,7 +122,21 @@ export function useSuspendMerchant(merchantId: string) {
 
 export function useMerchantMembers(merchantId: string) {
   const api = useApi();
-  return useQuery({ queryKey: merchantKeys.members(merchantId), queryFn: () => merchantsApi(api).members(merchantId) });
+  return useQuery({
+    queryKey: merchantKeys.members(merchantId),
+    queryFn: () => merchantsApi(api).members(merchantId),
+    // Кого завели заранее и кто ещё не вошёл — изредка перечитываем, чтобы заметить вход
+    refetchInterval: refetchWhilePending,
+  });
+}
+
+/** Точки заведения — чтобы сразу привязать нового человека к филиалу. */
+export function useMerchantBranches(merchantId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: merchantKeys.branches(merchantId),
+    queryFn: () => merchantCabinetApi(api).branches(merchantId),
+  });
 }
 
 export function useMerchantInvites(merchantId: string) {
