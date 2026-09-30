@@ -1,4 +1,4 @@
-# Фронтенды Loal: лендинг и три кабинета за тем же Traefik, что и бэкенд.
+# Фронтенды Loal: лендинг и четыре кабинета за тем же Traefik, что и бэкенд.
 #
 # Traefik живёт в соседнем проекте (cashup_platform/infra) и находит контейнеры
 # через docker.sock по меткам. Поэтому здесь сеть — внешняя: имя той, к которой
@@ -81,6 +81,7 @@ services:
         APP: partner
         VITE_API_URL: ${API_URL:-https://loal.promconsult.pro}
         VITE_SITE_URL: https://${LANDING_HOST:-loal.kg}
+        VITE_CASHIER_APP_URL: https://${CASHIER_HOST:-cashier.loal.kg}
     image: loal-partner:latest
     labels:
       - traefik.enable=true
@@ -123,6 +124,33 @@ services:
       - traefik.http.middlewares.loal-security-client.headers.stsIncludeSubdomains=true
       - traefik.http.middlewares.loal-security-client.headers.contentTypeNosniff=true
       - traefik.http.middlewares.loal-security-client.headers.referrerPolicy=strict-origin-when-cross-origin
+
+  cashier:
+    <<: *app
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.spa
+      args:
+        APP: cashier
+        VITE_API_URL: ${API_URL:-https://loal.promconsult.pro}
+        VITE_SITE_URL: https://${LANDING_HOST:-loal.kg}
+        VITE_PARTNER_APP_URL: https://${PARTNER_HOST:-partner.loal.kg}
+    image: loal-cashier:latest
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK:-infra_default}
+      - traefik.http.routers.loal-cashier.rule=Host(`${CASHIER_HOST:-cashier.loal.kg}`)
+      - traefik.http.routers.loal-cashier.entrypoints=websecure
+      - traefik.http.routers.loal-cashier.tls=true
+      - traefik.http.routers.loal-cashier.tls.certresolver=letsencrypt
+      - traefik.http.routers.loal-cashier.middlewares=loal-security-cashier@docker
+      - traefik.http.services.loal-cashier.loadbalancer.server.port=80
+      # Свой middleware у каждого приложения: общий жил бы на одном контейнере,
+      # и пока тот не поднялся, Traefik ломал бы роутеры остальных
+      - traefik.http.middlewares.loal-security-cashier.headers.stsSeconds=31536000
+      - traefik.http.middlewares.loal-security-cashier.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.loal-security-cashier.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.loal-security-cashier.headers.referrerPolicy=strict-origin-when-cross-origin
 
 networks:
   web:

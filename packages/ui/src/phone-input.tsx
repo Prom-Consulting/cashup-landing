@@ -254,7 +254,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(function
           aria-describedby={describedBy}
           aria-invalid={invalid || undefined}
           style={{ outline: "none" }}
-          className="h-full min-w-0 flex-1 bg-transparent px-3 tabular-nums placeholder:text-muted-foreground"
+          className="h-full w-0 min-w-0 flex-1 bg-transparent px-3 tabular-nums placeholder:text-muted-foreground"
         />
         {/* Номер верный по правилам страны — тихая галочка, без слов */}
         <span

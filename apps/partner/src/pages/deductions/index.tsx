@@ -60,37 +60,46 @@ export function DeductionsPage() {
       )}
 
       {rows.length > 0 && (
-        <Card className="overflow-x-auto p-0">
-          <table className="w-full min-w-[720px] border-collapse text-left">
-            <thead>
-              <tr className="border-b border-border text-base text-muted-foreground">
-                <th className="px-6 py-4 font-normal">Клиент</th>
-                <th className="px-6 py-4 font-normal">Товар</th>
-                <th className="px-6 py-4 font-normal">Цена</th>
-                <th className="px-6 py-4 font-normal">Доля</th>
-                <th className="px-6 py-4 font-normal">Списано</th>
-                <th className="px-6 py-4 font-normal">Откуда</th>
-                <th className="px-6 py-4 font-normal">Когда</th>
-              </tr>
-            </thead>
-            <tbody>
+        <Card className="p-0">
+          <Table className="sm:min-w-[860px]">
+            <TableHead>
+              <TableRow>
+                <TableHeaderCell>Клиент</TableHeaderCell>
+                <TableHeaderCell>Товар</TableHeaderCell>
+                <TableHeaderCell>Цена</TableHeaderCell>
+                <TableHeaderCell>Доля</TableHeaderCell>
+                <TableHeaderCell>Списано</TableHeaderCell>
+                <TableHeaderCell>Кассир</TableHeaderCell>
+                <TableHeaderCell>Откуда</TableHeaderCell>
+                <TableHeaderCell>Когда</TableHeaderCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-b border-border/60 last:border-0">
-                  <td className="px-6 py-4 text-lg">{row.customerName ?? "—"}</td>
-                  <td className="px-6 py-4 text-lg">{row.productName ?? "—"}</td>
-                  <td className="px-6 py-4 text-lg tabular-nums">{row.price ? money.format(row.price) : "—"}</td>
-                  <td className="px-6 py-4 text-lg tabular-nums">
+                <TableRow key={row.id}>
+                  <TableCell primary>{row.customerName ?? "—"}</TableCell>
+                  <TableCell label="Товар">{row.productName ?? "—"}</TableCell>
+                  <TableCell label="Цена" className="tabular-nums">
+                    {row.price ? money.format(row.price) : "—"}
+                  </TableCell>
+                  <TableCell label="Доля" className="tabular-nums">
                     {row.coveragePercent ? `${row.coveragePercent}%` : "—"}
-                  </td>
-                  <td className="px-6 py-4 text-lg tabular-nums">{money.format(row.points)}</td>
-                  <td className="px-6 py-4 text-base text-muted-foreground">
+                  </TableCell>
+                  <TableCell label="Списано" className="tabular-nums">
+                    {money.format(row.points)}
+                  </TableCell>
+                  {/* У 1С и старых операций кассира нет — сервер отдаёт null */}
+                  <TableCell label="Кассир">{row.cashierName ?? "—"}</TableCell>
+                  <TableCell label="Откуда" className="text-base text-muted-foreground">
                     {DEDUCTION_CHANNEL_LABELS[row.channel ?? ""] ?? row.channel ?? "—"}
-                  </td>
-                  <td className="px-6 py-4 text-base text-muted-foreground">{formatDateTime(row.createdAt)}</td>
-                </tr>
+                  </TableCell>
+                  <TableCell label="Когда" className="text-base text-muted-foreground">
+                    {formatDateTime(row.createdAt)}
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </Card>
       )}
 

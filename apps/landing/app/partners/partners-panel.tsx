@@ -180,7 +180,7 @@ export function PartnersPanel({
   };
   const sheetStops = () => {
     const height = bounds()?.height ?? 700;
-    return { peek: 150, half: Math.round(height * 0.5), full: height - 16 };
+    return { peek: 184, half: Math.round(height * 0.5), full: height - 16 };
   };
 
   // Место панели помним между заходами; экран сузился — возвращаем в пределы карты
@@ -276,7 +276,7 @@ export function PartnersPanel({
   const style = {
     "--x": `${position.x}px`,
     "--y": `${position.y}px`,
-    "--sheet-h": sheet ? `${sheet}px` : "150px",
+    "--sheet-h": sheet ? `${sheet}px` : "184px",
   } as CSSProperties;
 
   return (
@@ -302,13 +302,29 @@ export function PartnersPanel({
             <Grip />
           </span>
           <div className="min-w-0 flex-1">
-            <h1 className="display text-[1.75rem] leading-[1.05] text-flame md:text-[2rem]">Где тратить бонусы</h1>
+            <h1 className="display text-[1.5rem] leading-[1.05] text-flame min-[400px]:text-[1.75rem] md:text-[2rem]">
+              Где тратить бонусы
+            </h1>
             <p className="mt-1 text-base text-slate">
               {partners.length > 0
                 ? `${partners.length} ${plural(partners.length, "заведение", "заведения", "заведений")} в Бишкеке`
                 : "Скоро здесь появятся заведения"}
             </p>
           </div>
+          {/* Телефон: снизу шторки места нет — подключение заведения живёт в её шапке */}
+          <Link
+            href="/become-partner"
+            className="flex shrink-0 items-center gap-2 rounded-2xl bg-flame py-2 pr-3 pl-2.5 text-[0.8125rem] leading-[1.15] font-bold text-white transition-colors outline-none hover:bg-graphite focus-visible:ring-3 focus-visible:ring-graphite md:hidden"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 shrink-0">
+              <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
+            </svg>
+            <span>
+              Добавить
+              <br />
+              своё заведение
+            </span>
+          </Link>
           <button
             type="button"
             onClick={() => {
@@ -515,7 +531,7 @@ export function PartnersPanel({
 
         <Link
           href="/become-partner"
-          className="flex shrink-0 items-center justify-between gap-3 border-t border-smoke/80 px-6 py-4 text-base font-bold transition-colors hover:bg-white/60"
+          className="hidden shrink-0 items-center justify-between gap-3 border-t border-smoke/80 px-6 py-4 text-base font-bold transition-colors hover:bg-white/60 md:flex"
         >
           {partners.length > 0 ? "Подключить своё заведение" : "Станьте первым — подключите заведение"}
           <span

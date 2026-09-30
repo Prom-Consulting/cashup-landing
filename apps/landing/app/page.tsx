@@ -49,13 +49,13 @@ const bonusFacts = [
 /** Честная проверка вместо обещания «выгодно всем» — так требует контент-план. */
 const worthIt = [
   "Откройте каталог и найдите партнёров, к которым вы и так ходите",
-  "Прикиньте, сколько тратите у них за 90 дней",
+  "Прикиньте, сколько тратите у них за месяц",
   "Умножьте на их процент — это то, что закроют бонусы",
   "Сравните с 990 сом за подписку",
 ];
 
 const included = [
-  "15 000 бонусов на 90 дней",
+  "15 000 бонусов на 30 дней",
   "Карта Loal в Apple Wallet и Google Wallet",
   "Каталог партнёров с их процентами",
   "Кабинет: баланс, история трат, продление",
@@ -64,7 +64,7 @@ const included = [
 const faq = [
   {
     q: "Сколько стоит подписка?",
-    a: "990 сом за 90 дней. Оплата проходит через OctōPAY, продлить можно в личном кабинете — в том числе заранее.",
+    a: "990 сом за 30 дней. Оплата проходит через OctōPAY, продлить можно в личном кабинете — в том числе заранее.",
   },
   {
     q: "15 000 бонусов — это 15 000 сом?",
@@ -80,7 +80,7 @@ const faq = [
   },
   {
     q: "Остаток бонусов переносится на следующий цикл?",
-    a: "Нет. Каждая оплата начинает новый цикл на 90 дней, и баланс становится ровно 15 000 бонусов — остаток не добавляется. Если не продлить, карта заморозится в конце цикла, а через 30 дней бонусы сгорят.",
+    a: "Нет. Каждая оплата начинает новый цикл на 30 дней, и баланс становится ровно 15 000 бонусов — остаток не добавляется. Если не продлить, карта заморозится в конце цикла, а через 30 дней бонусы сгорят.",
   },
   {
     q: "Кому подписка выгодна, а кому нет?",
@@ -106,7 +106,7 @@ const subscriptionLd = {
   "@type": "Product",
   name: "Подписка Loal",
   description:
-    "Подписка Loal — 990 сом за 90 дней: карта в Apple Wallet или Google Wallet и 15 000 бонусов на каждый цикл. Бонусами закрывается часть покупки у партнёров в Бишкеке.",
+    "Подписка Loal — 990 сом за 30 дней: карта в Apple Wallet или Google Wallet и 15 000 бонусов на каждый цикл. Бонусами закрывается часть покупки у партнёров в Бишкеке.",
   brand: { "@type": "Brand", name: "Loal" },
   offers: {
     "@type": "Offer",
@@ -163,7 +163,7 @@ export default function Home() {
                 data-hero-sub
                 className="mt-2 block text-[clamp(1.6rem,4.2vw,3.6rem)] leading-[1.08] font-extrabold"
               >
-                бонусов на 90 дней подписки
+                бонусов на 30 дней подписки
               </span>
             </h1>
             <p
@@ -171,7 +171,7 @@ export default function Home() {
               data-hero-fade
               className="mt-7 max-w-[760px] text-[1.1875rem] leading-snug font-bold sm:text-xl"
             >
-              Loal — подписка за 990 сом на 90 дней. Вы получаете карту в Apple Wallet или Google Wallet и 15&nbsp;000
+              Loal — подписка за 990 сом на 30 дней. Вы получаете карту в Apple Wallet или Google Wallet и 15&nbsp;000
               бонусов на оплаченный период, а бонусами закрываете часть покупки у партнёров.
             </p>
             {/* Главное действие первого экрана: сразу показать, где тратить бонусы */}
@@ -285,7 +285,7 @@ export default function Home() {
         {/* Вопрос 8: что происходит в новом периоде */}
         <section className="mx-auto max-w-[1512px] px-5 pt-20 sm:px-12 sm:pt-28">
           <h2 data-split className={`${sectionTitle} text-center`}>
-            Что будет через 90 дней
+            Что будет через 30 дней
           </h2>
           <div data-rise className="mt-12 grid gap-6 md:grid-cols-2 md:gap-8">
             <div className="relative overflow-hidden rounded-[32px] p-8 text-graphite sm:rounded-[48px] sm:p-11">
@@ -293,7 +293,7 @@ export default function Home() {
               <div className="relative">
                 <p className="display text-[clamp(2.4rem,4vw,3.75rem)]">Продлили</p>
                 <p className="mt-6 max-w-[520px] text-lg leading-snug font-semibold sm:text-xl">
-                  Новый цикл на 90 дней начинается с полного баланса: снова 15&nbsp;000 бонусов. Остаток не суммируется.
+                  Новый цикл на 30 дней начинается с полного баланса: снова 15&nbsp;000 бонусов. Остаток не суммируется.
                   Продлить можно и заранее.
                 </p>
               </div>
@@ -387,7 +387,7 @@ export default function Home() {
                   className="display mt-4 flex flex-wrap items-baseline gap-x-[0.3em] text-[clamp(4rem,8vw,7.5rem)] leading-none"
                 >
                   <span className="whitespace-nowrap">990 сом</span>
-                  <span className="text-[0.36em] whitespace-nowrap text-slate">за 90 дней</span>
+                  <span className="text-[0.36em] whitespace-nowrap text-slate">за 30 дней</span>
                 </p>
                 <p className="mt-5 text-lg text-slate sm:text-xl">
                   Оплата через{" "}

@@ -42,7 +42,7 @@ export function PageFrame({ children }: { children?: ReactNode }) {
         <div className="my-auto flex flex-col gap-[5vh]">
           <div>
             <p className="display max-w-[12ch] text-[min(4rem,4.2vw,7vh)] leading-[1.02]">
-              15 000 бонусов на 90 дней
+              15 000 бонусов на 30 дней
             </p>
             <p className="mt-4 max-w-[40ch] text-xl leading-snug text-white/90">
               Карта в Apple Wallet и Google Wallet, баланс и история — в одном кабинете. Бонусами закрывается часть покупки у партнёров

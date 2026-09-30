@@ -150,3 +150,54 @@ body {
     radial-gradient(var(--r) at 50% 100%, #0000 97%, #000) bottom / calc(var(--r) * 2.6) var(--r) repeat-x,
     linear-gradient(#000 0 0) top / 100% calc(100% - var(--r) + 1px) no-repeat;
 }
+
+/* Выезжающее меню кабинета на телефоне (AppShell) */
+@keyframes shell-fade {
+  from { opacity: 0; }
+}
+@keyframes shell-slide {
+  from { transform: translateX(-100%); }
+}
+
+/*
+ * Таблица кабинета на телефоне: строка становится карточкой, у каждой ячейки — подпись
+ * из data-label (её ставит TableCell label="…"). Шире 640px — обычная таблица.
+ */
+@media (max-width: 639.98px) {
+  .table-stack { min-width: 0 !important; }
+  .table-stack thead { display: none; }
+  .table-stack tr { display: flex; flex-wrap: wrap; align-items: center; padding-block: 0.75rem; }
+  /* Ячейка без подписи (галочка выбора) стоит в одной строке с главной, остальные — по строке */
+  .table-stack td { flex: 1 1 100%; min-width: 0; }
+  .table-stack td:not([data-label]):not([data-primary]) { flex: 0 0 auto; padding-right: 0; }
+  .table-stack td[data-primary] { flex: 1 1 0; }
+  .table-stack td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.35rem 1.25rem;
+    text-align: right;
+  }
+  .table-stack td:not([data-label]) { justify-content: flex-start; text-align: left; }
+  .table-stack td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 0.9375rem;
+    font-weight: 400;
+    color: var(--muted-foreground);
+    text-align: left;
+  }
+  .table-stack td[data-primary] {
+    display: block;
+    justify-content: flex-start;
+    text-align: left;
+    font-weight: 700;
+  }
+  .table-stack td[data-primary]::before { content: none; }
+}
+
+/* Всплывающее сообщение (Toast) */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(1rem); }
+}

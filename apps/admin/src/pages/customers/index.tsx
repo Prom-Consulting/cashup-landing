@@ -86,7 +86,7 @@ export function CustomersPage() {
 
       {rows.length > 0 && (
         <Card className="p-0">
-          <Table className="min-w-[620px]">
+          <Table className="sm:min-w-[620px]">
             <TableHead>
               <TableRow>
                 <TableHeaderCell className="w-12">
@@ -123,7 +123,7 @@ export function CustomersPage() {
                       }
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell primary>
                     <button
                       type="button"
                       onClick={() => setOpened(customer)}
@@ -137,9 +137,9 @@ export function CustomersPage() {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="tabular-nums">{customer.phone ?? "—"}</TableCell>
-                  <TableCell>{customer.email ?? "—"}</TableCell>
-                  <TableCell className="text-base text-muted-foreground">{formatDate(customer.createdAt)}</TableCell>
+                  <TableCell label="Телефон" className="tabular-nums">{customer.phone ?? "—"}</TableCell>
+                  <TableCell label="Почта" className="break-all">{customer.email ?? "—"}</TableCell>
+                  <TableCell label="Заведён" className="text-base text-muted-foreground">{formatDate(customer.createdAt)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

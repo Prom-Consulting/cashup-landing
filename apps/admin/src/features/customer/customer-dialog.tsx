@@ -59,7 +59,7 @@ function Subscription({ serial }: { serial: string }) {
     <div className="flex flex-col gap-3 rounded-2xl bg-muted p-4">
       <p className="text-base">
         {data && data.cycleEndsAt ? (
-          // Подписка по циклу (90 дней): даты цикла вместо месяцев
+          // Подписка по циклу (30 дней): даты цикла вместо месяцев
           <>
             Подписка {SUBSCRIPTION_STATUS[data.status] ?? data.status}
             {data.status === "frozen"

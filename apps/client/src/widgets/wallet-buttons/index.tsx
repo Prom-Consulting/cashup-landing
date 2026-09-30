@@ -55,7 +55,7 @@ export function WalletButtons({ serial, appleUrl }: { serial: string; appleUrl: 
   return (
     <div className="flex flex-col gap-3">
       {device === "desktop" && (
-        <div className="flex items-center gap-5 rounded-[24px] bg-surface p-5">
+        <div className="hidden items-center gap-5 rounded-[24px] bg-surface p-5 sm:flex">
           <div className="shrink-0 rounded-2xl bg-white p-2">
             <PhoneQr url={pageUrl} />
           </div>

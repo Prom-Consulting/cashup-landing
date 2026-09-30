@@ -26,7 +26,9 @@ function loginErrorText(error: unknown): string {
     if (error.code === "OTP_UNAVAILABLE" || error.status === 503)
       return "Сервис кодов временно недоступен. Попробуйте через минуту.";
     if (error.isTooManyRequests)
-      return error.retryAfter ? `Повторить можно через ${error.retryAfter} с` : "Слишком часто. Попробуйте через минуту";
+      return error.retryAfter
+        ? `Повторить можно через ${error.retryAfter} с`
+        : "Слишком часто. Попробуйте через минуту";
     return error.message;
   }
   return error instanceof Error ? error.message : "Не удалось войти";
@@ -219,11 +221,14 @@ const tabClass = (active: boolean) =>
 export function LoginForm({
   onDone,
   defaultMode = "password",
+  phoneOnly = false,
 }: {
   onDone?: () => void;
   defaultMode?: "password" | "phone";
+  /** Только телефон с кодом — у кассира филиала нет ни почты, ни пароля. */
+  phoneOnly?: boolean;
 }) {
-  const [mode, setMode] = useState(defaultMode);
+  const [mode, setMode] = useState(phoneOnly ? "phone" : defaultMode);
   const { endedReason } = useSession();
 
   return (
@@ -235,26 +240,28 @@ export function LoginForm({
         </p>
       )}
 
-      <div className="flex gap-1" role="tablist" aria-label="Способ входа">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === "password"}
-          className={tabClass(mode === "password")}
-          onClick={() => setMode("password")}
-        >
-          По почте
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === "phone"}
-          className={tabClass(mode === "phone")}
-          onClick={() => setMode("phone")}
-        >
-          По телефону
-        </button>
-      </div>
+      {!phoneOnly && (
+        <div className="flex gap-1" role="tablist" aria-label="Способ входа">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "password"}
+            className={tabClass(mode === "password")}
+            onClick={() => setMode("password")}
+          >
+            По почте
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "phone"}
+            className={tabClass(mode === "phone")}
+            onClick={() => setMode("phone")}
+          >
+            По телефону
+          </button>
+        </div>
+      )}
 
       {mode === "password" ? <ByPassword onDone={onDone} /> : <ByPhone onDone={onDone} />}
     </div>

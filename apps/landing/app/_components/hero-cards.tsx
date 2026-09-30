@@ -71,7 +71,7 @@ function LoyaltyCard({ tone, style }: { tone: Tone; style: React.CSSProperties }
       </div>
       <p className={`mt-[3.2em] text-[1.6em] ${t.muted}`}>Баланс бонусов</p>
       <p className={`display mt-[0.15em] text-[5.4em] leading-none whitespace-nowrap ${t.number}`}>15&nbsp;000</p>
-      <p className={`mt-[0.6em] text-[1.6em] ${t.muted}`}>бонусов на 90 дней</p>
+      <p className={`mt-[0.6em] text-[1.6em] ${t.muted}`}>бонусов на 30 дней</p>
       <FakeQr className="mt-auto h-[8em] w-[8em] self-end" />
     </div>
   );

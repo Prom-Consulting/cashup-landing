@@ -82,7 +82,7 @@ export function BonusItemsPage() {
 
       {rows.length > 0 && (
         <Card className="p-0">
-          <Table className="min-w-[560px]">
+          <Table className="sm:min-w-[560px]">
             <TableHead>
               <TableRow>
                 <TableHeaderCell>Клиент</TableHeaderCell>
@@ -94,10 +94,10 @@ export function BonusItemsPage() {
             <TableBody>
               {rows.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell>{item.customerName ?? "—"}</TableCell>
-                  <TableCell>{item.value}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatDateTime(item.grantedAt)}</TableCell>
-                  <TableCell>
+                  <TableCell primary>{item.customerName ?? "—"}</TableCell>
+                  <TableCell label="Подарок">{item.value}</TableCell>
+                  <TableCell label="Выдан" className="text-muted-foreground">{formatDateTime(item.grantedAt)}</TableCell>
+                  <TableCell label="Погашен">
                     {item.redeemedAt ? formatDateTime(item.redeemedAt) : <Badge tone="quiet">ещё нет</Badge>}
                   </TableCell>
                 </TableRow>

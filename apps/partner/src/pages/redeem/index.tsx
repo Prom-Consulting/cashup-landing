@@ -1,7 +1,6 @@
-import { useCoverageLimit } from "@loal/app-kit";
+import { RedeemForm, useCoverageLimit } from "@loal/app-kit";
 import { ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { useCurrentMerchant } from "../../entities/session/model";
-import { RedeemForm } from "../../features/redemption/redeem-form";
 
 /** Списание бонусов за покупку прямо из браузера — то же, что делает приложение кассы. */
 export function RedeemPage() {

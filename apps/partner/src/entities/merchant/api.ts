@@ -2,8 +2,6 @@ import {
   merchantCabinetApi,
   merchantsApi,
   promoApi,
-  redemptionsApi,
-  type RedemptionForm,
   type AddMemberInput,
   type AddPartnerInput,
   type CreateBranchInput,
@@ -259,10 +257,3 @@ export function useUpdatePartnerBonus(merchantId: string) {
  * нескольких заведениях: с одним местом работы сервер определяет его сам и
  * лишнее поле отклоняет.
  */
-export function useRedeem() {
-  const api = useApi();
-  return useMutation({
-    mutationFn: ({ input, maxPercent }: { input: RedemptionForm & { merchantId?: string }; maxPercent: number }) =>
-      redemptionsApi(api).redeem(input, maxPercent),
-  });
-}

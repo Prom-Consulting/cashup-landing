@@ -79,6 +79,67 @@ importers:
         specifier: ^7
         version: 7.3.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15)
 
+  apps/cashier:
+    dependencies:
+      '@hugeicons/core-free-icons':
+        specifier: ^4.3.5
+        version: 4.3.5
+      '@loal/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@loal/app-kit':
+        specifier: workspace:*
+        version: link:../../packages/app-kit
+      '@loal/forms':
+        specifier: workspace:*
+        version: link:../../packages/forms
+      '@loal/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@tanstack/react-query':
+        specifier: ^5.103.2
+        version: 5.103.2(react@19.2.8)
+      formik:
+        specifier: ^2.4.9
+        version: 2.4.9(@types/react@19.3.0)(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      react-router:
+        specifier: ^7
+        version: 7.18.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@loal/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@tailwindcss/vite':
+        specifier: ^4
+        version: 4.3.3(vite@7.3.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15))
+      '@types/react':
+        specifier: ^19
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: ^5
+        version: 5.2.0(vite@7.3.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15))
+      tailwindcss:
+        specifier: ^4
+        version: 4.3.3
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+      vite:
+        specifier: ^7
+        version: 7.3.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15)
+
   apps/client:
     dependencies:
       '@hugeicons/core-free-icons':
@@ -224,9 +285,6 @@ importers:
       formik:
         specifier: ^2.4.9
         version: 2.4.9(@types/react@19.3.0)(react@19.2.8)
-      jsqr:
-        specifier: ^1.4.0
-        version: 1.4.0
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -295,6 +353,9 @@ importers:
       '@loal/ui':
         specifier: workspace:*
         version: link:../ui
+      jsqr:
+        specifier: ^1.4.0
+        version: 1.4.0
     devDependencies:
       '@loal/tsconfig':
         specifier: workspace:*

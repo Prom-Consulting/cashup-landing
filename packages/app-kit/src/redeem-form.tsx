@@ -6,13 +6,15 @@ import {
   redemptionInputSchema,
   type RedemptionForm,
   type RedemptionResult,
+  redemptionsApi,
 } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Badge, Button, Card, FormField, FormStatus, Icon, Input } from "@loal/ui/shadcn";
 import { Form, Formik, getIn } from "formik";
+import { useMutation } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { useRedeem } from "../../entities/merchant/api";
-import { QrScanButton } from "../../shared/ui/qr-scanner";
+import { QrScanButton } from "./qr-scanner";
+import { useApi } from "./session";
 
 const money = new Intl.NumberFormat("ru-RU");
 
@@ -21,6 +23,16 @@ const newOperationId = () =>
   `web-${new Date().toISOString().slice(0, 19).replace(/\D/g, "")}-${Math.random().toString(36).slice(2, 6)}`;
 
 const emptyItem = (percent: number) => ({ productName: "", price: "", deductionPercent: percent });
+
+/** Списание за покупку. Общее для кабинета заведения и кабинета кассира филиала. */
+export function useRedeem(onDone?: () => void) {
+  const api = useApi();
+  return useMutation({
+    mutationFn: ({ input, maxPercent }: { input: RedemptionForm & { merchantId?: string }; maxPercent: number }) =>
+      redemptionsApi(api).redeem(input, maxPercent),
+    onSuccess: () => onDone?.(),
+  });
+}
 
 /** Отказы кассы — человеческим языком: при любом из них ничего не списано. */
 function redeemErrorText(error: unknown): string {
@@ -42,8 +54,17 @@ function redeemErrorText(error: unknown): string {
  * Касса в браузере: что купили, почём и какую долю закрывают бонусы. Баллы
  * считает сервер — здесь та же формула, чтобы кассир видел итог до отправки.
  */
-export function RedeemForm({ ceiling, merchantId }: { ceiling: number | null; merchantId?: string }) {
-  const redeem = useRedeem();
+export function RedeemForm({
+  ceiling,
+  merchantId,
+  onRedeemed,
+}: {
+  ceiling: number | null;
+  merchantId?: string;
+  /** После успешного списания — например, обновить историю кассира. */
+  onRedeemed?: () => void;
+}) {
+  const redeem = useRedeem(onRedeemed);
   const [result, setResult] = useState<RedemptionResult | null>(null);
   const maxPercent = Math.min(SCANNER_MAX_COVERAGE_PERCENT, ceiling ?? SCANNER_MAX_COVERAGE_PERCENT);
   const schema = useMemo(() => redemptionInputSchema(maxPercent), [maxPercent]);

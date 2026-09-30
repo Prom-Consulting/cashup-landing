@@ -67,7 +67,10 @@ export default async function PartnersPage() {
         <PartnersExplorer partners={partners} />
       </main>
 
-      <SiteFooter />
+      {/* Телефон: каталог — карта на весь экран со шторкой; подвал под ней сливался со шторкой */}
+      <div className="hidden md:block">
+        <SiteFooter />
+      </div>
     </>
   );
 }

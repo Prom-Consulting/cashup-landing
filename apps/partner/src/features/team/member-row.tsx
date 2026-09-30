@@ -20,6 +20,7 @@ import {
   Input,
   NativeSelect,
 } from "@loal/ui/shadcn";
+import { formatPhone } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
 import { useState } from "react";
 import { useAcceptMember, useRemoveMember, useUpdateMember, useUpdatePartnerBonus } from "../../entities/merchant/api";
@@ -134,8 +135,12 @@ export function MemberRow({
             {MEMBER_ROLE_LABELS[member.role] ?? member.role}
             {operation && <Badge tone="quiet">{SCAN_OPERATION_LABELS[operation]}</Badge>}
             {!member.acceptedAt && <Badge tone="warn">ждёт подтверждения</Badge>}
+            {member.registrationStatus === "pending" && <Badge tone="quiet">ждёт первого входа</Badge>}
           </p>
-          <p className="mt-1 truncate text-sm text-muted-foreground tabular-nums">{member.userId}</p>
+          <p className="mt-1 truncate text-sm text-muted-foreground tabular-nums">
+            {[member.fullName, member.phone ? formatPhone(member.phone) : null].filter(Boolean).join(" · ") ||
+              member.userId}
+          </p>
           <p className="text-sm text-muted-foreground">
             {member.acceptedAt ? `в команде с ${formatDateTime(member.acceptedAt)}` : "приглашён, доступа пока нет"}
             {member.role === "partner" && member.partnerBonusAmount

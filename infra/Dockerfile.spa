@@ -1,4 +1,4 @@
-# Кабинеты (partner / client / admin): Vite SPA за nginx. Контекст сборки — корень монорепо.
+# Кабинеты (partner / client / admin / cashier): Vite SPA за nginx. Контекст сборки — корень монорепо.
 FROM node:22-alpine AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
@@ -15,7 +15,10 @@ ARG APP
 ARG VITE_API_URL
 ARG VITE_SITE_URL
 ARG VITE_CLIENT_APP_URL
-ENV VITE_API_URL=$VITE_API_URL VITE_SITE_URL=$VITE_SITE_URL VITE_CLIENT_APP_URL=$VITE_CLIENT_APP_URL
+ARG VITE_PARTNER_APP_URL
+ARG VITE_CASHIER_APP_URL
+ENV VITE_API_URL=$VITE_API_URL VITE_SITE_URL=$VITE_SITE_URL VITE_CLIENT_APP_URL=$VITE_CLIENT_APP_URL \
+    VITE_PARTNER_APP_URL=$VITE_PARTNER_APP_URL VITE_CASHIER_APP_URL=$VITE_CASHIER_APP_URL
 COPY . .
 RUN pnpm install --frozen-lockfile --offline
 # Только сборка: проверка типов уже прошла локально и в pnpm typecheck,

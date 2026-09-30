@@ -114,7 +114,7 @@ export function PromoCodesPage() {
 
       {promos.isSuccess && promos.data.length > 0 && (
         <div className="overflow-x-auto">
-          <Table className="[&_td]:px-3 [&_th]:px-3">
+          <Table className="sm:[&_td]:px-3 sm:[&_th]:px-3">
             <TableHead>
               <TableRow>
                 <TableHeaderCell>Код</TableHeaderCell>
@@ -128,25 +128,25 @@ export function PromoCodesPage() {
             <TableBody>
               {promos.data.map((promo) => (
                 <TableRow key={promo.id}>
-                  <TableCell>
+                  <TableCell primary>
                     <div className="flex items-center gap-1">
                       <span className="font-mono text-base font-bold whitespace-nowrap">{promo.code}</span>
                       <CopyCodeButton code={promo.code} compact />
                     </div>
                     {promo.note && <p className="text-sm text-muted-foreground">{promo.note}</p>}
                   </TableCell>
-                  <TableCell>{PROMO_AUDIENCE_LABELS[promo.audience]}</TableCell>
-                  <TableCell className="text-right tabular-nums">{promo.months}</TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell label="Кому">{PROMO_AUDIENCE_LABELS[promo.audience]}</TableCell>
+                  <TableCell label="Месяцев" className="text-right tabular-nums">{promo.months}</TableCell>
+                  <TableCell label="Применили" className="text-right tabular-nums">
                     <Button variant="ghost" size="sm" title="Кто применил" onClick={() => setViewing(promo)}>
                       {money.format(promo.uses)}
                       {promo.maxUses ? ` из ${money.format(promo.maxUses)}` : ""}
                     </Button>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell label="До" className="whitespace-nowrap">
                     {promo.expiresAt ? shortDate.format(new Date(promo.expiresAt)) : "бессрочно"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell label="Состояние">
                     {promo.deletedAt ? (
                       <Badge tone="quiet">удалён</Badge>
                     ) : (

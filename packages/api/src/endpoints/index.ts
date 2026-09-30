@@ -13,3 +13,4 @@ export * from "./promo";
 export * from "./redemptions";
 export * from "./referrals";
 export * from "./subscription";
+export * from "./cashier";

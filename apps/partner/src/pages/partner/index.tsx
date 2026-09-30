@@ -18,7 +18,7 @@ import {
 import { useState, type ReactNode } from "react";
 import { usePartnerMe, usePartnerPayments } from "../../entities/partner/api";
 import { useCurrentMerchant } from "../../entities/session/model";
-import { PartnerEmployees } from "../../features/partner/employees";
+import { PartnerCashiers } from "../../features/partner/cashiers";
 import { InvoiceClientForm } from "../../features/partner/invoice-client-form";
 import { PayAccessForm } from "../../features/partner/pay-access";
 import { formatDateTime } from "../../shared/lib/format";
@@ -80,7 +80,7 @@ function Payments({ memberId }: { memberId: string }) {
       {payments.isSuccess && rows.length === 0 && <EmptyState title="Операций пока не было" />}
       {rows.length > 0 && (
         <div className="overflow-x-auto">
-          <Table className="min-w-[480px]">
+          <Table stack={false} className="min-w-[480px]">
             <TableHead>
               <TableRow>
                 <TableHeaderCell aria-sort={ariaSort("customerName")}>
@@ -202,10 +202,10 @@ export function PartnerPage() {
 
       {isPartner && (
         <Section
-          title="Мои сотрудники"
-          description="Они делают ровно то же, что и вы, — другую операцию им не выбрать."
+          title="Кассиры"
+          description="Кассир списывает бонусы в вашем филиале со своего кабинета — без доступа к настройкам, команде и клиентской базе. Филиал назначается сам."
         >
-          <PartnerEmployees memberId={memberId} />
+          <PartnerCashiers memberId={memberId} />
         </Section>
       )}
 

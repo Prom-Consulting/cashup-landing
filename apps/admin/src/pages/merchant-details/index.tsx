@@ -188,6 +188,7 @@ export function MerchantDetailsPage() {
               <span className="text-lg tabular-nums">−{row.points}</span>
               <span className="basis-full text-base text-muted-foreground">
                 {formatDateTime(row.createdAt)} · {DEDUCTION_CHANNEL_LABELS[row.channel ?? ""] ?? row.channel ?? "—"}
+                {row.cashierName ? ` · кассир ${row.cashierName}` : ""}
               </span>
             </li>
           ))}

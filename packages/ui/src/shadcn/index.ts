@@ -10,3 +10,4 @@ export * from "./lib";
 export * from "./states";
 export * from "./table";
 export * from "./tabs";
+export * from "./toast";

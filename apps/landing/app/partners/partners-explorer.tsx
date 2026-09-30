@@ -39,7 +39,7 @@ export function PartnersExplorer({ partners }: { partners: PublicPartner[] }) {
     <section
       aria-label="Карта заведений"
       style={{ "--sheet": layout.kind === "sheet" ? `${layout.height}px` : "0px" } as CSSProperties}
-      className="relative h-[calc(100svh-88px)] min-h-[560px] overflow-hidden bg-cream sm:h-[calc(100svh-100px)]"
+      className="relative h-[calc(100dvh-88px)] min-h-[520px] overflow-hidden bg-cream sm:h-[calc(100svh-100px)]"
     >
       <PartnerMap
         partners={partners}

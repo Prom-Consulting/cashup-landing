@@ -58,6 +58,11 @@ export const merchantMemberSchema = z.looseObject({
   partnerBonusMaxPerCustomer: z.number().nullish(),
   defaultTemplateId: z.string().nullish(),
   defaultProgramId: z.string().nullish(),
+  /** Человека заводят заранее по имени и телефону: до первого входа — pending. */
+  fullName: z.string().nullish(),
+  phone: z.string().nullish(),
+  registrationStatus: z.enum(["pending", "registered"]).nullish(),
+  registeredAt: z.string().nullish(),
 });
 export type MerchantMember = z.infer<typeof merchantMemberSchema>;
 

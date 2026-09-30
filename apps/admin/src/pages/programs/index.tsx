@@ -82,16 +82,16 @@ function Members({ programId }: { programId: string }) {
           <TableBody>
             {rows.slice(0, 200).map((member) => (
               <TableRow key={member.card_id}>
-                <TableCell>{[member.first_name, member.last_name].filter(Boolean).join(" ") || "—"}</TableCell>
-                <TableCell className="tabular-nums">{member.phone ?? "—"}</TableCell>
-                <TableCell>
+                <TableCell primary>{[member.first_name, member.last_name].filter(Boolean).join(" ") || "—"}</TableCell>
+                <TableCell label="Телефон" className="tabular-nums">{member.phone ?? "—"}</TableCell>
+                <TableCell label="Карта">
                   <span className="tabular-nums">{member.serial_number}</span>{" "}
                   <Badge tone={member.status === "active" ? "good" : "quiet"}>
                     {CARD_STATUS[member.status] ?? member.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right tabular-nums">{money.format(member.points_balance ?? 0)}</TableCell>
-                <TableCell>{member.created_at ? date.format(new Date(member.created_at)) : "—"}</TableCell>
+                <TableCell label="Баланс" className="text-right tabular-nums">{money.format(member.points_balance ?? 0)}</TableCell>
+                <TableCell label="Выдана">{member.created_at ? date.format(new Date(member.created_at)) : "—"}</TableCell>
               </TableRow>
             ))}
           </TableBody>

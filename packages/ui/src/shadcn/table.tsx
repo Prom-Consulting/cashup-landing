@@ -3,11 +3,15 @@
 import type { ComponentProps } from "react";
 import { cn } from "./lib";
 
-/** Таблица в карточке: на узких экранах прокручивается вбок, а не ломает верстку. */
-export function Table({ className, ...props }: ComponentProps<"table">) {
+/**
+ * Таблица в карточке. На телефоне строки становятся карточками: заголовок прячется, а у
+ * ячейки появляется подпись из `label` (theme.css, .table-stack). stack={false} — оставить
+ * таблицей с прокруткой вбок.
+ */
+export function Table({ className, stack = true, ...props }: ComponentProps<"table"> & { stack?: boolean }) {
   return (
     <div className="overflow-x-auto">
-      <table className={cn("w-full border-collapse text-left", className)} {...props} />
+      <table className={cn("w-full border-collapse text-left", stack && "table-stack", className)} {...props} />
     </div>
   );
 }
@@ -28,6 +32,22 @@ export function TableHeaderCell({ className, ...props }: ComponentProps<"th">) {
   return <th className={cn("px-5 py-4 font-normal", className)} {...props} />;
 }
 
-export function TableCell({ className, ...props }: ComponentProps<"td">) {
-  return <td className={cn("px-5 py-4 text-lg", className)} {...props} />;
+/**
+ * label — подпись ячейки на телефоне (обычно текст заголовка колонки); primary — главная
+ * ячейка строки (имя, название): на телефоне без подписи и жирным, первой строкой карточки.
+ */
+export function TableCell({
+  className,
+  label,
+  primary,
+  ...props
+}: ComponentProps<"td"> & { label?: string; primary?: boolean }) {
+  return (
+    <td
+      data-label={primary ? undefined : label}
+      data-primary={primary ? "" : undefined}
+      className={cn("px-5 py-4 text-lg", className)}
+      {...props}
+    />
+  );
 }

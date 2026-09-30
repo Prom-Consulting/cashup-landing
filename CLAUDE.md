@@ -1,7 +1,7 @@
 # Loal — правила архитектуры
 
 Монорепо pnpm: `apps/landing` (loal.kg), `apps/admin` (admin.loal.kg), `apps/partner`
-(partner.loal.kg), `apps/client` (client.loal.kg). Общее — в `packages/`. Подробности и команды —
+(partner.loal.kg), `apps/client` (client.loal.kg), `apps/cashier` (cashier.loal.kg). Общее — в `packages/`. Подробности и команды —
 README.md. Бэкенд живёт в соседнем репозитории `cashup_platform`, шлюз — `loal.promconsult.pro`.
 
 ## Лендинг — SEO прежде всего
@@ -45,7 +45,7 @@ app → pages → widgets → features → entities → shared
 - в токене членства лежат в `merchants[]`, внутри — `merchantId`; старые токены не подойдут;
 - у держателя карты есть свой кабинет: `/v1/me/card` и `/v1/me/history` читают человека из
   токена, идентификатора в адресе нет; `404` на карте значит «ещё не выпускали», а не ошибку;
-- подписка клиента v2 — цикл 90 дней: цена, срок и баланс только из `GET /v1/me/subscription/offer`,
+- подписка клиента v2 — цикл 30 дней: цена, срок и баланс только из `GET /v1/me/subscription/offer`,
   оплата `POST /v1/me/subscription/payments { planId }`, возврат с OctōPAY на `/payment/return` и опрос
   до `paid` + `fulfilled`. Оплата ставит баланс ровно в 15 000 (не прибавляет) и сразу начинает новый цикл.
   В конце цикла карта `frozen` (QR и списание — `409 CARD_FROZEN`), через 30 дней остаток сгорает.
@@ -108,6 +108,16 @@ app → pages → widgets → features → entities → shared
   409 — своя ссылка), код живёт на устройстве 30 дней, регистрация — `/auth/register` с `referralCode` и тем
   же `deviceId`. Раздел «Друзья»: `GET /v1/me/referrals` (404 — не подключён), `POST /v1/me/referrals/enroll`
   (карта + 2 000 один раз); приглашённые обезличены. В истории — `kind: "referral"`;
+- кассир филиала (`docs/07-partner-cashiers.md`) — роль `partner_employee`, свой кабинет `apps/cashier`:
+  `GET /v1/cashier/overview` (`subscription: null` — подписки нет), списание обычным `POST /v1/redemptions`
+  (без `merchantId`), своя история `GET /v1/cashier/redemptions` — только `customerName`, `amount`,
+  `createdAt`, без телефонов. Партнёр заводит кассиров по имени и телефону:
+  `/admin/v1/members/{partnerMemberId}/cashiers` (GET/POST/DELETE по `memberId`), филиал сервер назначает
+  сам (`400` — партнёр без филиала, `409` — номер занят). До первого входа кассир `registrationStatus:
+  "pending"`; список перечитывается, пока есть такие, и переход в `registered` показывается `Toast`.
+  Удалённый кассир сразу получает `401`. Кабинет партнёра кассира к себе не пускает — отправляет на
+  cashier.loal.kg. Касса (`RedeemForm`, `QrScanButton`) общая — в `@loal/app-kit`. В журнале списаний
+  колонка «Кассир» из `cashierName` (`null` у 1С и старых — «—»);
 - ручки `/v1/scan/*`, `/v1/cards/{serial}/scan-confirm*`, `/v1/pos-settings` помечены как наследие,
   новый код на них не завязываем.
 
@@ -149,6 +159,9 @@ app → pages → widgets → features → entities → shared
 - Компоненты в духе shadcn живут в `@loal/ui/shadcn` (Button, Card, Input, Table, Dialog, Tabs,
   Badge, состояния загрузки и ошибки). Они собраны на Radix и CVA, но раскрашены нашими токенами:
   `bg-primary` — это флеймовый Loal, а не серый по умолчанию. Новый общий элемент добавляем туда же.
+- Каркас `AppShell` (`@loal/ui/app-shell`): на десктопе разделы слева, на телефоне узкая шапка и
+  выезжающее меню. Таблица `Table` на телефоне превращает строки в карточки — у ячеек `label="…"`
+  (подпись) и `primary` (главная ячейка); `stack={false}` оставляет прокрутку вбок.
 - Иконки — HugeIcons через `<Icon icon={...} />` из того же пакета: размер по строке текста, цвет
   наследуется, из чтения скрыты.
 - Токены в `theme.css` продублированы привычными для shadcn именами (`--background`, `--foreground`,
@@ -177,7 +190,7 @@ app → pages → widgets → features → entities → shared
 - Приложения не импортируют код друг друга; общее — только через `packages/`.
 - Бренд (цвета, шрифты, логотип, поля форм) — в `@loal/ui`, а не копиями в приложениях.
 - Ссылки между доменами — через константы (`SITE_URL`, `API_URL`, `PARTNER_APP_URL`,
-  `CLIENT_APP_URL`), не хардкодом.
+  `CLIENT_APP_URL`, `CASHIER_APP_URL`), не хардкодом.
 - Деплой — Docker Compose плюс Traefik бэкенда; фронтенд не кладётся внутрь папки бэкенда, её
   деплой стирает содержимое целиком.
 

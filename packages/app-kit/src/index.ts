@@ -10,3 +10,5 @@ export * from "./session";
 export * from "./storefront-form";
 export * from "./promo-code-form";
 export * from "./profile-form";
+export * from "./qr-scanner";
+export * from "./redeem-form";

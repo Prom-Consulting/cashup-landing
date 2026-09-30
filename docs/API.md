@@ -271,6 +271,12 @@ Content-Type: application/json
 первый к этому моменту уже израсходован. `isNewAccount` — чтобы показать приветствие
 новому клиенту.
 
+Исключение — аккаунт, который администратор заранее создал по телефону. Для человека
+это именно первая регистрация: ответ содержит `isNewAccount: true`,
+`registrationCompleted: true` и `message` (`«Администратор филиала зарегистрировался»`,
+`«Сотрудник зарегистрировался»` или `«Кассир зарегистрировался»`). Ошибки «номер уже
+зарегистрирован» в этом сценарии нет. Назначенные роль, филиал и права сразу входят в JWT.
+
 | Поле | Обязательно | Правило |
 |---|---|---|
 | `phone` | да | тот же номер, что в `/auth/otp/request`; пробелы, `+`, скобки, дефисы сервер уберёт, должно остаться 10–15 цифр |
@@ -800,7 +806,8 @@ POST /v1/redemptions                    (нужен токен кассира)
 
 | Что | Кто может |
 |---|---|
-| Смотреть магазин, профиль, потолок процента, филиалы, настройки кассы (`GET`) | все четыре роли |
+| Смотреть магазин, профиль, потолок процента, филиалы, настройки кассы (`GET`) | `admin`, `staff`, `partner` |
+| Узкий web-кабинет кассира: overview, списание, собственная история | `partner_employee` |
 | Всё остальное под `/admin/v1/merchants/{id}/…`: сотрудники и партнёры, 1С, вебхуки, продажи и журнал списаний, счета (список и оплата), подписка (просмотр), создание филиалов, правка настроек кассы, профиля и потолка, промокод магазина, картинки профиля | только владелец (`admin`) |
 | Выдать магазину месяцы без оплаты (`POST …/subscription`), переименовать (`PATCH /merchants/{id}`), приостановить, возобновить, удалить, приглашения | только агентство |
 
@@ -823,12 +830,15 @@ GET /admin/v1/merchants/{merchantId}/deductions?page=1&pageSize=50&search=&from=
 
 ```json
 { "id": "...", "operationId": "чек-123", "customerName": "Иван Петров",
+  "cashierName": "Айжан К.",
   "productName": "Айфон 15", "price": 100000, "coveragePercent": 5, "points": 5000,
   "channel": "onec",
   "createdAt": "..." }
 ```
 
 `channel`: `onec` — списание пришло из 1С, `scanner` — из нашего приложения.
+`cashierName` — кто выполнил списание. Для старых операций и 1С, где конкретный кассир
+не передан, значение `null`; web показывает «—».
 
 Один и тот же адрес обслуживает оба кабинета: магазин видит только свой `merchantId`,
 агентство — любой. `search` ищет по клиенту и названию товара.
@@ -966,7 +976,7 @@ POST /admin/v1/merchants/{merchantId}/branches   { "name": "На Чуй" }
 
 ```
 GET    /admin/v1/merchants/{merchantId}/members
-POST   /admin/v1/merchants/{merchantId}/members            { userId, role, branchId? }
+POST   /admin/v1/merchants/{merchantId}/members            { fullName, phone, role, branchId? }
 POST   /admin/v1/merchants/{merchantId}/members/partners   { userId, scanOperation, branchId? }
 PATCH  /admin/v1/merchants/{merchantId}/members/{memberId} { branchId, defaultTemplateId?, defaultProgramId? }
 PATCH  /admin/v1/merchants/{merchantId}/members/{memberId}/bonus  { amount, maxPerCustomer }
@@ -974,8 +984,16 @@ POST   /admin/v1/merchants/{merchantId}/members/{memberId}/accept
 DELETE /admin/v1/merchants/{merchantId}/members/{memberId}
 ```
 
-`role` при добавлении — `admin` или `staff`. Человека добавляют **по уже существующему
-`userId`**: он сначала регистрируется сам, потом его подключают к магазину.
+`role` при добавлении — `admin` или `staff`. Основной web-сценарий создаёт человека
+заранее по `{ fullName, phone, role, branchId? }`. Номер резервируется, но это не мешает
+человеку впервые зарегистрироваться через обычный OTP `POST /auth/register` или
+`POST /auth/login`: сервер активирует заготовленный аккаунт вместе с уже назначенной
+ролью и филиалом. Старый вариант `{ userId, role, branchId? }` сохранён для совместимости.
+
+Ответ создания и строки `GET .../members` дополнительно содержат `fullName`, `phone`,
+`registrationStatus: "pending" | "registered"` и `registeredAt`. Поэтому интерфейс
+может показывать «Ожидает регистрации», а при переходе в `registered` вывести снизу
+«Администратор филиала зарегистрировался» или «Сотрудник зарегистрировался».
 
 Партнёр заводится отдельной ручкой, потому что ему выбирают **одну-единственную**
 операцию: `scanOperation` — `earn` или `redeem`. Больше ничего он делать не сможет
@@ -1546,12 +1564,70 @@ GET /admin/v1/bonus-items?status=active|redeemed&page=&pageSize=&search=
 GET  /admin/v1/members/{memberId}                  своя запись: QR по умолчанию, бонус
 GET  /admin/v1/members/{memberId}/employees        свои сотрудники
 POST /admin/v1/members/{memberId}/employees        { userId }
+GET  /admin/v1/members/{memberId}/cashiers         кассиры своего филиала
+POST /admin/v1/members/{memberId}/cashiers         { fullName, phone }
+DELETE /admin/v1/members/{memberId}/cashiers/{cashierMemberId}
 GET  /admin/v1/partners/{memberId}/payments?page=&pageSize=&search=&sortBy=&sortDir=
 POST /admin/v1/members/{memberId}/octopay/payments { clientPhone, amount }
 ```
 
 Сотрудник партнёра наследует его единственную операцию — выбирать нечего, поэтому в
 теле только `userId`.
+
+### Web-кассир филиала
+
+Партнёр является администратором филиала. Он создаёт отдельный аккаунт кассира по имени
+и международному номеру телефона. `branchId` клиент не присылает: сервер всегда копирует
+филиал партнёра. Если партнёр ещё не привязан к филиалу — `400`. Номер уже занят другим
+магазином или административным аккаунтом — `409`.
+
+```http
+POST /admin/v1/members/{memberId}/cashiers
+{ "fullName": "Айжан К.", "phone": "+996700123456" }
+
+201 {
+  "memberId": "...", "userId": "...", "fullName": "Айжан К.",
+  "phone": "996700123456", "merchantId": "...", "branchId": "...",
+  "active": true, "registrationStatus": "pending", "registeredAt": null,
+  "createdAt": "2026-09-30T...Z", "message": "Кассир добавлен"
+}
+```
+
+Повторный запрос для уже созданного этим партнёром кассира возвращает ту же запись и не
+создаёт дубль. `GET .../cashiers` возвращает массив таких объектов. `DELETE` отвечает
+`{ "deleted": true }`, удаляет только кассира данного партнёра и сразу отзывает его
+активную сессию. Управлять кассирами может только сам партнёр (или агентство); кассир — нет.
+После первого успешного OTP-входа `registrationStatus` меняется на `registered`, а
+`registeredAt` получает дату. По этому переходу web показывает «Кассир зарегистрировался».
+
+Кассир входит обычным OTP по телефону (`POST /auth/login`) и получает только следующие
+web-ручки:
+
+```http
+GET  /v1/cashier/overview
+GET  /v1/cashier/redemptions?page=1&pageSize=50&search=&sortBy=createdAt&sortDir=desc
+POST /v1/redemptions
+```
+
+`overview` не раскрывает контакты владельца или внутренние данные магазина:
+
+```json
+{
+  "cashier": { "memberId": "...", "fullName": "Айжан К." },
+  "branch": { "id": "...", "name": "Главный филиал" },
+  "merchant": { "id": "...", "name": "Кофейня" },
+  "subscription": { "status": "active", "expiresAt": "...", "isActive": true },
+  "permissions": { "redeem": true }
+}
+```
+
+Подписка принадлежит магазину, но показывается в обзоре филиала как право этого филиала
+принимать бонусы. Если подписки нет, поле `subscription` равно `null`.
+
+`redemptions` имеет форму `{ items, total, page, pageSize }`; строка содержит только
+`id`, `customerName`, `txType: "redeem"`, `amount`, `createdAt`. Сервер возвращает только
+списания, которые выполнил текущий кассир в своём филиале. Телефоны клиентов, чужие
+кассиры, начисления и другие филиалы не попадают в ответ.
 
 Последняя ручка выставляет клиенту счёт через OctōPAY. Когда он оплатит, бонусы
 спишутся с его карты автоматически, без кассира — в журнале это будет одна строка

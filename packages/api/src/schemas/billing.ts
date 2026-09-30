@@ -15,7 +15,7 @@ export const merchantSubscriptionSchema = z.looseObject({
 export type MerchantSubscription = z.infer<typeof merchantSubscriptionSchema>;
 
 /**
- * Цикл подписки v2 (90 дней): ISO-даты UTC или null. cycleEndsAt — исключительная граница:
+ * Цикл подписки v2 (30 дней): ISO-даты UTC или null. cycleEndsAt — исключительная граница:
  * с этого момента подписка frozen, а баланс сгорит в bonusBurnAt (frozenAt + 30 суток).
  */
 export const cycleFields = {

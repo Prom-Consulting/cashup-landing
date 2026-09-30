@@ -7,7 +7,7 @@ export function LoginPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="grid min-h-dvh place-items-center bg-cream px-5 py-10">
+    <div className="grid min-h-dvh grid-cols-[minmax(0,1fr)] place-items-center bg-cream px-5 py-10">
       <div className="w-full max-w-[420px] rounded-[28px] bg-paper p-7 sm:p-10">
         <Logo />
         <h1 className="display mt-6 text-[2rem]">Кабинет магазина</h1>

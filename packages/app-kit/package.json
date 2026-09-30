@@ -13,7 +13,8 @@
     "@hugeicons/core-free-icons": "^4.3.5",
     "@loal/api": "workspace:*",
     "@loal/forms": "workspace:*",
-    "@loal/ui": "workspace:*"
+    "@loal/ui": "workspace:*",
+    "jsqr": "^1.4.0"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5",
