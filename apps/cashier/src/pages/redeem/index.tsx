@@ -1,26 +1,57 @@
-import { RedeemForm } from "@loal/app-kit";
+import { RedeemForm, useCoverageLimit } from "@loal/app-kit";
 import { ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Link } from "react-router";
-import { useCashierOverview, useRefreshAfterRedeem } from "../../entities/cashier/api";
+import { useCashierOverview, useCashierSession, useRefreshAfterRedeem } from "../../entities/cashier/api";
 import { subscriptionState } from "../../shared/lib/subscription";
 
+const DESCRIPTION =
+  "Введите номер карты и что купили. Бонусы закроют часть цены каждой позиции, остальное клиент платит как обычно.";
+
 /**
- * Списание — тот же POST /v1/redemptions, что у кассы. Заведение сервер берёт из токена
- * кассира (одно место работы), поэтому merchantId не шлём.
+ * Списание — тот же POST /v1/redemptions, что у кассы. Кассир магазина видит потолок процента
+ * своего магазина; кассиру филиала потолок не приходит — форма держит предел кассы, точный
+ * проверит сервер.
  */
 export function RedeemPage() {
-  const overview = useCashierOverview();
-  const refresh = useRefreshAfterRedeem();
-
+  const { kind } = useCashierSession();
   return (
     <section className="flex flex-col gap-6">
-      <PageHeader
-        title="Списать бонусы"
-        description="Введите номер карты и что купили. Бонусы закроют часть цены каждой позиции, остальное клиент платит как обычно."
-      />
-      {overview.isPending && <Loading rows={3} />}
-      {overview.isError && <ErrorState error={overview.error} onRetry={() => overview.refetch()} />}
-      {overview.isSuccess && !subscriptionState(overview.data).active && subscriptionState(overview.data).canRedeem && (
+      <PageHeader title="Списать бонусы" description={DESCRIPTION} />
+      {kind === "branch" ? <BranchRedeem /> : <MerchantRedeem />}
+    </section>
+  );
+}
+
+function MerchantRedeem() {
+  const { merchantId, manyPlaces } = useCashierSession();
+  const limit = useCoverageLimit(merchantId);
+  const refresh = useRefreshAfterRedeem();
+  if (limit.isPending) return <Loading rows={3} />;
+  if (limit.isError) return <ErrorState error={limit.error} onRetry={() => limit.refetch()} />;
+  return (
+    <RedeemForm
+      ceiling={limit.data.maxCoveragePercent}
+      merchantId={manyPlaces ? merchantId : undefined}
+      onRedeemed={refresh}
+    />
+  );
+}
+
+function BranchRedeem() {
+  const overview = useCashierOverview();
+  const refresh = useRefreshAfterRedeem();
+  if (overview.isPending) return <Loading rows={3} />;
+  if (overview.isError) return <ErrorState error={overview.error} onRetry={() => overview.refetch()} />;
+  const { active, canRedeem } = subscriptionState(overview.data);
+  if (!canRedeem)
+    return (
+      <p role="alert" className="rounded-2xl bg-muted px-5 py-4 text-base">
+        Списывать бонусы вам сейчас не разрешено. Спросите партнёра, который вас добавил.
+      </p>
+    );
+  return (
+    <>
+      {!active && (
         <p role="alert" className="rounded-2xl bg-muted px-5 py-4 text-base">
           Подписка заведения не активна — сервер откажет в списании. Подробнее в{" "}
           <Link to="/" className="text-flame-ink underline underline-offset-4">
@@ -29,15 +60,7 @@ export function RedeemPage() {
           .
         </p>
       )}
-      {overview.isSuccess && !subscriptionState(overview.data).canRedeem && (
-        <p role="alert" className="rounded-2xl bg-muted px-5 py-4 text-base">
-          Списывать бонусы вам сейчас не разрешено. Спросите партнёра, который вас добавил.
-        </p>
-      )}
-      {/* Потолок заведения кассиру не приходит: форма держит общий предел кассы, точный — проверит сервер */}
-      {overview.isSuccess && subscriptionState(overview.data).canRedeem && (
-        <RedeemForm ceiling={null} onRedeemed={refresh} />
-      )}
-    </section>
+      <RedeemForm ceiling={null} onRedeemed={refresh} />
+    </>
   );
 }

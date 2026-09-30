@@ -1,31 +1,49 @@
-import { Chart01Icon, CoinsSwapIcon, Clock01Icon } from "@hugeicons/core-free-icons";
+import { CashierIcon, Chart01Icon, Clock01Icon, CoinsSwapIcon, Store01Icon } from "@hugeicons/core-free-icons";
 import { WelcomeToast } from "@loal/app-kit";
 import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
 import { Icon, type IconSvg } from "@loal/ui/shadcn";
 import { Link, Outlet, useLocation } from "react-router";
-import { useCashierOverview, useCashierSession } from "../../entities/cashier/api";
+import {
+  useCashierMerchant,
+  useCashierOverview,
+  useCashierSession,
+  type CashierKind,
+} from "../../entities/cashier/api";
 
 type Item = NavItem & { icon: IconSvg };
 
-/** Узкий кабинет: у кассира ровно три дела — посмотреть филиал, списать, свериться с историей. */
-const nav: Item[] = [
-  { to: "/", label: "Обзор", icon: Chart01Icon },
-  { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
-  { to: "/history", label: "История", icon: Clock01Icon },
-];
+/**
+ * Узкий кабинет. Кассир магазина видит то же, что видел в кабинете партнёра: обзор, списание,
+ * витрину и кассу. Кассир филиала — обзор, списание и свою историю.
+ */
+const NAV: Record<CashierKind, Item[]> = {
+  merchant: [
+    { to: "/", label: "Обзор", icon: Chart01Icon },
+    { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
+    { to: "/storefront", label: "Витрина", icon: Store01Icon },
+    { to: "/pos", label: "Касса", icon: CashierIcon },
+  ],
+  branch: [
+    { to: "/", label: "Обзор", icon: Chart01Icon },
+    { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
+    { to: "/history", label: "История", icon: Clock01Icon },
+  ],
+};
 
 export function AppLayout() {
-  const { label, logout } = useCashierSession();
-  const overview = useCashierOverview();
+  const { label, logout, kind, merchantId } = useCashierSession();
+  const overview = useCashierOverview(kind === "branch");
+  const merchant = useCashierMerchant(kind === "merchant" ? merchantId : "");
   const location = useLocation();
-  const branch = overview.data?.branch?.name;
-  const name = overview.data?.cashier?.fullName;
+  const nav = NAV[kind ?? "merchant"];
 
+  const place = kind === "branch" ? overview.data?.branch?.name : merchant.data?.name;
+  const name = kind === "branch" ? overview.data?.cashier?.fullName : null;
   const isActive = (to: string) => (to === "/" ? location.pathname === "/" : location.pathname.startsWith(to));
 
   return (
     <AppShell
-      title={branch ? `Кассир · ${branch}` : "Кабинет кассира"}
+      title={place ? `Кассир · ${place}` : "Кабинет кассира"}
       direction="corporate"
       nav={nav}
       userLabel={name || label}

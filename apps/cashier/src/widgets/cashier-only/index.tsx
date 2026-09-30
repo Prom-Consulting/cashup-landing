@@ -2,18 +2,18 @@ import { MERCHANT_ROLE_LABELS } from "@loal/api";
 import { useSession } from "@loal/app-kit";
 import { Logo } from "@loal/ui/logo";
 import type { ReactNode } from "react";
-import { CASHIER_ROLE } from "../../entities/cashier/api";
+import { CASHIER_ROLES } from "../../entities/cashier/api";
 import { PARTNER_APP_URL } from "../../shared/config/env";
 
 /**
- * Кабинет только для кассира филиала (partner_employee). Владелец, сотрудник магазина или
- * партнёр, вошедший сюда своим номером, видит, кем он вошёл, и уходит в свой кабинет —
- * вместо безликого «Доступ закрыт».
+ * Кабинет для кассиров: магазина (staff) и филиала (partner_employee). Владелец или партнёр,
+ * вошедший сюда своим номером, видит, кем он вошёл, и уходит в свой кабинет — вместо
+ * безликого «Доступ закрыт».
  */
 export function CashierOnly({ children }: { children: ReactNode }) {
   const { session, logout } = useSession();
   const memberships = session?.merchants ?? [];
-  if (memberships.some((item) => item.role === CASHIER_ROLE)) return <>{children}</>;
+  if (memberships.some((item) => CASHIER_ROLES.includes(item.role))) return <>{children}</>;
 
   const role = memberships[0]?.role;
   const who = role ? MERCHANT_ROLE_LABELS[role]?.title : null;
@@ -27,16 +27,16 @@ export function CashierOnly({ children }: { children: ReactNode }) {
           <>
             <h1 className="display mt-6 text-[1.9rem] leading-tight">Вы вошли как {who.toLowerCase()}</h1>
             <p className="mt-3 text-lg leading-snug text-slate">
-              Это кабинет кассира филиала. Ваш кабинет — {partnerHost}: там списание бонусов и всё, что вам
-              доступно. Войдите тем же номером.
+              Это кабинет кассиров. Ваш кабинет — {partnerHost}: там управление заведением и списание
+              бонусов. Войдите тем же номером.
             </p>
           </>
         ) : (
           <>
             <h1 className="display mt-6 text-[1.9rem] leading-tight">Этот номер не кассир</h1>
             <p className="mt-3 text-lg leading-snug text-slate">
-              Кассира добавляет партнёр в своём кабинете — в разделе «Я партнёр → Кассиры», по номеру телефона.
-              После этого войдите сюда тем же номером.
+              Кассира добавляет владелец заведения в «Команде» или партнёр в «Я партнёр → Кассиры» — по номеру
+              телефона. После этого войдите сюда тем же номером.
             </p>
           </>
         )}

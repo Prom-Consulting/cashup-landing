@@ -47,8 +47,9 @@ export function AppLayout() {
 
   const isActive = (to: string) => (to === "/" ? location.pathname === "/" : location.pathname.startsWith(to));
 
-  // Кассир филиала работает в своём узком кабинете — здесь ему ничего не открыто
-  if (memberships.length > 0 && memberships.every((m) => m.role === "partner_employee"))
+  // Кассиры — магазина (staff) и филиала (partner_employee) — работают в своём кабинете,
+  // cashier.loal.kg: кабинет партнёра только для владельца и партнёра
+  if (memberships.length > 0 && memberships.every((m) => m.role === "staff" || m.role === "partner_employee"))
     return <CashierElsewhere onLogout={logout} />;
 
   return (
@@ -98,7 +99,7 @@ function CashierElsewhere({ onLogout }: { onLogout: () => void }) {
       <div className="w-full max-w-[440px] rounded-[28px] bg-paper p-7 sm:p-10">
         <h1 className="display text-[1.9rem] leading-tight">Ваш кабинет — {host}</h1>
         <p className="mt-3 text-lg leading-snug text-slate">
-          Вы кассир филиала: списывать бонусы и смотреть свою историю нужно там. Войдите тем же номером телефона.
+          Вы кассир: списывать бонусы, смотреть витрину и кассу нужно там. Войдите тем же номером телефона.
         </p>
         <div className="mt-7 flex flex-wrap items-center gap-4">
           <a

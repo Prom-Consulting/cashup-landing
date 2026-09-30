@@ -4,12 +4,14 @@ import { HistoryPage } from "../pages/history";
 import { LoginPage } from "../pages/login";
 import { NotFoundPage } from "../pages/not-found";
 import { OverviewPage } from "../pages/overview";
+import { PosPage } from "../pages/pos";
+import { StorefrontPage } from "../pages/storefront";
 import { RedeemPage } from "../pages/redeem";
 import { CashierOnly } from "../widgets/cashier-only";
 import { AppLayout } from "../widgets/app-layout";
 
 /**
- * Кабинет открыт только кассиру филиала (partner_employee). Владельцу и партнёру здесь
+ * Кабинет кассиров: магазина (staff) и филиала (partner_employee). Владельцу и партнёру здесь
  * делать нечего — их кабинет partner.loal.kg.
  */
 export function AppRouter() {
@@ -28,6 +30,8 @@ export function AppRouter() {
         <Route index element={<OverviewPage />} />
         <Route path="redeem" element={<RedeemPage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="storefront" element={<StorefrontPage />} />
+        <Route path="pos" element={<PosPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

@@ -116,6 +116,9 @@ app → pages → widgets → features → entities → shared
   409 — своя ссылка), код живёт на устройстве 30 дней, регистрация — `/auth/register` с `referralCode` и тем
   же `deviceId`. Раздел «Друзья»: `GET /v1/me/referrals` (404 — не подключён), `POST /v1/me/referrals/enroll`
   (карта + 2 000 один раз); приглашённые обезличены. В истории — `kind: "referral"`;
+- кабинет кассиров `apps/cashier` (cashier.loal.kg) — для двух ролей, кабинет партнёра их не пускает и отправляет
+  туда: кассир магазина (`staff`, его заводит владелец в «Команде») — «Обзор», «Списать бонусы», «Витрина»,
+  «Касса» (витрина и касса только на просмотр, данные по магазину); кассир филиала — ниже.
 - кассир филиала (`docs/07-partner-cashiers.md`) — роль `partner_employee`, свой кабинет `apps/cashier`:
   `GET /v1/cashier/overview` (`subscription: null` — подписки нет), списание обычным `POST /v1/redemptions`
   (без `merchantId`), своя история `GET /v1/cashier/redemptions` — только `customerName`, `amount`,
