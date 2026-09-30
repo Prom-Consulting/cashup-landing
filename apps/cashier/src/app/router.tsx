@@ -5,7 +5,7 @@ import { LoginPage } from "../pages/login";
 import { NotFoundPage } from "../pages/not-found";
 import { OverviewPage } from "../pages/overview";
 import { RedeemPage } from "../pages/redeem";
-import { CASHIER_ROLE } from "../entities/cashier/api";
+import { CashierOnly } from "../widgets/cashier-only";
 import { AppLayout } from "../widgets/app-layout";
 
 /**
@@ -18,11 +18,10 @@ export function AppRouter() {
       <Route path="/login" element={<LoginPage />} />
       <Route
         element={
-          <RequireAuth
-            allow={(session) => session.merchants.some((item) => item.role === CASHIER_ROLE)}
-            deniedMessage="Это кабинет кассира филиала. Владельцы и партнёры заведений работают в кабинете партнёра — partner.loal.kg. Если вы кассир, попросите партнёра добавить вас по номеру телефона."
-          >
-            <AppLayout />
+          <RequireAuth>
+            <CashierOnly>
+              <AppLayout />
+            </CashierOnly>
           </RequireAuth>
         }
       >
