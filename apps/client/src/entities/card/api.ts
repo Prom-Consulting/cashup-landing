@@ -6,13 +6,14 @@ import { API_URL } from "../../shared/config/env";
 export const cardKeys = { info: (serial: string) => ["pass", serial] as const };
 
 /** Карта по серийному номеру — публичная ручка, токен не нужен. */
-export function usePassInfo(serial: string) {
+export function usePassInfo(serial: string, poll = false) {
   const api = useApi();
   return useQuery({
     queryKey: cardKeys.info(serial),
     queryFn: () => passesApi(api).info(serial),
     enabled: serial.length > 0,
     retry: false,
+    refetchInterval: poll ? 1_500 : false,
   });
 }
 

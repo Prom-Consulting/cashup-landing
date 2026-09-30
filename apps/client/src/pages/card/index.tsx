@@ -1,16 +1,29 @@
 import { ApiError } from "@loal/api";
 import { ArrowLeft02Icon, RefreshIcon } from "@hugeicons/core-free-icons";
-import { Button, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
-import { Link, useParams } from "react-router";
+import { Button, Card, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
+import { useEffect, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router";
 import { appleWalletUrl, usePassInfo } from "../../entities/card/api";
 import { PaySubscriptionForm } from "../../features/subscription/pay-form";
+import { clearPendingPayment, readPendingPayment } from "../../shared/lib/pending-payment";
 import { CardView } from "../../widgets/card-view";
 import { WalletButtons } from "../../widgets/wallet-buttons";
 
 /** Страница карты по ссылке: /c/<серийный номер>. Вход не нужен — ссылка и есть доступ. */
 export function CardPage() {
   const { serial = "" } = useParams();
-  const pass = usePassInfo(serial);
+  const [searchParams] = useSearchParams();
+  const [pending] = useState(readPendingPayment);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const waitingForPayment = searchParams.get("payment") === "return" && pending?.serial === serial;
+  const pass = usePassInfo(serial, waitingForPayment && !paymentConfirmed);
+
+  useEffect(() => {
+    if (waitingForPayment && pass.data && pass.data.pointsBalance > 0) {
+      clearPendingPayment();
+      setPaymentConfirmed(true);
+    }
+  }, [pass.data, waitingForPayment]);
 
   if (pass.isPending) return <Loading label="Открываем карту…" rows={2} />;
 
@@ -37,6 +50,19 @@ export function CardPage() {
 
   return (
     <div className="mx-auto flex max-w-[420px] flex-col gap-6">
+      {waitingForPayment && (
+        <Card className={paymentConfirmed ? "bg-emerald-50" : "bg-amber-50"}>
+          <p className="font-bold">
+            {paymentConfirmed ? "Оплата подтверждена" : "Платёж обрабатывается"}
+          </p>
+          <p className="mt-1 text-base text-muted-foreground">
+            {paymentConfirmed
+              ? "Бонусы начислены, карта готова."
+              : "Карта уже готова. Баланс обновится автоматически после подтверждения OctōPAY."}
+          </p>
+        </Card>
+      )}
+
       <CardView pass={pass.data} />
 
       <div className="flex flex-col gap-3">

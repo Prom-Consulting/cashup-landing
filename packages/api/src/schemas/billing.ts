@@ -14,6 +14,20 @@ export const merchantSubscriptionSchema = z.looseObject({
 });
 export type MerchantSubscription = z.infer<typeof merchantSubscriptionSchema>;
 
+/** Связь выбранного магазина Loal с бизнесом в Octopay. */
+export const octopayIntegrationSchema = z.looseObject({
+  connected: z.boolean(),
+  octopayBusinessName: z.string().nullable(),
+  connectedAt: z.string().nullable(),
+});
+export type OctopayIntegration = z.infer<typeof octopayIntegrationSchema>;
+
+/** Одноразовый код создаётся в Octopay и нигде не сохраняется на стороне клиента. */
+export const connectOctopayInputSchema = z.object({
+  token: z.string().trim().min(1, "Введите одноразовый код"),
+});
+export type ConnectOctopayInput = z.infer<typeof connectOctopayInputSchema>;
+
 /**
  * Подписка клиента: пачка баллов на период, остаток в конце месяца сгорает.
  * Принадлежит человеку, а не карте: перевыпуск карты её не трогает.

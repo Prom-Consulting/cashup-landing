@@ -1,6 +1,8 @@
 import { ApiError } from "@loal/api";
 import { RefreshIcon } from "@hugeicons/core-free-icons";
 import { useSession } from "@loal/app-kit";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { CardQr } from "../../widgets/card-qr";
 import { WalletButtons } from "../../widgets/wallet-buttons";
 import { Button, Card, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
@@ -8,6 +10,7 @@ import { useMyCard } from "../../entities/me/api";
 import { FirstCardForm } from "../../features/subscription/first-card-form";
 import { PaySubscriptionForm } from "../../features/subscription/pay-form";
 import { formatDate } from "../../shared/lib/format";
+import { readPendingPayment } from "../../shared/lib/pending-payment";
 
 const money = new Intl.NumberFormat("ru-RU");
 
@@ -17,7 +20,17 @@ const money = new Intl.NumberFormat("ru-RU");
  */
 export function MyCardPage() {
   const { session } = useSession();
+  const navigate = useNavigate();
+  const [pendingPayment] = useState(readPendingPayment);
   const card = useMyCard();
+
+  useEffect(() => {
+    if (pendingPayment) {
+      navigate(`/c/${encodeURIComponent(pendingPayment.serial)}?payment=return`, { replace: true });
+    }
+  }, [navigate, pendingPayment]);
+
+  if (pendingPayment) return <Loading label="Возвращаемся к оплаченной карте…" rows={2} />;
 
   if (card.isPending) return <Loading label="Открываем карту…" rows={2} />;
 

@@ -6,6 +6,7 @@ import { HistoryPage } from "../pages/history";
 import { LoginPage } from "../pages/login";
 import { MyCardPage } from "../pages/my-card";
 import { NotFoundPage } from "../pages/not-found";
+import { PaymentReturnPage } from "../pages/payment-return";
 import { SettingsPage } from "../pages/settings";
 import { AppLayout } from "../widgets/app-layout";
 import { PageFrame } from "../widgets/page-frame";
@@ -24,6 +25,7 @@ export function AppRouter() {
         <Route path="c/:serial" element={<CardPage />} />
         <Route path="enroll" element={<EnrollPage />} />
         <Route path="enroll/:templateId/:programId" element={<EnrollPage />} />
+        <Route path="payment/return" element={<PaymentReturnPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 

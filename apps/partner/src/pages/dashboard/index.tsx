@@ -3,13 +3,14 @@ import { Badge, Card, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Link } from "react-router";
 import { useDeductions, useMerchant, useSubscription } from "../../entities/merchant/api";
 import { useCurrentMerchant } from "../../entities/session/model";
+import { OctopayIntegration } from "../../features/octopay/integration";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
 
 const money = new Intl.NumberFormat("ru-RU");
 
 /** Главный экран: можно ли принимать бонусы и что списали последним. */
 export function DashboardPage() {
-  const { merchantId } = useCurrentMerchant();
+  const { merchantId, membership } = useCurrentMerchant();
   const merchant = useMerchant(merchantId ?? "");
   const subscription = useSubscription(merchantId ?? "");
   const recent = useDeductions(merchantId ?? "", { page: 1, pageSize: 5 });
@@ -52,6 +53,9 @@ export function DashboardPage() {
               <dd className="text-lg">{formatDate(subscription.data.expiresAt)}</dd>
             </div>
           </dl>
+          {membership?.role === "admin" && (
+            <OctopayIntegration key={merchantId} merchantId={merchantId ?? ""} />
+          )}
         </Card>
 
         <Card>

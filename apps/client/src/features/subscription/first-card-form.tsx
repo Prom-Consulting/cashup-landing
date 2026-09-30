@@ -3,6 +3,7 @@ import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate 
 import { Button, Input, Label } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { usePaySubscriptionByPhone } from "../../entities/me/api";
+import { savePendingPayment } from "../../shared/lib/pending-payment";
 
 const MONTHS = [1, 3, 6, 12];
 
@@ -24,6 +25,7 @@ export function FirstCardForm({ phone }: { phone?: string | null }) {
         try {
           const invoice = await pay.mutateAsync(values);
           if (invoice.paymentUrl) {
+            if (invoice.cardSerial) savePendingPayment(invoice.cardSerial);
             window.location.assign(invoice.paymentUrl);
             return;
           }

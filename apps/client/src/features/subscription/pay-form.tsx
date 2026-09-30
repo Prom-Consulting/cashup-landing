@@ -3,6 +3,7 @@ import { FocusFirstError, applyServerIssues, formError, zodValidate } from "@loa
 import { Button, Label } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { usePaySubscription } from "../../entities/me/api";
+import { savePendingPayment } from "../../shared/lib/pending-payment";
 
 const MONTHS = [1, 3, 6, 12];
 
@@ -24,6 +25,7 @@ export function PaySubscriptionForm({ serial }: { serial: string }) {
         try {
           const invoice = await pay.mutateAsync(values);
           if (invoice.paymentUrl) {
+            savePendingPayment(invoice.cardSerial ?? serial);
             window.location.assign(invoice.paymentUrl);
             return;
           }
