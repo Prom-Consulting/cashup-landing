@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { phoneSchema } from "./phone";
 
 /** Филиал — физическая точка заведения; к нему привязывают сотрудника. */
 export const branchSchema = z.looseObject({
@@ -14,26 +15,25 @@ export const createBranchInputSchema = z.object({
 });
 export type CreateBranchInput = z.infer<typeof createBranchInputSchema>;
 
-/** Сотрудника подключают по уже существующему userId: он сначала регистрируется сам. */
-const userIdSchema = z
-  .string()
-  .trim()
-  .min(1, "Укажите пользователя")
-  .refine(
-    (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value),
-    "Это должен быть идентификатор пользователя, а не имя или телефон",
-  );
-
+/**
+ * Сотрудника заводят заранее по имени и телефону: номер резервируется, и когда человек впервые
+ * войдёт по коду из WhatsApp, аккаунт уже будет с ролью и точкой. Регистрироваться самому и
+ * присылать идентификатор больше не нужно.
+ */
 export const addMemberInputSchema = z.object({
-  userId: userIdSchema,
+  fullName: z.string().trim().min(2, "Введите имя").max(120, "Слишком длинное имя"),
+  phone: phoneSchema,
   role: z.enum(["admin", "staff"]),
   branchId: z.string().trim().optional(),
 });
 export type AddMemberInput = z.infer<typeof addMemberInputSchema>;
 
-/** Партнёру выбирают одну операцию на всю жизнь: начислять или списывать. */
+/**
+ * Партнёру выбирают одну операцию на всю жизнь: начислять или списывать. Его шлюз пока
+ * заводит только по идентификатору пользователя — формат проверяет сервер.
+ */
 export const addPartnerInputSchema = z.object({
-  userId: userIdSchema,
+  userId: z.string().trim().min(1, "Укажите идентификатор пользователя"),
   scanOperation: z.enum(["earn", "redeem"]),
   branchId: z.string().trim().optional(),
 });

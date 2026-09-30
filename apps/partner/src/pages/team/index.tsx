@@ -18,7 +18,7 @@ export function TeamPage() {
     <section className="flex flex-col gap-6">
       <PageHeader
         title="Команда"
-        description="Точки заведения и сотрудники. Человека подключают по идентификатору: сначала он регистрируется сам."
+        description="Точки заведения и сотрудники. Сотрудника добавляют по имени и телефону — он войдёт по коду из WhatsApp."
       />
 
       <Card>

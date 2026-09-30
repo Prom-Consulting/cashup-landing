@@ -44,7 +44,7 @@ export type Merchant = z.infer<typeof merchantSchema>;
 export const merchantMemberSchema = z.looseObject({
   id: z.string(),
   merchantId: z.string(),
-  userId: z.string(),
+  userId: z.string().nullish(),
   role: z.enum(["admin", "staff", "partner", "partner_employee"]),
   permissions: z.record(z.string(), z.boolean()).default({}),
   branchId: z.string().nullish(),

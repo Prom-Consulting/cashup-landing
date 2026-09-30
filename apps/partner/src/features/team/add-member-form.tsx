@@ -1,4 +1,5 @@
 import {
+  ApiError,
   MEMBER_ROLE_LABELS,
   SCAN_OPERATION_LABELS,
   addMemberInputSchema,
@@ -19,16 +20,17 @@ import {
   TabsList,
   TabsTrigger,
 } from "@loal/ui/shadcn";
+import { PhoneInput, formatPhone } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
 import { useState } from "react";
 import { useAddMember, useAddPartner } from "../../entities/merchant/api";
 
-const USER_ID_HINT = "Человек сначала регистрируется сам, потом присылает свой идентификатор из профиля.";
+const USER_ID_HINT = "Партнёр сначала регистрируется сам, потом присылает свой идентификатор из профиля.";
 
 function StaffForm({ merchantId, branches }: { merchantId: string; branches: Branch[] }) {
   const add = useAddMember(merchantId);
   const [done, setDone] = useState<string>();
-  const initialValues: AddMemberInput = { userId: "", role: "staff", branchId: "" };
+  const initialValues: AddMemberInput = { fullName: "", phone: "", role: "staff", branchId: "" };
 
   return (
     <Formik
@@ -40,8 +42,13 @@ function StaffForm({ merchantId, branches }: { merchantId: string; branches: Bra
         try {
           await add.mutateAsync({ ...values, branchId: values.branchId || undefined });
           helpers.resetForm();
-          setDone("Сотрудник подключён");
+          setDone(
+            `${values.fullName} в команде. Пусть войдёт в кабинет по номеру ${formatPhone(values.phone)} — код придёт в WhatsApp.`,
+          );
         } catch (error) {
+          // Номер уже занят другим заведением или аккаунтом — показываем у поля
+          if (error instanceof ApiError && error.isConflict)
+            return helpers.setFieldError("phone", error.message || "Этот номер уже занят");
           applyServerIssues(error, helpers, "Не удалось подключить");
         } finally {
           helpers.setSubmitting(false);
@@ -51,17 +58,35 @@ function StaffForm({ merchantId, branches }: { merchantId: string; branches: Bra
       {(form) => (
         <Form noValidate className="flex flex-col gap-4">
           <FocusFirstError form={form} />
-          <FormField label="Идентификатор пользователя" hint={USER_ID_HINT} error={fieldError(form, "userId")}>
-            {(parts) => (
-              <Input
-                {...parts}
-                name="userId"
-                value={form.values.userId}
-                onChange={form.handleChange}
-                onBlur={form.handleBlur}
-              />
-            )}
-          </FormField>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="Имя" error={fieldError(form, "fullName")}>
+              {(parts) => (
+                <Input
+                  {...parts}
+                  name="fullName"
+                  autoComplete="off"
+                  value={form.values.fullName}
+                  onChange={form.handleChange}
+                  onBlur={form.handleBlur}
+                />
+              )}
+            </FormField>
+            <FormField
+              label="Телефон"
+              hint="По нему человек входит — код придёт в WhatsApp."
+              error={fieldError(form, "phone")}
+            >
+              {(parts) => (
+                <PhoneInput
+                  {...parts}
+                  name="phone"
+                  value={form.values.phone}
+                  onValueChange={(value) => form.setFieldValue("phone", value)}
+                  onBlur={() => form.setFieldTouched("phone", true)}
+                />
+              )}
+            </FormField>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField label="Роль">
               {(parts) => (

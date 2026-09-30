@@ -131,3 +131,11 @@ v2 уже пишет «Подписка Loal» — нужно так же вез
 - Подтвердить `APNS_TEAM_ID` для нового ключа `5HRQ5KT69C` (сейчас `PFKF6XRH83`).
 - `OCTOPAY_SUBSCRIPTION_PRICE_KGS` и `OCTOPAY_PARTNER_PRICE_KGS` больше не используются —
   цены в админке («Настройки → Цены»); из `ENV` можно убрать.
+
+## 30.09.2026
+
+- **Партнёр по телефону.** `POST /admin/v1/merchants/{id}/members/partners` принимает только `userId`,
+  а сотрудников и кассиров уже заводят по `{ fullName, phone }`. Нужен тот же вариант для партнёра:
+  `{ fullName, phone, scanOperation, branchId? }` — чтобы владельцу не просить у партнёра идентификатор.
+- **Подписка 30 дней.** В секрете `ENV`: `CLIENT_SUBSCRIPTION_CYCLE_DAYS=30` (и, вероятно, новый
+  `CLIENT_SUBSCRIPTION_PLAN_ID`). Лендинг уже говорит «990 сом за 30 дней», кабинет клиента берёт срок из offer.
