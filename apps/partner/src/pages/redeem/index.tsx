@@ -11,7 +11,7 @@ export function RedeemPage() {
     <section className="flex flex-col gap-6">
       <PageHeader
         title="Списать бонусы"
-        description="Введите номер карты и что купили. Бонусы закроют часть цены каждой позиции, остальное клиент платит как обычно."
+        description="Отсканируйте карту и добавьте покупку — бонусы закроют часть цены, остальное клиент платит как обычно."
       />
       {limit.isPending && <Loading rows={3} />}
       {limit.isError && <ErrorState error={limit.error} onRetry={() => limit.refetch()} />}

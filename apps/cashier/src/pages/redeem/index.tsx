@@ -4,8 +4,7 @@ import { Link } from "react-router";
 import { useCashierOverview, useCashierSession, useRefreshAfterRedeem } from "../../entities/cashier/api";
 import { subscriptionState } from "../../shared/lib/subscription";
 
-const DESCRIPTION =
-  "Введите номер карты и что купили. Бонусы закроют часть цены каждой позиции, остальное клиент платит как обычно.";
+const DESCRIPTION = "Отсканируйте карту и добавьте покупку — бонусы закроют часть цены, остальное клиент платит как обычно.";
 
 /**
  * Списание — тот же POST /v1/redemptions, что у кассы. Кассир магазина видит потолок процента

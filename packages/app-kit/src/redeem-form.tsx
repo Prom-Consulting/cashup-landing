@@ -1,4 +1,4 @@
-import { Add01Icon, Delete02Icon } from "@hugeicons/core-free-icons";
+import { Add01Icon, Cancel01Icon, CheckmarkCircle02Icon, QrCode01Icon } from "@hugeicons/core-free-icons";
 import {
   ApiError,
   SCANNER_MAX_COVERAGE_PERCENT,
@@ -9,10 +9,10 @@ import {
   redemptionsApi,
 } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
-import { Badge, Button, Card, FormField, FormStatus, Icon, Input } from "@loal/ui/shadcn";
+import { Button, FormStatus, Icon, Input } from "@loal/ui/shadcn";
 import { Form, Formik, getIn } from "formik";
 import { useMutation } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { QrScanButton } from "./qr-scanner";
 import { useApi } from "./session";
 
@@ -50,9 +50,18 @@ function redeemErrorText(error: unknown): string {
   return "Не удалось списать. Ничего не списано — можно повторить с тем же номером операции.";
 }
 
+/** Проценты кнопками: частые значения до потолка и сам потолок — вводить руками не нужно. */
+function percentChoices(max: number) {
+  const base = [5, 10, 15, 20, 25, 30].filter((value) => value < max);
+  return [...base, max];
+}
+
+const panel = "rounded-[24px] bg-surface p-5 shadow-[0_0.75rem_2rem_rgb(22_21_21/0.06)] sm:p-6";
+
 /**
- * Касса в браузере: что купили, почём и какую долю закрывают бонусы. Баллы
- * считает сервер — здесь та же формула, чтобы кассир видел итог до отправки.
+ * Касса в браузере, сначала для телефона: большая кнопка сканера, позиции карточками,
+ * процент кнопками, итог и «Списать» прилипают к низу экрана. Баллы считает сервер —
+ * здесь та же формула, чтобы кассир видел итог до отправки.
  */
 export function RedeemForm({
   ceiling,
@@ -66,9 +75,12 @@ export function RedeemForm({
 }) {
   const redeem = useRedeem(onRedeemed);
   const [result, setResult] = useState<RedemptionResult | null>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
   const maxPercent = Math.min(SCANNER_MAX_COVERAGE_PERCENT, ceiling ?? SCANNER_MAX_COVERAGE_PERCENT);
   const schema = useMemo(() => redemptionInputSchema(maxPercent), [maxPercent]);
   const defaultPercent = Math.min(5, maxPercent);
+  const choices = percentChoices(maxPercent);
+  const cardId = useId();
 
   const initialValues: RedemptionForm = {
     cardSerialNumber: "",
@@ -87,6 +99,8 @@ export function RedeemForm({
           const done = await redeem.mutateAsync({ input: { ...values, merchantId }, maxPercent });
           setResult(done);
           helpers.resetForm({ values: { ...initialValues, operationId: newOperationId() } });
+          // Итог — первым делом на экране, особенно на телефоне
+          requestAnimationFrame(() => resultRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
         } catch (error) {
           applyServerIssues(error, helpers, redeemErrorText(error));
         } finally {
@@ -96,186 +110,269 @@ export function RedeemForm({
     >
       {(form) => {
         const items = form.values.whatPurchased;
-        const total = items.reduce(
-          (sum, item) => sum + pointsForItem(Number(item.price), Number(item.deductionPercent)),
-          0,
-        );
+        const pointsOf = (item: (typeof items)[number]) =>
+          pointsForItem(Number(item.price), Number(item.deductionPercent));
+        const total = items.reduce((sum, item) => sum + pointsOf(item), 0);
         const at = (path: string) => {
           const error = getIn(form.errors, path);
           return (form.submitCount > 0 || getIn(form.touched, path)) && typeof error === "string" ? error : undefined;
         };
+        const card = form.values.cardSerialNumber.trim();
+        const cardError = fieldError(form, "cardSerialNumber");
 
         return (
-          <Form noValidate className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+          <Form noValidate className="grid gap-4 pb-28 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-6 lg:pb-0">
             <FocusFirstError form={form} />
-            <Card className="flex flex-col gap-5">
-              <FormField
-                label="Номер карты"
-                hint="Отсканируйте QR с карты клиента или введите номер под ним."
-                error={fieldError(form, "cardSerialNumber")}
-              >
-                {(parts) => (
-                  <div className="flex flex-col gap-3 sm:flex-row">
-                    <Input
-                      {...parts}
-                      name="cardSerialNumber"
-                      autoComplete="off"
-                      className="text-xl tabular-nums"
-                      value={form.values.cardSerialNumber}
-                      onChange={form.handleChange}
-                      onBlur={form.handleBlur}
-                    />
-                    <QrScanButton
-                      onScan={(cardNumber) => {
-                        void form.setFieldValue("cardSerialNumber", cardNumber);
-                        void form.setFieldTouched("cardSerialNumber", true, false);
-                        // Карта считана — дальше вводят товар
-                        setTimeout(
-                          () =>
-                            document
-                              .querySelector<HTMLInputElement>('input[name="whatPurchased.0.productName"]')
-                              ?.focus(),
-                          50,
-                        );
-                      }}
-                    />
-                  </div>
-                )}
-              </FormField>
 
-              <fieldset className="flex flex-col gap-3">
-                <legend className="text-base font-medium">Что купили</legend>
-                <p className="text-sm text-muted-foreground">
-                  Процент — какую долю цены позиции закрывают бонусы. Не больше {maxPercent}%
-                  {ceiling !== null && ceiling < SCANNER_MAX_COVERAGE_PERCENT
-                    ? " — потолок заведения"
-                    : " — предел кассы"}
-                  .
+            <div className="flex min-w-0 flex-col gap-4">
+              {result && (
+                <div
+                  ref={resultRef}
+                  role="status"
+                  className="flex scroll-mt-20 items-start gap-4 rounded-[24px] bg-graphite p-5 text-white sm:p-6"
+                >
+                  <Icon icon={CheckmarkCircle02Icon} size={28} className="mt-1 text-amber" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base text-slate-soft">
+                      {result.duplicate ? "Эта операция уже проведена — повторно ничего не списано" : "Списано"}
+                    </p>
+                    <p className="display text-[2.4rem] leading-none tabular-nums">
+                      −{money.format(result.deducted)} <span className="text-xl font-bold">бонусов</span>
+                    </p>
+                    <p className="mt-2 text-base text-slate-soft">
+                      На карте осталось <span className="font-bold text-white tabular-nums">{money.format(result.balanceAfter)}</span>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Скрыть"
+                    onClick={() => setResult(null)}
+                    className="-mt-1 -mr-2 grid h-10 w-10 shrink-0 place-items-center rounded-full hover:bg-white/10"
+                  >
+                    <Icon icon={Cancel01Icon} />
+                  </button>
+                </div>
+              )}
+
+              {/* Карта: сканер — главное действие, номер руками — запасной путь */}
+              <section className={panel} aria-labelledby={`${cardId}-title`}>
+                <h2 id={`${cardId}-title`} className="text-lg font-bold">
+                  Карта клиента
+                </h2>
+                {card ? (
+                  <div className="mt-3 flex items-center gap-3 rounded-2xl bg-muted px-4 py-3">
+                    <Icon icon={QrCode01Icon} size={24} className="text-primary" />
+                    <span className="min-w-0 flex-1 truncate font-mono text-lg tabular-nums">{card}</span>
+                    <button
+                      type="button"
+                      onClick={() => void form.setFieldValue("cardSerialNumber", "")}
+                      className="shrink-0 text-base font-semibold text-flame-ink underline-offset-4 hover:underline"
+                    >
+                      Другая
+                    </button>
+                  </div>
+                ) : (
+                  <QrScanButton
+                    className="mt-3 h-16 w-full rounded-2xl text-lg"
+                    onScan={(cardNumber) => {
+                      void form.setFieldValue("cardSerialNumber", cardNumber);
+                      void form.setFieldTouched("cardSerialNumber", true, false);
+                      // Карта считана — дальше вводят товар
+                      setTimeout(
+                        () =>
+                          document
+                            .querySelector<HTMLInputElement>('input[name="whatPurchased.0.productName"]')
+                            ?.focus(),
+                        50,
+                      );
+                    }}
+                  >
+                    <Icon icon={QrCode01Icon} size={24} />
+                    Сканировать QR-код карты
+                  </QrScanButton>
+                )}
+                {/* Считали карту — поле ввода прячем, номер уже в плашке выше */}
+                <div hidden={Boolean(card)}>
+                  <label htmlFor={cardId} className="mt-4 block text-base text-muted-foreground">
+                    или введите номер под QR-кодом
+                  </label>
+                  <Input
+                    id={cardId}
+                    name="cardSerialNumber"
+                    autoComplete="off"
+                    className="mt-2 font-mono text-lg tabular-nums"
+                    value={form.values.cardSerialNumber}
+                    onChange={form.handleChange}
+                    onBlur={form.handleBlur}
+                    invalid={Boolean(cardError)}
+                    aria-describedby={cardError ? `${cardId}-error` : undefined}
+                  />
+                </div>
+                {cardError && (
+                  <p id={`${cardId}-error`} className="mt-2 text-base font-medium text-destructive">
+                    {cardError}
+                  </p>
+                )}
+              </section>
+
+              {/* Покупка: каждая позиция — карточка, процент кнопками */}
+              <section className={panel}>
+                <h2 className="text-lg font-bold">Что купили</h2>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Бонусами — до {maxPercent}% цены позиции
+                  {ceiling !== null && ceiling < SCANNER_MAX_COVERAGE_PERCENT ? ", это потолок заведения" : ""}.
                 </p>
-                <ol className="flex flex-col gap-3">
+                <ol className="mt-3 flex flex-col gap-3">
                   {items.map((item, index) => {
                     const base = `whatPurchased.${index}`;
+                    const points = pointsOf(item);
+                    const nameError = at(`${base}.productName`);
+                    const priceError = at(`${base}.price`);
+                    const percentError = at(`${base}.deductionPercent`);
                     return (
-                      <li
-                        key={index}
-                        className="grid gap-3 rounded-2xl border-2 border-border p-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_100px_auto] sm:items-start"
-                      >
-                        <FormField label="Товар" error={at(`${base}.productName`)}>
-                          {(parts) => (
+                      <li key={index} className="rounded-2xl border-2 border-border p-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-semibold text-muted-foreground">Позиция {index + 1}</span>
+                          <span className="ml-auto text-base font-bold tabular-nums">
+                            {points > 0 ? `−${money.format(points)} бонусов` : ""}
+                          </span>
+                          {items.length > 1 && (
+                            <button
+                              type="button"
+                              aria-label={`Убрать позицию ${index + 1}`}
+                              onClick={() =>
+                                form.setFieldValue(
+                                  "whatPurchased",
+                                  items.filter((_, i) => i !== index),
+                                )
+                              }
+                              className="-my-2 -mr-2 grid h-10 w-10 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                            >
+                              <Icon icon={Cancel01Icon} />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="mt-2 grid gap-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+                          <div>
+                            <label htmlFor={`${cardId}-${index}-name`} className="sr-only">
+                              Товар
+                            </label>
                             <Input
-                              {...parts}
+                              id={`${cardId}-${index}-name`}
                               name={`${base}.productName`}
+                              placeholder="Товар"
                               value={item.productName}
                               onChange={form.handleChange}
                               onBlur={form.handleBlur}
+                              invalid={Boolean(nameError)}
                             />
-                          )}
-                        </FormField>
-                        <FormField label="Цена, сом" error={at(`${base}.price`)}>
-                          {(parts) => (
-                            <Input
-                              {...parts}
-                              name={`${base}.price`}
-                              inputMode="decimal"
-                              className="tabular-nums"
-                              value={String(item.price)}
-                              onChange={form.handleChange}
-                              onBlur={form.handleBlur}
-                            />
-                          )}
-                        </FormField>
-                        <FormField label="%" error={at(`${base}.deductionPercent`)}>
-                          {(parts) => (
-                            <Input
-                              {...parts}
-                              name={`${base}.deductionPercent`}
-                              inputMode="numeric"
-                              className="tabular-nums"
-                              value={String(item.deductionPercent)}
-                              onChange={form.handleChange}
-                              onBlur={form.handleBlur}
-                            />
-                          )}
-                        </FormField>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="sm:mt-8"
-                          aria-label="Убрать позицию"
-                          disabled={items.length === 1}
-                          onClick={() =>
-                            form.setFieldValue(
-                              "whatPurchased",
-                              items.filter((_, i) => i !== index),
-                            )
-                          }
+                            {nameError && <p className="mt-1 text-sm font-medium text-destructive">{nameError}</p>}
+                          </div>
+                          <div>
+                            <label htmlFor={`${cardId}-${index}-price`} className="sr-only">
+                              Цена, сом
+                            </label>
+                            <div className="relative">
+                              <Input
+                                id={`${cardId}-${index}-price`}
+                                name={`${base}.price`}
+                                inputMode="decimal"
+                                placeholder="Цена"
+                                className="pr-14 tabular-nums"
+                                value={String(item.price)}
+                                onChange={form.handleChange}
+                                onBlur={form.handleBlur}
+                                invalid={Boolean(priceError)}
+                              />
+                              <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-base text-muted-foreground">
+                                сом
+                              </span>
+                            </div>
+                            {priceError && <p className="mt-1 text-sm font-medium text-destructive">{priceError}</p>}
+                          </div>
+                        </div>
+
+                        <div
+                          className="mt-3 grid gap-2"
+                          style={{ gridTemplateColumns: `repeat(${choices.length}, minmax(0, 1fr))` }}
+                          role="radiogroup"
+                          aria-label="Сколько процентов цены закрыть бонусами"
                         >
-                          <Icon icon={Delete02Icon} />
-                        </Button>
+                          {choices.map((value) => {
+                            const active = Number(item.deductionPercent) === value;
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                role="radio"
+                                aria-checked={active}
+                                onClick={() => form.setFieldValue(`${base}.deductionPercent`, value)}
+                                className={`h-11 rounded-full text-base font-bold tabular-nums transition-colors ${
+                                  active ? "bg-graphite text-white" : "bg-muted text-foreground hover:bg-border"
+                                }`}
+                              >
+                                {value}%
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {percentError && <p className="mt-1 text-sm font-medium text-destructive">{percentError}</p>}
                       </li>
                     );
                   })}
                 </ol>
                 <FormStatus message={at("whatPurchased")} />
-                <div>
-                  <Button
-                    variant="ghost"
-                    disabled={items.length >= 50}
-                    onClick={() => form.setFieldValue("whatPurchased", [...items, emptyItem(defaultPercent)])}
-                  >
-                    <Icon icon={Add01Icon} />
-                    Позиция
-                  </Button>
-                </div>
-              </fieldset>
+                <button
+                  type="button"
+                  disabled={items.length >= 50}
+                  onClick={() => form.setFieldValue("whatPurchased", [...items, emptyItem(defaultPercent)])}
+                  className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border text-base font-semibold text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
+                >
+                  <Icon icon={Add01Icon} />
+                  Добавить позицию
+                </button>
 
-              <FormField
-                label="Номер операции"
-                hint="Номер чека. Повтор с тем же номером не спишет второй раз — можно смело повторять при обрыве связи."
-                error={fieldError(form, "operationId")}
-              >
-                {(parts) => (
+                <details className="group mt-4">
+                  <summary className="cursor-pointer text-sm text-muted-foreground select-none">
+                    Номер операции: <span className="font-mono">{form.values.operationId}</span>
+                  </summary>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Номер чека. Повтор с тем же номером не спишет второй раз — при обрыве связи можно смело нажать ещё раз.
+                  </p>
                   <Input
-                    {...parts}
                     name="operationId"
-                    className="font-mono text-base"
+                    aria-label="Номер операции"
+                    className="mt-2 font-mono text-base"
                     value={form.values.operationId}
                     onChange={form.handleChange}
                     onBlur={form.handleBlur}
+                    invalid={Boolean(fieldError(form, "operationId"))}
                   />
-                )}
-              </FormField>
-            </Card>
+                  {fieldError(form, "operationId") && (
+                    <p className="mt-1 text-sm font-medium text-destructive">{fieldError(form, "operationId")}</p>
+                  )}
+                </details>
+              </section>
+            </div>
 
-            <aside className="flex flex-col gap-4 lg:sticky lg:top-6">
-              <Card className="flex flex-col gap-3">
-                <p className="text-base text-muted-foreground">Спишется бонусов</p>
-                <p className="display text-[2.75rem] leading-none tabular-nums">{money.format(total)}</p>
-                <p className="text-sm text-muted-foreground">
-                  Точную сумму считает сервер: по каждой позиции вниз до целого.
-                </p>
-                <FormStatus message={formError(form)} />
-                <Button type="submit" size="lg" disabled={form.isSubmitting || total <= 0}>
+            {/* Итог: на телефоне прилипает к низу экрана, на десктопе — колонка справа */}
+            <aside className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 px-5 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] shadow-[0_-0.75rem_2rem_rgb(22_21_21/0.08)] backdrop-blur lg:sticky lg:top-6 lg:inset-auto lg:z-auto lg:rounded-[24px] lg:border-0 lg:p-6 lg:shadow-[0_0.75rem_2rem_rgb(22_21_21/0.06)]">
+              <FormStatus message={formError(form)} />
+              <div className="flex items-center gap-4 lg:flex-col lg:items-stretch">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-muted-foreground lg:text-base">Спишется бонусов</p>
+                  <p className="display text-[1.9rem] leading-none tabular-nums lg:text-[2.75rem]">
+                    {money.format(total)}
+                  </p>
+                </div>
+                <Button type="submit" size="lg" className="shrink-0 px-8" disabled={form.isSubmitting || total <= 0}>
                   {form.isSubmitting ? "Списываем…" : "Списать"}
                 </Button>
-              </Card>
-
-              {result && (
-                <Card className="flex flex-col gap-2" role="status">
-                  {result.duplicate ? (
-                    <Badge tone="quiet">Эта операция уже проведена — повторно ничего не списано</Badge>
-                  ) : (
-                    <Badge tone="good">Списано</Badge>
-                  )}
-                  <p className="text-lg">
-                    {result.duplicate ? "Было списано" : "Списано"}{" "}
-                    <span className="font-bold tabular-nums">{money.format(result.deducted)}</span> бонусов.
-                  </p>
-                  <p className="text-base text-muted-foreground">
-                    На карте осталось <span className="tabular-nums">{money.format(result.balanceAfter)}</span>.
-                  </p>
-                </Card>
-              )}
+              </div>
+              <p className="mt-2 hidden text-sm text-muted-foreground lg:block">
+                Точную сумму считает сервер: по каждой позиции вниз до целого.
+              </p>
             </aside>
           </Form>
         );

@@ -1,7 +1,7 @@
 import { QrCode01Icon } from "@hugeicons/core-free-icons";
 import { Button, Dialog, DialogContent, Icon } from "@loal/ui/shadcn";
 import jsQR from "jsqr";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 type Detector = { detect: (source: CanvasImageSource) => Promise<{ rawValue: string }[]> };
 declare global {
@@ -128,7 +128,19 @@ function Scanner({ onResult }: { onResult: (text: string) => void }) {
 }
 
 /** Кнопка «Сканировать QR»: камера открывается в окне, номер карты уходит в поле. */
-export function QrScanButton({ onScan }: { onScan: (cardNumber: string) => void }) {
+/**
+ * Кнопка «Сканировать» с камерой в окне. className и children — чтобы касса могла сделать
+ * её главной, во всю ширину; по умолчанию — обычная обводная кнопка.
+ */
+export function QrScanButton({
+  onScan,
+  className,
+  children,
+}: {
+  onScan: (cardNumber: string) => void;
+  className?: string;
+  children?: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const scanned = useRef(false);
   return (
@@ -141,15 +153,19 @@ export function QrScanButton({ onScan }: { onScan: (cardNumber: string) => void 
     >
       <Button
         type="button"
-        variant="outline"
-        className="h-auto shrink-0"
+        variant={className ? "primary" : "outline"}
+        className={className ?? "h-auto shrink-0"}
         onClick={() => {
           scanned.current = false;
           setOpen(true);
         }}
       >
-        <Icon icon={QrCode01Icon} />
-        Сканировать QR
+        {children ?? (
+          <>
+            <Icon icon={QrCode01Icon} />
+            Сканировать QR
+          </>
+        )}
       </Button>
       <DialogContent
         title="Сканировать карту"
