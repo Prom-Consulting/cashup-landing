@@ -20,8 +20,6 @@ export const enrollInputSchema = z.object({
   phone: phoneSchema,
   customField1: z.string().trim().max(120, "Не длиннее 120 символов").optional(),
   customField2: z.string().trim().max(120, "Не длиннее 120 символов").optional(),
-  /** Партнёр, по чьему QR пришёл клиент: из ссылки ?via=… Чужой id сервер просто отбросит. */
-  enrolledByMemberId: z.string().uuid().optional(),
 });
 export type EnrollInput = z.input<typeof enrollInputSchema>;
 

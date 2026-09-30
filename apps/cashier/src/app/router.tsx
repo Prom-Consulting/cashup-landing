@@ -1,5 +1,6 @@
 import { RequireAuth } from "@loal/app-kit";
 import { Route, Routes } from "react-router";
+import { ClientPaymentsPage } from "../pages/client-payments";
 import { HistoryPage } from "../pages/history";
 import { LoginPage } from "../pages/login";
 import { NotFoundPage } from "../pages/not-found";
@@ -11,8 +12,7 @@ import { CashierOnly } from "../widgets/cashier-only";
 import { AppLayout } from "../widgets/app-layout";
 
 /**
- * Кабинет кассиров: магазина (staff) и филиала (partner_employee). Владельцу и партнёру здесь
- * делать нечего — их кабинет partner.loal.kg.
+ * Кабинет кассира (staff). Владелец и администратор филиала работают в partner.loal.kg.
  */
 export function AppRouter() {
   return (
@@ -29,6 +29,7 @@ export function AppRouter() {
       >
         <Route index element={<OverviewPage />} />
         <Route path="redeem" element={<RedeemPage />} />
+        <Route path="client-payments" element={<ClientPaymentsPage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="storefront" element={<StorefrontPage />} />
         <Route path="pos" element={<PosPage />} />

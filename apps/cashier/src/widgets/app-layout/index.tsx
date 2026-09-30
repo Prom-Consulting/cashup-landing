@@ -1,4 +1,11 @@
-import { CashierIcon, Chart01Icon, Clock01Icon, CoinsSwapIcon, Store01Icon } from "@hugeicons/core-free-icons";
+import {
+  CashierIcon,
+  Chart01Icon,
+  Clock01Icon,
+  CoinsSwapIcon,
+  Store01Icon,
+  Wallet01Icon,
+} from "@hugeicons/core-free-icons";
 import { WelcomeToast } from "@loal/app-kit";
 import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
 import { Icon, type IconSvg } from "@loal/ui/shadcn";
@@ -26,7 +33,10 @@ const NAV: Record<CashierKind, Item[]> = {
   branch: [
     { to: "/", label: "Обзор", icon: Chart01Icon },
     { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
+    { to: "/client-payments", label: "Счёт клиенту", icon: Wallet01Icon },
     { to: "/history", label: "История", icon: Clock01Icon },
+    { to: "/storefront", label: "Витрина", icon: Store01Icon },
+    { to: "/pos", label: "Касса", icon: CashierIcon },
   ],
 };
 
@@ -37,7 +47,7 @@ export function AppLayout() {
   const location = useLocation();
   const nav = NAV[kind ?? "merchant"];
 
-  const place = kind === "branch" ? overview.data?.branch?.name : merchant.data?.name;
+  const place = kind === "branch" ? (overview.data?.branch?.name ?? overview.data?.merchant?.name) : merchant.data?.name;
   const name = kind === "branch" ? overview.data?.cashier?.fullName : null;
   const isActive = (to: string) => (to === "/" ? location.pathname === "/" : location.pathname.startsWith(to));
 

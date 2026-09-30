@@ -1,131 +1,33 @@
-import {
-  MEMBER_ROLE_LABELS,
-  SCAN_OPERATION_LABELS,
-  partnerBonusInputSchema,
-  partnerOperation,
-  type Branch,
-  type MerchantMember,
-  type PartnerBonusInput,
-} from "@loal/api";
-import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
-import {
-  Badge,
-  Button,
-  ConfirmDialog,
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  FormField,
-  FormStatus,
-  Input,
-  NativeSelect,
-} from "@loal/ui/shadcn";
+import { MEMBER_ROLE_LABELS, type Branch, type MerchantMember } from "@loal/api";
 import { formatPhone } from "@loal/ui/inputs";
-import { Form, Formik } from "formik";
-import { useState } from "react";
-import { useAcceptMember, useRemoveMember, useUpdateMember, useUpdatePartnerBonus } from "../../entities/merchant/api";
+import { Badge, Button, ConfirmDialog, FormStatus, NativeSelect } from "@loal/ui/shadcn";
+import { useAcceptMember, useRemoveMember, useUpdateMember } from "../../entities/merchant/api";
 import { formatDateTime } from "../../shared/lib/format";
 
-const money = new Intl.NumberFormat("ru-RU");
-
-function PartnerBonusDialog({ merchantId, member }: { merchantId: string; member: MerchantMember }) {
-  const [open, setOpen] = useState(false);
-  const update = useUpdatePartnerBonus(merchantId);
-  const initialValues: PartnerBonusInput = {
-    amount: member.partnerBonusAmount ?? "",
-    maxPerCustomer: member.partnerBonusMaxPerCustomer ?? "",
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
-          Бонус
-        </Button>
-      </DialogTrigger>
-      <DialogContent
-        title="Приветственный бонус"
-        description="Сколько баллов партнёр дарит клиенту и сколько раз одному человеку. Сотрудники партнёра дарят из того же лимита."
-      >
-        <Formik
-          initialValues={initialValues}
-          validate={zodValidate(partnerBonusInputSchema)}
-          onSubmit={async (values, helpers) => {
-            helpers.setStatus(undefined);
-            try {
-              await update.mutateAsync({
-                memberId: member.id,
-                amount: values.amount === "" ? null : Number(values.amount),
-                maxPerCustomer: values.maxPerCustomer === "" ? null : Number(values.maxPerCustomer),
-              });
-              setOpen(false);
-            } catch (error) {
-              applyServerIssues(error, helpers, "Не удалось сохранить бонус");
-            } finally {
-              helpers.setSubmitting(false);
-            }
-          }}
-        >
-          {(form) => (
-            <Form noValidate className="flex flex-col gap-4">
-              <FocusFirstError form={form} />
-              <FormField label="Баллов" hint="Пусто — бонуса нет." error={fieldError(form, "amount")}>
-                {(parts) => (
-                  <Input
-                    {...parts}
-                    name="amount"
-                    inputMode="numeric"
-                    value={String(form.values.amount)}
-                    onChange={form.handleChange}
-                    onBlur={form.handleBlur}
-                  />
-                )}
-              </FormField>
-              <FormField
-                label="Сколько раз одному клиенту"
-                hint="Пусто — без ограничения."
-                error={fieldError(form, "maxPerCustomer")}
-              >
-                {(parts) => (
-                  <Input
-                    {...parts}
-                    name="maxPerCustomer"
-                    inputMode="numeric"
-                    value={String(form.values.maxPerCustomer)}
-                    onChange={form.handleChange}
-                    onBlur={form.handleBlur}
-                  />
-                )}
-              </FormField>
-              <FormStatus message={formError(form)} />
-              <Button type="submit" disabled={form.isSubmitting}>
-                Сохранить
-              </Button>
-            </Form>
-          )}
-        </Formik>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/** Строка команды: кто, на какой точке, что может, и действия владельца. */
+/**
+ * Строка команды: кто, в каком филиале, и действия. Владелец переводит людей между филиалами;
+ * администратор филиала может только убрать своего кассира (перевести — 400 на сервере).
+ */
 export function MemberRow({
   merchantId,
   member,
   branches,
   canManage,
+  canRemove,
 }: {
   merchantId: string;
   member: MerchantMember;
   branches: Branch[];
+  /** Владелец: подтвердить, перевести в другой филиал. */
   canManage: boolean;
+  /** Убрать из команды: владелец — любого, кроме владельца; администратор филиала — своих кассиров. */
+  canRemove: boolean;
 }) {
   const accept = useAcceptMember(merchantId);
   const update = useUpdateMember(merchantId);
   const remove = useRemoveMember(merchantId);
-  const operation =
-    member.role === "partner" || member.role === "partner_employee" ? partnerOperation(member.permissions) : null;
+  const branch = branches.find((item) => item.id === member.branchId);
+  const open = branches.filter((item) => !item.archivedAt);
 
   return (
     <li className="flex flex-col gap-3 border-t border-border pt-4">
@@ -133,56 +35,49 @@ export function MemberRow({
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-2 text-lg">
             {MEMBER_ROLE_LABELS[member.role] ?? member.role}
-            {operation && <Badge tone="quiet">{SCAN_OPERATION_LABELS[operation]}</Badge>}
             {!member.acceptedAt && <Badge tone="warn">ждёт подтверждения</Badge>}
             {member.registrationStatus === "pending" && <Badge tone="quiet">ждёт первого входа</Badge>}
           </p>
           <p className="mt-1 truncate text-sm text-muted-foreground tabular-nums">
-            {[member.fullName, member.phone ? formatPhone(member.phone) : null].filter(Boolean).join(" · ") ||
-              member.userId}
+            {[member.fullName, member.phone ? formatPhone(member.phone) : null].filter(Boolean).join(" · ") || "—"}
           </p>
           <p className="text-sm text-muted-foreground">
+            {branch ? `${branch.name} · ` : ""}
             {member.acceptedAt ? `в команде с ${formatDateTime(member.acceptedAt)}` : "приглашён, доступа пока нет"}
-            {member.role === "partner" && member.partnerBonusAmount
-              ? ` · дарит ${money.format(member.partnerBonusAmount)} баллов${member.partnerBonusMaxPerCustomer ? `, до ${member.partnerBonusMaxPerCustomer} раз клиенту` : ""}`
-              : ""}
           </p>
         </div>
-        {canManage && member.role !== "admin" && (
+        {member.role !== "admin" && (canManage || canRemove) && (
           <div className="flex flex-wrap items-center gap-1">
-            {!member.acceptedAt && (
+            {canManage && !member.acceptedAt && (
               <Button variant="outline" size="sm" disabled={accept.isPending} onClick={() => accept.mutate(member.id)}>
                 Подтвердить
               </Button>
             )}
-            {member.role === "partner" && <PartnerBonusDialog merchantId={merchantId} member={member} />}
-            <ConfirmDialog
-              trigger={
-                <Button variant="ghost" size="sm">
-                  Убрать
-                </Button>
-              }
-              title="Убрать из команды?"
-              description={
-                member.role === "partner"
-                  ? "Партнёр и заведённые им сотрудники потеряют доступ. Их аккаунты останутся."
-                  : "Человек потеряет доступ к кабинету заведения. Его аккаунт останется."
-              }
-              confirmLabel="Убрать"
-              onConfirm={() => remove.mutateAsync(member.id)}
-            />
+            {canRemove && (
+              <ConfirmDialog
+                trigger={
+                  <Button variant="ghost" size="sm">
+                    Убрать
+                  </Button>
+                }
+                title="Убрать из команды?"
+                description="Человек сразу потеряет доступ: открытый кабинет разлогинится. Его аккаунт и прошлые операции останутся."
+                confirmLabel="Убрать"
+                onConfirm={() => remove.mutateAsync(member.id)}
+              />
+            )}
           </div>
         )}
       </div>
-      {canManage && branches.length > 0 && member.role !== "partner_employee" && (
+      {canManage && member.role !== "admin" && open.length > 0 && (
         <div className="max-w-[320px]">
           <NativeSelect
-            aria-label="Точка"
+            aria-label="Филиал"
             value={member.branchId ?? ""}
             disabled={update.isPending}
-            placeholder="Без точки"
+            placeholder={member.role === "branch_admin" ? "Выберите филиал" : "Без филиала"}
             onChange={(event) => update.mutate({ memberId: member.id, branchId: event.target.value || null })}
-            options={branches.map((branch) => ({ value: branch.id, label: branch.name }))}
+            options={open.map((item) => ({ value: item.id, label: item.name }))}
           />
         </div>
       )}

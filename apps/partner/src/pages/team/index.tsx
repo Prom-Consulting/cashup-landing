@@ -6,11 +6,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Form, Formik } from "formik";
 import { merchantKeys, useBranches, useCreateBranch, useMembers } from "../../entities/merchant/api";
 import { useCurrentMerchant } from "../../entities/session/model";
+import { BranchRow } from "../../features/team/branch-row";
 import { MemberRow } from "../../features/team/member-row";
 
-/** Команда заведения: точки и люди, которые в них работают. */
+/**
+ * Команда: филиалы и люди. Владелец ведёт филиалы и всех людей; администратор филиала видит
+ * и добавляет только кассиров своего филиала (сервер отдаёт ему только их).
+ */
 export function TeamPage() {
-  const { merchantId, canManage } = useCurrentMerchant();
+  const { merchantId, canManage, isBranchAdmin, branchId } = useCurrentMerchant();
   const branches = useBranches(merchantId ?? "");
   const members = useMembers(merchantId ?? "");
   const createBranch = useCreateBranch(merchantId ?? "");
@@ -18,7 +22,7 @@ export function TeamPage() {
   const registered = useJustRegistered(
     members.data,
     (member) => member.id,
-    (member) => (member.role === "partner" ? "Администратор филиала" : (MEMBER_ROLE_LABELS[member.role] ?? "Сотрудник")),
+    (member) => MEMBER_ROLE_LABELS[member.role] ?? "Сотрудник",
   );
 
   return (
@@ -26,25 +30,28 @@ export function TeamPage() {
       <Toast message={registered.message} onDismiss={registered.dismiss} />
       <PageHeader
         title="Команда"
-        description="Точки заведения и сотрудники. Сотрудника добавляют по имени и телефону — он войдёт по коду из WhatsApp."
+        description={
+          isBranchAdmin
+            ? "Кассиры вашего филиала. Добавьте кассира по имени и телефону — он войдёт по коду из WhatsApp."
+            : "Филиалы и люди. Человека добавляют по имени и телефону — он войдёт по коду из WhatsApp."
+        }
       />
 
+      {canManage && (
       <Card>
-        <h2 className="text-xl font-bold">Точки</h2>
+        <h2 className="text-xl font-bold">Филиалы</h2>
         {branches.isPending && <Loading rows={2} />}
         {branches.isError && <ErrorState error={branches.error} onRetry={() => branches.refetch()} />}
-        <ul className="mt-4 flex flex-wrap gap-2">
+        <ul className="mt-4 flex flex-col">
           {(branches.data ?? []).map((branch) => (
-            <li key={branch.id} className="rounded-full bg-muted px-4 py-2 text-base">
-              {branch.name}
-            </li>
+            <BranchRow key={branch.id} merchantId={merchantId ?? ""} branch={branch} />
           ))}
           {branches.isSuccess && branches.data.length === 0 && (
-            <li className="text-base text-muted-foreground">Точек пока нет.</li>
+            <li className="text-base text-muted-foreground">Филиалов пока нет — создайте первый.</li>
           )}
         </ul>
 
-        {canManage && (
+        {(
           <Formik
             initialValues={{ name: "" }}
             validate={zodValidate(createBranchInputSchema)}
@@ -64,7 +71,7 @@ export function TeamPage() {
               <Form className="mt-5 flex flex-wrap items-end gap-4" noValidate>
                 <FocusFirstError form={form} />
                 <div className="min-w-[240px] flex-1">
-                  <Label htmlFor="branch-name">Новая точка</Label>
+                  <Label htmlFor="branch-name">Новый филиал</Label>
                   <Input
                     id="branch-name"
                     name="name"
@@ -88,9 +95,14 @@ export function TeamPage() {
           </Formik>
         )}
       </Card>
+      )}
 
       <Card>
-        <h2 className="text-xl font-bold">Сотрудники</h2>
+        <h2 className="text-xl font-bold">
+          {isBranchAdmin
+            ? `Кассиры${branches.data?.find((branch) => branch.id === branchId) ? ` · ${branches.data.find((branch) => branch.id === branchId)!.name}` : ""}`
+            : "Сотрудники"}
+        </h2>
         {members.isPending && <Loading rows={2} />}
         {members.isError && <ErrorState error={members.error} onRetry={() => members.refetch()} />}
         {members.isSuccess && members.data.length === 0 && <EmptyState title="Сотрудников пока нет" />}
@@ -103,14 +115,16 @@ export function TeamPage() {
               member={member}
               branches={branches.data ?? []}
               canManage={canManage}
+              canRemove={canManage || (isBranchAdmin && member.role === "staff")}
             />
           ))}
         </ul>
 
-        {canManage && (
+        {(canManage || isBranchAdmin) && (
           <AddMemberForm
             merchantId={merchantId ?? ""}
             branches={branches.data ?? []}
+            actor={canManage ? "owner" : "branch"}
             onAdded={() => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId ?? "") })}
           />
         )}

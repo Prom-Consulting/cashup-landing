@@ -76,7 +76,7 @@ export function MerchantDetailsPage() {
     members.data,
     (member) => member.id,
     (member) =>
-      member.role === "partner" ? "Администратор филиала" : (MEMBER_ROLE_LABELS[member.role] ?? "Сотрудник"),
+      MEMBER_ROLE_LABELS[member.role] ?? "Сотрудник",
   );
   const invites = useMerchantInvites(merchantId);
   const createInvite = useCreateInvite(merchantId);
@@ -228,7 +228,7 @@ export function MerchantDetailsPage() {
             >
               <span className="min-w-0">
                 <span className="flex flex-wrap items-center gap-2 text-lg">
-                  {member.role === "partner" ? "Администратор филиала" : (MEMBER_ROLE_LABELS[member.role] ?? member.role)}
+                  {MEMBER_ROLE_LABELS[member.role] ?? member.role}
                   {member.registrationStatus === "pending" && <Badge tone="quiet">ждёт первого входа</Badge>}
                 </span>
                 <span className="block text-sm text-muted-foreground tabular-nums">

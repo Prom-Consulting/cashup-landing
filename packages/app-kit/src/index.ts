@@ -15,3 +15,4 @@ export * from "./redeem-form";
 export * from "./registration";
 export * from "./team-forms";
 export * from "./welcome";
+export * from "./client-payments";

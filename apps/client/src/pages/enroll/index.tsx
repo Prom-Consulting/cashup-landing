@@ -4,7 +4,7 @@ import { useEnrollInfo } from "../../entities/enroll/api";
 import { EnrollForm } from "../../features/enroll/enroll-form";
 
 /**
- * Самостоятельная выдача по QR — карта платформы. ?via=… — партнёр, чей QR отсканировали.
+ * Самостоятельная выдача по QR — карта платформы.
  */
 export function EnrollPage() {
   const [params] = useSearchParams();
@@ -21,7 +21,7 @@ export function EnrollPage() {
       </div>
       {info.isPending && <Loading rows={3} />}
       {info.isError && <ErrorState error={info.error} onRetry={() => info.refetch()} />}
-      {info.isSuccess && <EnrollForm info={info.data} via={params.get("via") ?? undefined} />}
+      {info.isSuccess && <EnrollForm info={info.data} />}
     </section>
   );
 }

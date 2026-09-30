@@ -45,17 +45,11 @@ export const merchantMemberSchema = z.looseObject({
   id: z.string(),
   merchantId: z.string(),
   userId: z.string().nullish(),
-  role: z.enum(["admin", "staff", "partner", "partner_employee"]),
+  role: z.string(),
   permissions: z.record(z.string(), z.boolean()).default({}),
   branchId: z.string().nullish(),
   invitedAt: z.string().nullish(),
   acceptedAt: z.string().nullish(),
-  /** У сотрудника партнёра — запись партнёра, который его завёл. */
-  parentMemberId: z.string().nullish(),
-  /** Приветственный бонус партнёра; null — не настроен, а не «ноль». */
-  partnerBonusAmount: z.number().nullish(),
-  /** Сколько раз одному клиенту; null — без ограничения. */
-  partnerBonusMaxPerCustomer: z.number().nullish(),
   defaultTemplateId: z.string().nullish(),
   defaultProgramId: z.string().nullish(),
   /** Человека заводят заранее по имени и телефону: до первого входа — pending. */
@@ -205,16 +199,18 @@ export const SCANNER_MAX_COVERAGE_PERCENT = 30;
  */
 export const MERCHANT_ROLE_LABELS: Record<string, { title: string; can: string }> = {
   admin: { title: "Владелец магазина", can: "Управляет всем: командой, оплатой, 1С, витриной и потолком процента." },
-  staff: { title: "Кассир", can: "Списывает бонусы и смотрит витрину. Настройки меняет владелец." },
-  partner: {
-    title: "Партнёр-продавец",
-    can: "Продаёт от имени магазина и принимает бонусы. Настройки меняет владелец.",
+  branch_admin: {
+    title: "Администратор филиала",
+    can: "Ведёт свой филиал: кассиры, продажи и журнал филиала, счета клиентам. Остальное меняет владелец.",
   },
-  partner_employee: { title: "Сотрудник партнёра", can: "Принимает бонусы от имени партнёра." },
+  staff: { title: "Кассир", can: "Списывает бонусы, выставляет клиентам счета и смотрит витрину. Настройки меняет владелец." },
 };
 
 /** Управлять магазином может только владелец (и агентство — у него своя админка). */
 export const isMerchantOwner = (role: string | null | undefined) => role === "admin";
+
+/** Администратор филиала: свои кассиры, свои продажи и журнал; филиал — в токене. */
+export const isBranchAdmin = (role: string | null | undefined) => role === "branch_admin";
 
 /**
  * Координаты из ссылки 2ГИС: в ссылке «Поделиться» они есть (`…?m=74.59,42.87/16` или

@@ -1,6 +1,7 @@
 import { RequireAuth } from "@loal/app-kit";
 import { Route, Routes } from "react-router";
 import { BillingPage } from "../pages/billing";
+import { ClientPaymentsPage } from "../pages/client-payments";
 import { DashboardPage } from "../pages/dashboard";
 import { DeductionsPage } from "../pages/deductions";
 import { LoginPage } from "../pages/login";
@@ -8,7 +9,6 @@ import { NotFoundPage } from "../pages/not-found";
 import { RegisterPage } from "../pages/register";
 import { OnecPage } from "../pages/onec";
 import { ProfilePage } from "../pages/profile";
-import { PartnerPage } from "../pages/partner";
 import { PosPage } from "../pages/pos";
 import { RedeemPage } from "../pages/redeem";
 import { StorefrontPage } from "../pages/storefront";
@@ -35,11 +35,11 @@ export function AppRouter() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="redeem" element={<RedeemPage />} />
-        <Route path="partner" element={<PartnerPage />} />
+        <Route path="client-payments" element={<ClientPaymentsPage />} />
         <Route
           path="deductions"
           element={
-            <OwnerOnly title="Списания">
+            <OwnerOnly title="Списания" allowBranch>
               <DeductionsPage />
             </OwnerOnly>
           }
@@ -56,7 +56,7 @@ export function AppRouter() {
         <Route
           path="team"
           element={
-            <OwnerOnly title="Команда">
+            <OwnerOnly title="Команда" allowBranch>
               <TeamPage />
             </OwnerOnly>
           }

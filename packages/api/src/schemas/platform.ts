@@ -15,9 +15,6 @@ export const programSchema = z.looseObject({
   bonusItemName: z.string().nullish(),
   bonusItemMode: z.enum(["number", "text"]).nullish(),
   bonusItemOptions: z.array(z.string()).nullish(),
-  bonusItemPartnerAccess: z.boolean().nullish(),
-  /** Какие механики доступны партнёрам: ключ — механика, false — запрещена. */
-  mechanicPartnerAccess: z.record(z.string(), z.boolean()).nullish(),
   createdAt: z.string().nullish(),
 });
 export type Program = z.infer<typeof programSchema>;
@@ -80,7 +77,6 @@ export const bonusItemInputSchema = z
     bonusItemMode: z.enum(["number", "text"]).nullable(),
     /** Варианты для режима «текст», по одному на строку. */
     bonusItemOptions: z.string(),
-    bonusItemPartnerAccess: z.boolean(),
   })
   .refine((value) => !value.bonusItemEnabled || value.bonusItemName.length > 0, {
     message: "Назовите бонусный товар",

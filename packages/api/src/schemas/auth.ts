@@ -14,14 +14,21 @@ export { phoneSchema };
 export const platformRoleSchema = z.enum(["super_admin", "store_admin", "store_staff", "api"]);
 export type PlatformRole = z.infer<typeof platformRoleSchema>;
 
-/** Роль внутри заведения. partner — отдельный бизнес со своим кабинетом. */
-export const merchantMemberRoleSchema = z.enum(["admin", "staff", "partner", "partner_employee"]);
-export type MerchantMemberRole = z.infer<typeof merchantMemberRoleSchema>;
+/**
+ * Роль внутри заведения: admin — владелец, branch_admin — администратор филиала, staff — кассир.
+ * Строка, а не enum: старый токен с ролью, которой больше нет (partner), не должен ронять вход —
+ * такой человек просто не попадёт ни в один кабинет магазина.
+ */
+export const MERCHANT_ROLES = ["admin", "branch_admin", "staff"] as const;
+export type MerchantMemberRole = (typeof MERCHANT_ROLES)[number];
+export const merchantMemberRoleSchema = z.string();
 
 export const membershipSchema = z.looseObject({
   memberId: z.string(),
   merchantId: z.string(),
   role: merchantMemberRoleSchema,
+  /** Филиал администратора филиала или кассира; у владельца null. */
+  branchId: z.string().nullish(),
   permissions: z.record(z.string(), z.boolean()).default({}),
 });
 export type Membership = z.infer<typeof membershipSchema>;

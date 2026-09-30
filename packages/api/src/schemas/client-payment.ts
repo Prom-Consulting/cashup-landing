@@ -1,0 +1,39 @@
+import { z } from "zod";
+import { phoneSchema } from "./phone";
+
+/**
+ * Счёт клиенту через OctōPAY: клиент платит магазину, и как только оплатит, бонусы на ту же
+ * сумму спишутся с его карты сами. Выставляют владелец, администратор филиала и кассир;
+ * операция записывается на того, кто выставил, и на его филиал.
+ */
+export const clientPaymentInputSchema = z.object({
+  clientPhone: phoneSchema,
+  amount: z.coerce
+    .number({ error: "Введите сумму" })
+    .positive("Сумма больше нуля")
+    .max(100_000_000, "Слишком большая сумма"),
+});
+export type ClientPaymentInput = { clientPhone: string; amount: number | string };
+
+/** Счёт клиенту. Статус строкой: незнакомый не должен ронять список. */
+export const clientPaymentSchema = z.looseObject({
+  id: z.string(),
+  amount: z.number().nullish(),
+  status: z.string().nullish(),
+  paymentUrl: z.string().nullish(),
+  clientPhone: z.string().nullish(),
+  customerName: z.string().nullish(),
+  cashierName: z.string().nullish(),
+  branchName: z.string().nullish(),
+  createdAt: z.string().nullish(),
+  paidAt: z.string().nullish(),
+});
+export type ClientPayment = z.infer<typeof clientPaymentSchema>;
+
+export const CLIENT_PAYMENT_STATUS_LABELS: Record<string, string> = {
+  pending: "ждёт оплаты",
+  paid: "оплачен",
+  failed: "не прошёл",
+  cancelled: "отменён",
+  expired: "истёк",
+};

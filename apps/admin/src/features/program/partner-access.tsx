@@ -1,29 +1,8 @@
-import { PROGRAM_MECHANICS, bonusItemInputSchema, type BonusItemInput, type Program } from "@loal/api";
+import { bonusItemInputSchema, type BonusItemInput, type Program } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Button, FormField, FormStatus, Input, NativeSelect, Switch, Textarea } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
-import { useUpdateBonusItem, useUpdateMechanicAccess } from "../../entities/platform/api";
-
-/** Какие механики программы доступны партнёрам. Не указано — значит можно. */
-export function MechanicAccess({ program }: { program: Program }) {
-  const update = useUpdateMechanicAccess(program.id);
-  const access = program.mechanicPartnerAccess ?? {};
-
-  return (
-    <div className="flex flex-col gap-4">
-      {PROGRAM_MECHANICS.map((mechanic) => (
-        <Switch
-          key={mechanic.id}
-          checked={access[mechanic.id] !== false}
-          disabled={update.isPending}
-          onCheckedChange={(checked) => update.mutate({ ...access, [mechanic.id]: checked })}
-          label={mechanic.label}
-        />
-      ))}
-      <FormStatus message={update.isError ? update.error.message : undefined} />
-    </div>
-  );
-}
+import { useUpdateBonusItem } from "../../entities/platform/api";
 
 /**
  * Бонусный товар — наследие прежнего продукта: подарок на карте, считаемый
@@ -36,7 +15,6 @@ export function BonusItemForm({ program }: { program: Program }) {
     bonusItemName: program.bonusItemName ?? "",
     bonusItemMode: program.bonusItemMode ?? null,
     bonusItemOptions: (program.bonusItemOptions ?? []).join("\n"),
-    bonusItemPartnerAccess: program.bonusItemPartnerAccess ?? true,
   };
 
   return (
@@ -106,11 +84,6 @@ export function BonusItemForm({ program }: { program: Program }) {
                   )}
                 </FormField>
               )}
-              <Switch
-                checked={form.values.bonusItemPartnerAccess}
-                onCheckedChange={(checked) => form.setFieldValue("bonusItemPartnerAccess", checked)}
-                label="Партнёры могут выдавать и гасить"
-              />
             </>
           )}
           <FormStatus tone={form.status === "Сохранено" ? "success" : "error"} message={formError(form)} />

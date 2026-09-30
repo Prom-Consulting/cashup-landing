@@ -10,19 +10,19 @@ export const cashierKeys = {
 };
 
 /**
- * Два вида кассира, оба работают здесь, а не в кабинете партнёра:
- * - staff — кассир магазина, его заводит владелец в «Команде»; данные — по магазину;
- * - partner_employee — кассир филиала, его заводит партнёр; данные — /v1/cashier/*.
+ * Кассир (staff): его заводят владелец или администратор филиала. Обзор и своя история —
+ * /v1/cashier/*, витрина и касса — на просмотр по магазину. Администратор филиала работает
+ * в кабинете партнёра.
  */
-export const CASHIER_ROLES = ["staff", "partner_employee"];
+export const CASHIER_ROLES = ["staff"];
 export type CashierKind = "merchant" | "branch";
 
 export function useCashierSession() {
   const { session, logout } = useSession();
   const memberships = session?.merchants.filter((item) => CASHIER_ROLES.includes(item.role)) ?? [];
-  // Кассир филиала точнее: у него свой филиал и своя история
-  const membership = memberships.find((item) => item.role === "partner_employee") ?? memberships[0] ?? null;
-  const kind: CashierKind | null = !membership ? null : membership.role === "partner_employee" ? "branch" : "merchant";
+  const membership = memberships[0] ?? null;
+  // Один вид кассира; тип оставлен, чтобы экраны не ветвились заново, если видов станет больше
+  const kind = (membership ? "branch" : null) as CashierKind | null;
   return {
     session,
     membership,

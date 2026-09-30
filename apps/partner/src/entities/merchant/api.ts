@@ -17,18 +17,19 @@ export const merchantKeys = {
   deductions: (id: string, query: DeductionQuery) => ["merchant", id, "deductions", query] as const,
   invoices: (id: string) => ["merchant", id, "invoices"] as const,
   onec: (id: string) => ["merchant", id, "onec"] as const,
-  branches: (id: string) => ["merchant", id, "branches"] as const,
+  branches: (id: string, archived = false) => ["merchant", id, "branches", archived] as const,
   members: (id: string) => ["merchant", id, "members"] as const,
   pos: (id: string) => ["merchant", id, "pos"] as const,
   webhooks: (id: string) => ["merchant", id, "webhooks"] as const,
   deliveries: (id: string, webhookId: string) => ["merchant", id, "webhooks", webhookId] as const,
 };
 
-export function useBranches(merchantId: string) {
+/** Открытые филиалы; includeArchived — вместе с закрытыми, чтобы журнал назвал прошлую точку. */
+export function useBranches(merchantId: string, includeArchived = false) {
   const api = useApi();
   return useQuery({
-    queryKey: merchantKeys.branches(merchantId),
-    queryFn: () => merchantCabinetApi(api).branches(merchantId),
+    queryKey: merchantKeys.branches(merchantId, includeArchived),
+    queryFn: () => merchantCabinetApi(api).branches(merchantId, includeArchived),
     enabled: Boolean(merchantId),
   });
 }
@@ -38,7 +39,27 @@ export function useCreateBranch(merchantId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateBranchInput) => merchantCabinetApi(api).createBranch(merchantId, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.branches(merchantId) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["merchant", merchantId, "branches"] }),
+  });
+}
+
+export function useRenameBranch(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branchId, name }: { branchId: string; name: string }) =>
+      merchantCabinetApi(api).renameBranch(merchantId, branchId, { name }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["merchant", merchantId, "branches"] }),
+  });
+}
+
+/** Закрыть филиал (archivedAt). Пока в нём люди — 409 BRANCH_HAS_MEMBERS. */
+export function useArchiveBranch(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (branchId: string) => merchantCabinetApi(api).archiveBranch(merchantId, branchId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["merchant", merchantId, "branches"] }),
   });
 }
 
@@ -210,24 +231,6 @@ export function useUpdateMember(merchantId: string) {
   return useMutation({
     mutationFn: ({ memberId, branchId }: { memberId: string; branchId: string | null }) =>
       merchantCabinetApi(api).updateMember(merchantId, memberId, { branchId }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
-  });
-}
-
-/** Приветственный бонус партнёра: обе величины вместе, null очищает. */
-export function useUpdatePartnerBonus(merchantId: string) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      memberId,
-      amount,
-      maxPerCustomer,
-    }: {
-      memberId: string;
-      amount: number | null;
-      maxPerCustomer: number | null;
-    }) => merchantCabinetApi(api).updatePartnerBonus(merchantId, memberId, { amount, maxPerCustomer }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
   });
 }

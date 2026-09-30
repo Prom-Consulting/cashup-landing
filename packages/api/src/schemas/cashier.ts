@@ -1,11 +1,8 @@
 import { z } from "zod";
-import { phoneSchema } from "./phone";
 
 /**
- * Web-кассир филиала (docs/07-partner-cashiers.md). Партнёр — администратор своего филиала
- * и заводит кассиров по имени и телефону; филиал сервер берёт из аккаунта партнёра.
- * Кассир (роль partner_employee) видит только обзор филиала, списание и свою историю.
- * Контракт — docs/API.md, «Web-кассир филиала».
+ * Кабинет кассира (docs/API.md, «Кабинет кассира»): кассир (staff) и администратор филиала
+ * видят обзор, свою историю списаний и списывают. Человек — из токена.
  */
 
 const named = z.looseObject({ id: z.string().nullish(), name: z.string().nullish() });
@@ -13,6 +10,7 @@ const named = z.looseObject({ id: z.string().nullish(), name: z.string().nullish
 /** Обзор филиала: кто вошёл, где работает и принимает ли заведение бонусы. */
 export const cashierOverviewSchema = z.looseObject({
   cashier: z.looseObject({ memberId: z.string().nullish(), fullName: z.string().nullish() }).nullish(),
+  /** null — кассир без филиала. */
   branch: named.nullish(),
   merchant: named.nullish(),
   /** null — у заведения нет подписки, бонусы не принимаются. */
@@ -52,26 +50,3 @@ export type CashierRedemptionQuery = {
   sortBy?: "createdAt" | "amount" | "customerName";
   sortDir?: "asc" | "desc";
 };
-
-/**
- * Кассир в списке партнёра. Номер заводят заранее: до первого входа по коду —
- * registrationStatus "pending", после — "registered" и registeredAt.
- */
-export const cashierSchema = z.looseObject({
-  memberId: z.string(),
-  userId: z.string().nullish(),
-  fullName: z.string().nullish(),
-  phone: z.string().nullish(),
-  active: z.boolean().nullish(),
-  registrationStatus: z.enum(["pending", "registered"]).nullish(),
-  registeredAt: z.string().nullish(),
-  createdAt: z.string().nullish(),
-});
-export type Cashier = z.infer<typeof cashierSchema>;
-
-/** Новый кассир: имя и телефон — по нему он потом входит кодом из WhatsApp. */
-export const createCashierInputSchema = z.object({
-  fullName: z.string().trim().min(2, "Введите имя").max(80, "Слишком длинное имя"),
-  phone: phoneSchema,
-});
-export type CreateCashierInput = z.infer<typeof createCashierInputSchema>;

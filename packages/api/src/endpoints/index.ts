@@ -5,7 +5,6 @@ export * from "./leads";
 export * from "./me";
 export * from "./merchant-cabinet";
 export * from "./merchants";
-export * from "./partner-self";
 export * from "./partners";
 export * from "./passes";
 export * from "./platform";

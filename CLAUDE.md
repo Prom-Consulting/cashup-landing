@@ -91,21 +91,27 @@ app → pages → widgets → features → entities → shared
 - промокоды на бесплатные месяцы — платформенные (`/admin/v1/promo-codes`, только агентству);
   магазин применяет свой через `/admin/v1/merchants/{id}/promo-code` (кассиру `403`), держатель
   карты — через `/v1/me/promo-code` (без карты — `404` «Сначала получите карту»);
-- людей заводят заранее по имени и телефону (`docs/cashier.md`), `userId` фронт не спрашивает и не шлёт
-  (лишний — `400`): сотрудник/владелец — `POST /admin/v1/merchants/{id}/members { fullName, phone, role, branchId? }`,
-  партнёр (администратор филиала) — `…/members/partners { fullName, phone, scanOperation, branchId? }`,
-  сотрудник партнёра — `/admin/v1/members/{partnerMemberId}/employees { fullName, phone }`, кассир — `…/cashiers`.
-  Форма «Сотрудник / Партнёр» общая — `AddMemberForm` в `@loal/app-kit` (кабинет партнёра и админка). `409` —
-  номер занят, у поля. До первого входа `registrationStatus: "pending"`: списки с такими перечитываются
-  (`refetchWhilePending`), переход в `registered` — `Toast` через `useJustRegistered`. Первый вход такого
-  человека отвечает `registrationCompleted: true` — в кабинете `WelcomeToast`;
+- людей заводят заранее по имени и телефону: `POST /admin/v1/merchants/{id}/members { fullName, phone, role, branchId? }`,
+  `userId` фронт не шлёт (лишний — `400`); `branch_admin` без `branchId` — `400`. Форма общая — `AddMemberForm`
+  (`actor="branch"` — администратор филиала, только кассиры). `409` — номер занят, у поля. До первого входа
+  `registrationStatus: "pending"`: списки перечитываются (`refetchWhilePending`), переход в `registered` — `Toast`
+  через `useJustRegistered`; первый вход с `registrationCompleted: true` — `WelcomeToast`;
 - один телефон — один клиент: `POST /admin/v1/customers` с занятым номером — `409`, показываем у поля;
 - баллы переезжают на новую карту человека и с отозванных карт; но новая карта (другой серийный
   номер) в Wallet сама не появляется — клиенту шлют ссылку. Внешний вид меняют правкой шаблона;
-- внутри магазина права по роли (`merchants[].role`): смотреть магазин, витрину, потолок, филиалы,
-  кассу могут все; всё остальное под `/admin/v1/merchants/{id}/…` — только владелец (`admin`), иначе
-  `403`. В кабинете партнёра это `canManage` (= `isMerchantOwner`): разделы владельца скрыты в меню и
-  закрыты `OwnerOnly`, кассиру и партнёру — свой «Обзор». Роль в токене обновляется при новом входе;
+- магазин устроен «владелец → филиалы → кассиры». Роли (`merchants[].role`, строкой — старый токен не роняет вход):
+  `admin` — владелец, `branch_admin` — администратор филиала (`merchants[].branchId`), `staff` — кассир.
+  Кабинет партнёра — владельцу (всё) и администратору филиала: «Команда» (только кассиры своего филиала,
+  добавляет только кассиров — филиал ставит сервер), «Списания» (сервер отдаёт его филиал), «Счёт клиенту»;
+  разделы владельца закрыты `OwnerOnly` (`allowBranch` — открыть и администратору филиала). Кассира кабинет
+  партнёра отправляет на cashier.loal.kg. Роль и филиал в токене обновляются при новом входе, убранного
+  человека выкидывает сразу (`401`). Роли «партнёр» и «сотрудник партнёра» удалены вместе с `/admin/v1/members/*`,
+  `/admin/v1/partners/*`, бонусом партнёра, `mechanicPartnerAccess`/`bonusItemPartnerAccess` и `?via=`;
+- филиалы: `PATCH` — переименовать, `DELETE` — закрыть (`archivedAt`, операции его помнят; `?includeArchived=true`),
+  пока в филиале люди — `409 BRANCH_HAS_MEMBERS`. Закрывает и переименовывает только владелец;
+- счёт клиенту через OctōPAY — `…/merchants/{id}/client-payments` (POST `{ clientPhone, amount }`, GET последние 100):
+  выставляют все три роли, бонусы на ту же сумму списываются после оплаты сами. Форма и список общие —
+  `ClientPaymentForm`/`ClientPaymentList` в `@loal/app-kit`;
 - цены — в настройках платформы у агентства (`merchantAccessPriceKgs`, `cardSubscriptionPriceKgs`),
   счёт считает сервер: магазину шлём только `{ months }`, сумму показываем из ответа. Цена 990 на
   лендинге и в кабинете клиента — только для показа, держать равной цене в админке;
@@ -116,19 +122,11 @@ app → pages → widgets → features → entities → shared
   409 — своя ссылка), код живёт на устройстве 30 дней, регистрация — `/auth/register` с `referralCode` и тем
   же `deviceId`. Раздел «Друзья»: `GET /v1/me/referrals` (404 — не подключён), `POST /v1/me/referrals/enroll`
   (карта + 2 000 один раз); приглашённые обезличены. В истории — `kind: "referral"`;
-- кабинет кассиров `apps/cashier` (cashier.loal.kg) — для двух ролей, кабинет партнёра их не пускает и отправляет
-  туда: кассир магазина (`staff`, его заводит владелец в «Команде») — «Обзор», «Списать бонусы», «Витрина»,
-  «Касса» (витрина и касса только на просмотр, данные по магазину); кассир филиала — ниже.
-- кассир филиала (`docs/07-partner-cashiers.md`) — роль `partner_employee`, свой кабинет `apps/cashier`:
-  `GET /v1/cashier/overview` (`subscription: null` — подписки нет), списание обычным `POST /v1/redemptions`
-  (без `merchantId`), своя история `GET /v1/cashier/redemptions` — только `customerName`, `amount`,
-  `createdAt`, без телефонов. Партнёр заводит кассиров по имени и телефону:
-  `/admin/v1/members/{partnerMemberId}/cashiers` (GET/POST/DELETE по `memberId`), филиал сервер назначает
-  сам (`400` — партнёр без филиала, `409` — номер занят). До первого входа кассир `registrationStatus:
-  "pending"`; список перечитывается, пока есть такие, и переход в `registered` показывается `Toast`.
-  Удалённый кассир сразу получает `401`. Кабинет партнёра кассира к себе не пускает — отправляет на
-  cashier.loal.kg. Касса (`RedeemForm`, `QrScanButton`) общая — в `@loal/app-kit`. В журнале списаний
-  колонка «Кассир» из `cashierName` (`null` у 1С и старых — «—»);
+- кабинет кассира `apps/cashier` (cashier.loal.kg) — для `staff`: «Обзор» (`/v1/cashier/overview`, `branch` может
+  быть `null`, `subscription: null` — подписки нет), «Списать бонусы» (`POST /v1/redemptions`, потолок — свой
+  `coverage-limit`), «Счёт клиенту», «История» (`/v1/cashier/redemptions`: только `customerName`, `amount`,
+  `createdAt`), «Витрина» и «Касса» на просмотр. Касса (`RedeemForm`, `QrScanButton`) общая — в `@loal/app-kit`.
+  В журнале списаний колонка «Кассир» из `cashierName` (`null` у 1С и старых — «—»);
 - ручки `/v1/scan/*`, `/v1/cards/{serial}/scan-confirm*`, `/v1/pos-settings` помечены как наследие,
   новый код на них не завязываем.
 

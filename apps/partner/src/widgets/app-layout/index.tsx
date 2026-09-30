@@ -1,7 +1,6 @@
 import {
   Chart01Icon,
   CoinsSwapIcon,
-  Agreement02Icon,
   CreditCardIcon,
   Invoice01Icon,
   LinkSquare02Icon,
@@ -9,6 +8,7 @@ import {
   Settings02Icon,
   Store01Icon,
   UserGroupIcon,
+  Wallet01Icon,
 } from "@hugeicons/core-free-icons";
 import { WelcomeToast } from "@loal/app-kit";
 import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
@@ -19,37 +19,34 @@ import { Link, Outlet, useLocation } from "react-router";
 import { useCurrentMerchant } from "../../entities/session/model";
 import { CASHIER_APP_URL } from "../../shared/config/env";
 
-type Item = NavItem & { icon: IconSvg; ownerOnly?: boolean };
+/** Кто видит раздел: все, владелец и администратор филиала, или только владелец. */
+type Item = NavItem & { icon: IconSvg; access?: "branch" | "owner" };
 
-/** ownerOnly — разделы владельца: кассиру и партнёру сервер там ответит 403. */
 const nav: Item[] = [
   { to: "/", label: "Обзор", icon: Chart01Icon },
   { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
+  { to: "/client-payments", label: "Счёт клиенту", icon: Wallet01Icon },
   { to: "/storefront", label: "Витрина", icon: Store01Icon },
-  { to: "/deductions", label: "Списания", icon: CreditCardIcon, ownerOnly: true },
-  { to: "/billing", label: "Оплата", icon: Invoice01Icon, ownerOnly: true },
-  { to: "/team", label: "Команда", icon: UserGroupIcon, ownerOnly: true },
+  { to: "/deductions", label: "Списания", icon: CreditCardIcon, access: "branch" },
+  { to: "/team", label: "Команда", icon: UserGroupIcon, access: "branch" },
+  { to: "/billing", label: "Оплата", icon: Invoice01Icon, access: "owner" },
   { to: "/pos", label: "Касса", icon: CashierIcon },
-  { to: "/webhooks", label: "Вебхуки", icon: LinkSquare02Icon, ownerOnly: true },
-  { to: "/onec", label: "Обмен с 1С", icon: Settings02Icon, ownerOnly: true },
+  { to: "/webhooks", label: "Вебхуки", icon: LinkSquare02Icon, access: "owner" },
+  { to: "/onec", label: "Обмен с 1С", icon: Settings02Icon, access: "owner" },
 ];
 
-/** Раздел партнёра виден только партнёрам и их сотрудникам. */
-const partnerNav: NavItem & { icon: IconSvg } = { to: "/partner", label: "Я партнёр", icon: Agreement02Icon };
-
 export function AppLayout() {
-  const { label, logout, memberships, merchantId, selectMerchant, membership, canManage } = useCurrentMerchant();
-  const isPartner = membership?.role === "partner" || membership?.role === "partner_employee";
-  const allowed = nav.filter((item) => canManage || !item.ownerOnly);
-  const items = isPartner ? [allowed[0]!, partnerNav, ...allowed.slice(1)] : allowed;
+  const { label, logout, memberships, merchantId, selectMerchant, canManage, canRunBranch } = useCurrentMerchant();
+  const items = nav.filter(
+    (item) => !item.access || (item.access === "owner" ? canManage : canRunBranch),
+  );
   const location = useLocation();
   const selectId = useId();
 
   const isActive = (to: string) => (to === "/" ? location.pathname === "/" : location.pathname.startsWith(to));
 
-  // Кассиры — магазина (staff) и филиала (partner_employee) — работают в своём кабинете,
-  // cashier.loal.kg: кабинет партнёра только для владельца и партнёра
-  if (memberships.length > 0 && memberships.every((m) => m.role === "staff" || m.role === "partner_employee"))
+  // Кассир работает в своём кабинете, cashier.loal.kg: здесь владелец и администратор филиала
+  if (memberships.length > 0 && memberships.every((m) => m.role === "staff"))
     return <CashierElsewhere onLogout={logout} />;
 
   return (

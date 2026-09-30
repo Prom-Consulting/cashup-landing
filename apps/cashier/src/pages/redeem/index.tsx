@@ -37,9 +37,12 @@ function MerchantRedeem() {
 }
 
 function BranchRedeem() {
+  const { merchantId, manyPlaces } = useCashierSession();
   const overview = useCashierOverview();
+  // Потолок процента своего магазина кассиру открыт на чтение
+  const limit = useCoverageLimit(merchantId);
   const refresh = useRefreshAfterRedeem();
-  if (overview.isPending) return <Loading rows={3} />;
+  if (overview.isPending || limit.isPending) return <Loading rows={3} />;
   if (overview.isError) return <ErrorState error={overview.error} onRetry={() => overview.refetch()} />;
   const { active, canRedeem } = subscriptionState(overview.data);
   if (!canRedeem)
@@ -59,7 +62,11 @@ function BranchRedeem() {
           .
         </p>
       )}
-      <RedeemForm ceiling={null} onRedeemed={refresh} />
+      <RedeemForm
+        ceiling={limit.data?.maxCoveragePercent ?? null}
+        merchantId={manyPlaces ? merchantId : undefined}
+        onRedeemed={refresh}
+      />
     </>
   );
 }

@@ -247,7 +247,7 @@ export const platformApi = (api: ApiClient) => ({
   deleteProgram: (programId: string) =>
     api.request(anything, `/admin/v1/loyalty-programs/${programId}`, { method: "DELETE" }),
 
-  /** Бонусный товар шлётся целиком: сервер заменяет все пять полей разом. */
+  /** Бонусный товар шлётся целиком: сервер заменяет все четыре поля разом. */
   updateBonusItem: (programId: string, input: BonusItemInput) => {
     const parsed = bonusItemInputSchema.parse(input);
     return api.request(programSchema, `/admin/v1/loyalty-programs/${programId}/bonus-item`, {
@@ -260,16 +260,9 @@ export const platformApi = (api: ApiClient) => ({
           .split("\n")
           .map((option) => option.trim())
           .filter(Boolean),
-        bonusItemPartnerAccess: parsed.bonusItemPartnerAccess,
       },
     });
   },
-
-  updateMechanicAccess: (programId: string, mechanicPartnerAccess: Record<string, boolean>) =>
-    api.request(programSchema, `/admin/v1/loyalty-programs/${programId}/mechanic-access`, {
-      method: "PATCH",
-      body: { mechanicPartnerAccess },
-    }),
 
   /** Кто держит карту программы. */
   programMembers: (programId: string) =>

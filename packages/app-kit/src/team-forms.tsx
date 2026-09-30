@@ -1,43 +1,38 @@
-import {
-  ApiError,
-  MEMBER_ROLE_LABELS,
-  SCAN_OPERATION_LABELS,
-  addMemberInputSchema,
-  addPartnerInputSchema,
-  type AddMemberInput,
-  type AddPartnerInput,
-  type Branch,
-  merchantCabinetApi,
-} from "@loal/api";
+import { ApiError, MEMBER_ROLE_LABELS, addMemberInputSchema, merchantCabinetApi, type AddMemberInput, type Branch } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
-import {
-  Button,
-  FormField,
-  FormStatus,
-  Input,
-  NativeSelect,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@loal/ui/shadcn";
 import { PhoneInput, formatPhone } from "@loal/ui/inputs";
+import { Button, FormField, FormStatus, Input, NativeSelect } from "@loal/ui/shadcn";
 import { useMutation } from "@tanstack/react-query";
 import { Form, Formik } from "formik";
 import { useState } from "react";
 import { useApi } from "./session";
 
-const PHONE_HINT = "По нему человек входит — код придёт в WhatsApp.";
+const OWNER_ROLES = ["staff", "branch_admin", "admin"] as const;
 
-type FormProps = { merchantId: string; branches: Branch[]; onAdded?: () => void };
-
-function StaffForm({ merchantId, branches, onAdded }: FormProps) {
+/**
+ * Добавить человека в магазин по имени и телефону (docs/API.md, «Сотрудники»). Владелец и
+ * агентство выбирают роль и филиал; администратору филиала филиал обязателен. Администратор
+ * филиала (actor="branch") добавляет только кассиров — филиал сервер ставит его сам.
+ * onAdded — перечитать список.
+ */
+export function AddMemberForm({
+  merchantId,
+  branches,
+  onAdded,
+  actor = "owner",
+}: {
+  merchantId: string;
+  branches: Branch[];
+  onAdded?: () => void;
+  actor?: "owner" | "branch";
+}) {
   const api = useApi();
   const add = useMutation({
     mutationFn: (input: AddMemberInput) => merchantCabinetApi(api).addMember(merchantId, input),
     onSuccess: () => onAdded?.(),
   });
   const [done, setDone] = useState<string>();
+  const open = branches.filter((branch) => !branch.archivedAt);
   const initialValues: AddMemberInput = { fullName: "", phone: "", role: "staff", branchId: "" };
 
   return (
@@ -48,24 +43,31 @@ function StaffForm({ merchantId, branches, onAdded }: FormProps) {
         helpers.setStatus(undefined);
         setDone(undefined);
         try {
-          await add.mutateAsync({ ...values, branchId: values.branchId || undefined });
+          const role = actor === "branch" ? "staff" : values.role;
+          await add.mutateAsync({
+            ...values,
+            role,
+            // Администратору филиала филиал ставит сервер — чужой был бы 400
+            branchId: actor === "branch" ? undefined : values.branchId || undefined,
+          });
           helpers.resetForm();
           setDone(
-            `${values.fullName} в команде. Пусть войдёт в кабинет по номеру ${formatPhone(values.phone)} — код придёт в WhatsApp.`,
+            `${values.fullName} — ${(MEMBER_ROLE_LABELS[role] ?? "сотрудник").toLowerCase()}. Пусть войдёт по номеру ${formatPhone(values.phone)} — код придёт в WhatsApp.`,
           );
         } catch (error) {
-          // Номер уже занят другим заведением или аккаунтом — показываем у поля
+          // Номер уже занят другим магазином или аккаунтом — показываем у поля
           if (error instanceof ApiError && error.isConflict)
             return helpers.setFieldError("phone", error.message || "Этот номер уже занят");
-          applyServerIssues(error, helpers, "Не удалось подключить");
+          applyServerIssues(error, helpers, "Не удалось добавить");
         } finally {
           helpers.setSubmitting(false);
         }
       }}
     >
       {(form) => (
-        <Form noValidate className="flex flex-col gap-4">
+        <Form noValidate className="mt-6 flex flex-col gap-4 border-t border-border pt-5">
           <FocusFirstError form={form} />
+          <h3 className="text-lg font-bold">{actor === "branch" ? "Новый кассир" : "Добавить человека"}</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField label="Имя" error={fieldError(form, "fullName")}>
               {(parts) => (
@@ -81,7 +83,7 @@ function StaffForm({ merchantId, branches, onAdded }: FormProps) {
             </FormField>
             <FormField
               label="Телефон"
-              hint={PHONE_HINT}
+              hint="По нему человек входит — код придёт в WhatsApp."
               error={fieldError(form, "phone")}
             >
               {(parts) => (
@@ -95,172 +97,52 @@ function StaffForm({ merchantId, branches, onAdded }: FormProps) {
               )}
             </FormField>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="Роль">
-              {(parts) => (
-                <NativeSelect
-                  {...parts}
-                  name="role"
-                  value={form.values.role}
-                  onChange={form.handleChange}
-                  options={(["staff", "admin"] as const).map((role) => ({
-                    value: role,
-                    label: MEMBER_ROLE_LABELS[role],
-                  }))}
-                />
-              )}
-            </FormField>
-            {branches.length > 0 && (
-              <FormField label="Точка">
+          {actor === "owner" && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField label="Роль">
+                {(parts) => (
+                  <NativeSelect
+                    {...parts}
+                    name="role"
+                    value={form.values.role}
+                    onChange={form.handleChange}
+                    options={OWNER_ROLES.map((role) => ({ value: role, label: MEMBER_ROLE_LABELS[role] ?? role }))}
+                  />
+                )}
+              </FormField>
+              <FormField
+                label="Филиал"
+                hint={
+                  open.length === 0
+                    ? "Филиалов пока нет — создайте их выше."
+                    : form.values.role === "branch_admin"
+                      ? "Администратор ведёт один филиал."
+                      : undefined
+                }
+                error={fieldError(form, "branchId")}
+              >
                 {(parts) => (
                   <NativeSelect
                     {...parts}
                     name="branchId"
                     value={form.values.branchId ?? ""}
                     onChange={form.handleChange}
-                    placeholder="Без точки"
-                    options={branches.map((branch) => ({ value: branch.id, label: branch.name }))}
+                    placeholder={form.values.role === "branch_admin" ? "Выберите филиал" : "Без филиала"}
+                    options={open.map((branch) => ({ value: branch.id, label: branch.name }))}
                   />
                 )}
               </FormField>
-            )}
-          </div>
+            </div>
+          )}
           <FormStatus message={formError(form)} />
           <FormStatus tone="success" message={done} />
           <div>
             <Button type="submit" variant="outline" disabled={form.isSubmitting}>
-              Подключить
+              {form.isSubmitting ? "Добавляем…" : actor === "branch" ? "Добавить кассира" : "Добавить"}
             </Button>
           </div>
         </Form>
       )}
     </Formik>
-  );
-}
-
-function PartnerForm({ merchantId, branches, onAdded }: FormProps) {
-  const api = useApi();
-  const add = useMutation({
-    mutationFn: (input: AddPartnerInput) => merchantCabinetApi(api).addPartner(merchantId, input),
-    onSuccess: () => onAdded?.(),
-  });
-  const [done, setDone] = useState<string>();
-  const initialValues: AddPartnerInput = { fullName: "", phone: "", scanOperation: "earn", branchId: "" };
-
-  return (
-    <Formik
-      initialValues={initialValues}
-      validate={zodValidate(addPartnerInputSchema)}
-      onSubmit={async (values, helpers) => {
-        helpers.setStatus(undefined);
-        setDone(undefined);
-        try {
-          await add.mutateAsync({ ...values, branchId: values.branchId || undefined });
-          helpers.resetForm();
-          setDone(
-            `${values.fullName} — партнёр. Пусть войдёт в кабинет по номеру ${formatPhone(values.phone)} — код придёт в WhatsApp.`,
-          );
-        } catch (error) {
-          if (error instanceof ApiError && error.isConflict)
-            return helpers.setFieldError("phone", error.message || "Этот номер уже занят");
-          applyServerIssues(error, helpers, "Не удалось подключить партнёра");
-        } finally {
-          helpers.setSubmitting(false);
-        }
-      }}
-    >
-      {(form) => (
-        <Form noValidate className="flex flex-col gap-4">
-          <FocusFirstError form={form} />
-          <p className="text-base text-muted-foreground">
-            Партнёру выбирают одну операцию — навсегда. Сотрудники, которых он заведёт, унаследуют ровно её.
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="Имя" error={fieldError(form, "fullName")}>
-              {(parts) => (
-                <Input
-                  {...parts}
-                  name="fullName"
-                  autoComplete="off"
-                  value={form.values.fullName}
-                  onChange={form.handleChange}
-                  onBlur={form.handleBlur}
-                />
-              )}
-            </FormField>
-            <FormField label="Телефон" hint={PHONE_HINT} error={fieldError(form, "phone")}>
-              {(parts) => (
-                <PhoneInput
-                  {...parts}
-                  name="phone"
-                  value={form.values.phone}
-                  onValueChange={(value) => form.setFieldValue("phone", value)}
-                  onBlur={() => form.setFieldTouched("phone", true)}
-                />
-              )}
-            </FormField>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="Что он делает">
-              {(parts) => (
-                <NativeSelect
-                  {...parts}
-                  name="scanOperation"
-                  value={form.values.scanOperation}
-                  onChange={form.handleChange}
-                  options={(["earn", "redeem"] as const).map((operation) => ({
-                    value: operation,
-                    label: `${SCAN_OPERATION_LABELS[operation]} баллы`,
-                  }))}
-                />
-              )}
-            </FormField>
-            {branches.length > 0 && (
-              <FormField label="Точка">
-                {(parts) => (
-                  <NativeSelect
-                    {...parts}
-                    name="branchId"
-                    value={form.values.branchId ?? ""}
-                    onChange={form.handleChange}
-                    placeholder="Без точки"
-                    options={branches.map((branch) => ({ value: branch.id, label: branch.name }))}
-                  />
-                )}
-              </FormField>
-            )}
-          </div>
-          <FormStatus message={formError(form)} />
-          <FormStatus tone="success" message={done} />
-          <div>
-            <Button type="submit" variant="outline" disabled={form.isSubmitting}>
-              Подключить партнёра
-            </Button>
-          </div>
-        </Form>
-      )}
-    </Formik>
-  );
-}
-
-/**
- * Добавить человека в магазин: сотрудника или владельца — или партнёра (администратора
- * филиала) с его единственной операцией. Всех — по имени и телефону; идентификатор
- * пользователя фронт не спрашивает (docs/cashier.md). onAdded — перечитать список.
- */
-export function AddMemberForm({ merchantId, branches, onAdded }: FormProps) {
-  return (
-    <Tabs defaultValue="staff" className="mt-6 border-t border-border pt-5">
-      <TabsList>
-        <TabsTrigger value="staff">Сотрудник</TabsTrigger>
-        <TabsTrigger value="partner">Партнёр</TabsTrigger>
-      </TabsList>
-      <TabsContent value="staff" className="mt-5">
-        <StaffForm merchantId={merchantId} branches={branches} onAdded={onAdded} />
-      </TabsContent>
-      <TabsContent value="partner" className="mt-5">
-        <PartnerForm merchantId={merchantId} branches={branches} onAdded={onAdded} />
-      </TabsContent>
-    </Tabs>
   );
 }

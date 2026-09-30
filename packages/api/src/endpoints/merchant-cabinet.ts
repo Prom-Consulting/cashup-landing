@@ -1,6 +1,11 @@
 import { z } from "zod";
 import type { ApiClient } from "../http";
 import {
+  clientPaymentInputSchema,
+  clientPaymentSchema,
+  type ClientPaymentInput,
+} from "../schemas/client-payment";
+import {
   buyMonthsInputSchema,
   createInvoiceInputSchema,
   invoiceSchema,
@@ -12,7 +17,6 @@ import {
 import { deductionPageSchema } from "../schemas/deduction";
 import {
   addMemberInputSchema,
-  addPartnerInputSchema,
   branchSchema,
   createBranchInputSchema,
   createWebhookInputSchema,
@@ -20,7 +24,6 @@ import {
   webhookDeliverySchema,
   webhookSchema,
   type AddMemberInput,
-  type AddPartnerInput,
   type CreateBranchInput,
   type CreateWebhookInput,
 } from "../schemas/merchant-ops";
@@ -34,7 +37,15 @@ import {
   type MerchantProfile,
 } from "../schemas/merchant";
 
-export type DeductionQuery = { page?: number; pageSize?: number; search?: string; from?: string; to?: string };
+/** branchId — только этот филиал; администратору филиала сервер подставляет его филиал сам. */
+export type DeductionQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  from?: string;
+  to?: string;
+  branchId?: string;
+};
 
 /**
  * Кабинет заведения: журнал списаний, подписка, счета, витрина и обмен с 1С.
@@ -95,7 +106,23 @@ export const merchantCabinetApi = (api: ApiClient) => ({
     });
   },
 
-  branches: (merchantId: string) => api.request(z.array(branchSchema), `/admin/v1/merchants/${merchantId}/branches`),
+  /** includeArchived — вместе с закрытыми: чтобы отчёт за прошлое назвал точку. */
+  branches: (merchantId: string, includeArchived = false) =>
+    api.request(z.array(branchSchema), `/admin/v1/merchants/${merchantId}/branches`, {
+      query: includeArchived ? { includeArchived: true } : undefined,
+    }),
+
+  renameBranch: (merchantId: string, branchId: string, input: CreateBranchInput) =>
+    api.request(branchSchema, `/admin/v1/merchants/${merchantId}/branches/${branchId}`, {
+      method: "PATCH",
+      body: createBranchInputSchema.parse(input),
+    }),
+
+  /** Закрыть, а не стереть: archivedAt. Пока в филиале люди — 409 BRANCH_HAS_MEMBERS. */
+  archiveBranch: (merchantId: string, branchId: string) =>
+    api.request(z.looseObject({}).or(z.null()).or(z.undefined()), `/admin/v1/merchants/${merchantId}/branches/${branchId}`, {
+      method: "DELETE",
+    }),
 
   createBranch: (merchantId: string, input: CreateBranchInput) =>
     api.request(branchSchema, `/admin/v1/merchants/${merchantId}/branches`, {
@@ -106,37 +133,19 @@ export const merchantCabinetApi = (api: ApiClient) => ({
   members: (merchantId: string) =>
     api.request(z.array(merchantMemberSchema), `/admin/v1/merchants/${merchantId}/members`),
 
-  /** Сотрудника подключают по userId: он сначала регистрируется сам. */
+  /** По имени и телефону; администратор филиала добавляет только кассиров своего филиала. */
   addMember: (merchantId: string, input: AddMemberInput) =>
     api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members`, {
       method: "POST",
       body: addMemberInputSchema.parse(input),
     }),
 
-  /** Партнёру выбирают одну операцию навсегда — отсюда отдельный адрес. */
-  addPartner: (merchantId: string, input: AddPartnerInput) =>
-    api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members/partners`, {
-      method: "POST",
-      body: addPartnerInputSchema.parse(input),
-    }),
-
   updateMember: (
     merchantId: string,
     memberId: string,
-    input: { branchId?: string | null; defaultTemplateId?: string | null; defaultProgramId?: string | null },
+    input: { branchId: string | null },
   ) =>
     api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members/${memberId}`, {
-      method: "PATCH",
-      body: input,
-    }),
-
-  /** Приветственный бонус партнёра: обе величины шлём вместе, null очищает. */
-  updatePartnerBonus: (
-    merchantId: string,
-    memberId: string,
-    input: { amount: number | null; maxPerCustomer: number | null },
-  ) =>
-    api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members/${memberId}/bonus`, {
       method: "PATCH",
       body: input,
     }),
@@ -152,6 +161,17 @@ export const merchantCabinetApi = (api: ApiClient) => ({
     api.request(z.looseObject({}).or(z.null()), `/admin/v1/merchants/${merchantId}/members/${memberId}`, {
       method: "DELETE",
     }),
+
+  /** Счёт клиенту: оплатит — бонусы на ту же сумму спишутся с его карты сами. */
+  createClientPayment: (merchantId: string, input: ClientPaymentInput) =>
+    api.request(clientPaymentSchema, `/admin/v1/merchants/${merchantId}/client-payments`, {
+      method: "POST",
+      body: clientPaymentInputSchema.parse(input),
+    }),
+
+  /** Последние 100: владелец — все, администратор филиала — своего филиала, кассир — свои. */
+  clientPayments: (merchantId: string) =>
+    api.request(z.array(clientPaymentSchema), `/admin/v1/merchants/${merchantId}/client-payments`),
 
   posSettings: (merchantId: string) =>
     api.request(z.array(posSettingsSchema), `/admin/v1/merchants/${merchantId}/pos-settings`),

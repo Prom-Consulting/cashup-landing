@@ -84,15 +84,6 @@ export function useUpdateBonusItem(programId: string) {
   });
 }
 
-export function useUpdateMechanicAccess(programId: string) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (access: Record<string, boolean>) => platformApi(api).updateMechanicAccess(programId, access),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: platformKeys.programs }),
-  });
-}
-
 export function useProgramMembers(programId: string | null) {
   const api = useApi();
   return useQuery({

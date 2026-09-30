@@ -8,7 +8,7 @@ export * from "./lead";
 export * from "./me";
 export * from "./merchant";
 export * from "./merchant-ops";
-export * from "./partner";
+export * from "./client-payment";
 export * from "./platform";
 export * from "./promo";
 export * from "./redemption";

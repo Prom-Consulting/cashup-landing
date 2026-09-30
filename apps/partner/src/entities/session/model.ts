@@ -1,11 +1,14 @@
-import { isMerchantOwner } from "@loal/api";
+import { isBranchAdmin, isMerchantOwner } from "@loal/api";
 import { useSession } from "@loal/app-kit";
 import { useMemo, useState } from "react";
 
 const MERCHANT_KEY = "loal.partner.merchant";
 
-/** Роли, которым открыт кабинет заведения. */
-const CABINET_ROLES = ["admin", "staff", "partner", "partner_employee"];
+/**
+ * Роли в кабинете магазина: владелец (admin) и администратор филиала (branch_admin). Кассира
+ * (staff) пускаем только затем, чтобы отправить в его кабинет — cashier.loal.kg.
+ */
+const CABINET_ROLES = ["admin", "branch_admin", "staff"];
 
 /**
  * Кабинет всегда работает в контексте одного заведения. Человек может работать
@@ -51,6 +54,11 @@ export function useCurrentMerchant() {
      * правка витрины, потолка и кассы. Остальным сервер ответит 403 — не показываем.
      */
     canManage: isMerchantOwner(membership?.role),
+    /** Администратор филиала: свои кассиры, журнал и продажи своего филиала, счета клиентам. */
+    isBranchAdmin: isBranchAdmin(membership?.role),
+    /** Команда и журнал: владелец — весь магазин, администратор филиала — свой филиал. */
+    canRunBranch: isMerchantOwner(membership?.role) || isBranchAdmin(membership?.role),
+    branchId: membership?.branchId ?? null,
     label: session?.email ?? "",
     selectMerchant,
   };
