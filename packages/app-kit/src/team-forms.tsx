@@ -20,11 +20,14 @@ export function AddMemberForm({
   branches,
   onAdded,
   actor = "owner",
+  bare = false,
 }: {
   merchantId: string;
   branches: Branch[];
   onAdded?: () => void;
   actor?: "owner" | "branch";
+  /** Без своего заголовка и отступов — когда форма живёт в окне со своим заголовком. */
+  bare?: boolean;
 }) {
   const api = useApi();
   const add = useMutation({
@@ -65,9 +68,9 @@ export function AddMemberForm({
       }}
     >
       {(form) => (
-        <Form noValidate className="mt-6 flex flex-col gap-4 border-t border-border pt-5">
+        <Form noValidate className={bare ? "flex flex-col gap-4" : "mt-6 flex flex-col gap-4 border-t border-border pt-5"}>
           <FocusFirstError form={form} />
-          <h3 className="text-lg font-bold">{actor === "branch" ? "Новый кассир" : "Добавить человека"}</h3>
+          {!bare && <h3 className="text-lg font-bold">{actor === "branch" ? "Новый кассир" : "Добавить человека"}</h3>}
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField label="Имя" error={fieldError(form, "fullName")}>
               {(parts) => (
@@ -137,7 +140,7 @@ export function AddMemberForm({
           <FormStatus message={formError(form)} />
           <FormStatus tone="success" message={done} />
           <div>
-            <Button type="submit" variant="outline" disabled={form.isSubmitting}>
+            <Button type="submit" variant={bare ? "primary" : "outline"} className={bare ? "w-full" : undefined} disabled={form.isSubmitting}>
               {form.isSubmitting ? "Добавляем…" : actor === "branch" ? "Добавить кассира" : "Добавить"}
             </Button>
           </div>

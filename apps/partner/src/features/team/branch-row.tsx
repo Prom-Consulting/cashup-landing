@@ -1,6 +1,7 @@
 import { ApiError, createBranchInputSchema, type Branch } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
-import { Button, ConfirmDialog, Dialog, DialogContent, DialogTrigger, FormField, FormStatus, Input } from "@loal/ui/shadcn";
+import { Archive02Icon, PencilEdit02Icon, Store01Icon } from "@hugeicons/core-free-icons";
+import { Button, ConfirmDialog, Dialog, DialogContent, DialogTrigger, FormField, FormStatus, Icon, Input } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useState } from "react";
 import { useArchiveBranch, useRenameBranch } from "../../entities/merchant/api";
@@ -12,20 +13,35 @@ function archiveErrorText(error: unknown) {
   return error instanceof Error ? error.message : "Не удалось закрыть филиал";
 }
 
-/** Филиал в списке владельца: переименовать или закрыть. Закрыть — не стереть: отчёты его помнят. */
-export function BranchRow({ merchantId, branch }: { merchantId: string; branch: Branch }) {
+function peopleLabel(count: number) {
+  const tail = count % 10;
+  const teen = count % 100 >= 11 && count % 100 <= 14;
+  if (count === 0) return "пока никого";
+  if (!teen && tail === 1) return `${count} человек`;
+  if (!teen && tail >= 2 && tail <= 4) return `${count} человека`;
+  return `${count} человек`;
+}
+
+/** Филиал плиткой: название, сколько людей, переименовать или закрыть. Закрыть — не стереть: отчёты его помнят. */
+export function BranchRow({ merchantId, branch, people }: { merchantId: string; branch: Branch; people: number }) {
   const rename = useRenameBranch(merchantId);
   const archive = useArchiveBranch(merchantId);
   const [open, setOpen] = useState(false);
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-3 first:border-t-0 first:pt-0">
-      <span className="text-lg">{branch.name}</span>
-      <span className="flex items-center gap-1">
+    <li className="flex items-center gap-3 rounded-[var(--radius)] border border-border bg-background py-2 pl-3 pr-1">
+      <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+        <Icon icon={Store01Icon} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-base font-semibold">{branch.name}</span>
+        <span className="block text-sm text-muted-foreground">{peopleLabel(people)}</span>
+      </span>
+      <span className="flex shrink-0 items-center">
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button variant="ghost" size="sm">
-              Переименовать
+            <Button variant="ghost" size="icon" aria-label={`Переименовать «${branch.name}»`} title="Переименовать">
+              <Icon icon={PencilEdit02Icon} />
             </Button>
           </DialogTrigger>
           <DialogContent title="Переименовать филиал" description="Новое название увидят сотрудники и отчёты.">
@@ -69,8 +85,8 @@ export function BranchRow({ merchantId, branch }: { merchantId: string; branch: 
         </Dialog>
         <ConfirmDialog
           trigger={
-            <Button variant="ghost" size="sm">
-              Закрыть
+            <Button variant="ghost" size="icon" aria-label={`Закрыть «${branch.name}»`} title="Закрыть филиал">
+              <Icon icon={Archive02Icon} />
             </Button>
           }
           title={`Закрыть «${branch.name}»?`}
