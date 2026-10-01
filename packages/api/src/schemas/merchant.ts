@@ -37,9 +37,35 @@ export const merchantSchema = z.looseObject({
   contactEmail: z.string().nullish(),
   contactPhone: z.string().nullish(),
   logoUrl: z.string().nullish(),
+  /** octopay — OctōPAY + Loal, loal — только Loal (см. tariffOf). */
+  tariff: z.string().nullish(),
   createdAt: z.string(),
 });
 export type Merchant = z.infer<typeof merchantSchema>;
+
+/**
+ * Тариф магазина — следует из связи с OctōPAY, его не выбирают (docs/API.md, «Тариф магазина»):
+ * - octopay — OctōPAY + Loal: Loal бесплатен, бонусы тратятся при оплате через OctōPAY,
+ *   есть «Счёт клиенту»;
+ * - loal — только Loal: помесячная подписка, бонусы списывает касса.
+ * Строкой с запасным значением: незнакомый или старый ответ — «только Loal».
+ */
+export type MerchantTariff = "octopay" | "loal";
+export const tariffOf = (value: string | null | undefined): MerchantTariff =>
+  value === "octopay" ? "octopay" : "loal";
+
+export const TARIFF_LABELS: Record<MerchantTariff, { title: string; short: string; about: string }> = {
+  octopay: {
+    title: "OctōPAY + Loal",
+    short: "OctōPAY + Loal",
+    about: "Клиенты платят через OctōPAY и сами решают, сколько бонусов потратить. Абонентской платы за Loal нет.",
+  },
+  loal: {
+    title: "Только Loal",
+    short: "Только Loal",
+    about: "Бонусы списывает касса по QR-коду карты. Loal оплачивается помесячно.",
+  },
+};
 
 export const merchantMemberSchema = z.looseObject({
   id: z.string(),
@@ -161,6 +187,8 @@ export const publicPartnerSchema = merchantProfileSchema.extend({
   contactPhone: z.string().nullable(),
   /** Потолок процента — «до N%» на карточке; null — магазин его не задал. */
   maxCoveragePercent: z.number().nullish(),
+  /** octopay — бонусы можно тратить прямо при оплате через OctōPAY. */
+  tariff: z.string().nullish(),
 });
 export type PublicPartner = z.infer<typeof publicPartnerSchema>;
 

@@ -31,7 +31,7 @@ export function useClientPayments(merchantId: string) {
   });
 }
 
-/** Статус нужен и кассиру: без готовой связи Octopay создаст счёт без кнопки Loal. */
+/** Статус нужен и кассиру: без готовой связи OctōPAY создаст счёт без кнопки Loal. */
 function useOctopayReadiness(merchantId: string) {
   const api = useApi();
   return useQuery({
@@ -65,20 +65,37 @@ function CopyLink({ url }: { url: string }) {
 
 function octopaySetupHint(reason?: string | null, activeAccounts?: number) {
   if (reason === "KGS_BANK_ACCOUNT_REQUIRED") {
-    return "В кабинете Octopay добавьте и активируйте один банковский счёт в KGS.";
+    return "Владелец магазина должен выбрать в кабинете OctōPAY банковский счёт в KGS для приёма оплат Loal и переподключить Loal новым кодом.";
   }
   if (reason === "KGS_BANK_ACCOUNT_NOT_PAYABLE") {
-    return "Активный счёт в KGS пока не готов принимать оплату. Владелец должен проверить поддерживаемый банк, реквизиты и подключение счёта в Octopay.";
+    return "Активный счёт в KGS пока не готов принимать оплату. Владелец должен проверить поддерживаемый банк, реквизиты и подключение счёта в OctōPAY.";
   }
   if (reason === "KGS_BANK_ACCOUNT_AMBIGUOUS") {
-    return `Владелец магазина должен выбрать в Octopay банковский счёт в KGS для Loal и переподключить Loal новым кодом${
+    return `Владелец магазина должен выбрать в OctōPAY банковский счёт в KGS для Loal и переподключить Loal новым кодом${
       activeAccounts === undefined ? "" : ` (сейчас активных: ${activeAccounts})`
     }.`;
   }
   if (reason === "LOAL_LINK_INACTIVE") {
-    return "Владелец магазина должен включить приём бонусов в разделе «Интеграции → Бонусы Loal» кабинета Octopay.";
+    return "Владелец магазина должен включить приём бонусов в разделе «Интеграции → Бонусы Loal» кабинета OctōPAY.";
   }
-  return "Владелец магазина должен подключить Octopay и включить приём бонусов.";
+  return "Владелец магазина должен подключить OctōPAY и включить приём бонусов.";
+}
+
+/** Ошибки выставления счёта — понятным языком; сырой ответ провайдера не показываем. */
+function clientPaymentErrorText(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.code === "OCTOPAY_NOT_READY") return "Связь с OctōPAY сейчас не готова — подсказка выше. Счёт не выставлен.";
+    if (error.code === "OCTOPAY_INVOICE_LIMIT_REACHED")
+      return "В OctōPAY исчерпан лимит счетов этого магазина. Владельцу нужно проверить тариф OctōPAY.";
+    if (error.code === "IDEMPOTENCY_CONFLICT")
+      return "Этот счёт уже выставлялся с другими данными. Обновите страницу и выставьте заново.";
+    if (error.status === 502 || error.status === 503 || error.status === 504)
+      return "OctōPAY не ответил. Нажмите «Выставить счёт» ещё раз — второй счёт не создастся.";
+    if (error.status === 400 && /подписк/i.test(error.message))
+      return "Подписка магазина не активна — счёт выставить нельзя. Её продлевает владелец.";
+  }
+  if (error instanceof TypeError) return "Нет связи. Нажмите «Выставить счёт» ещё раз — второй счёт не создастся.";
+  return "Не удалось выставить счёт";
 }
 
 /**
@@ -109,12 +126,12 @@ function ClientPaymentFormAttempt({ merchantId, setupHref }: { merchantId: strin
     <div className="flex flex-col gap-5">
       {integration.isPending && (
         <div role="status" className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground">
-          Проверяем подключение Octopay…
+          Проверяем подключение OctōPAY…
         </div>
       )}
       {integration.isError && (
         <div role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
-          Не удалось проверить подключение Octopay. Обновите страницу и попробуйте ещё раз.
+          Не удалось проверить подключение OctōPAY. Обновите страницу и попробуйте ещё раз.
         </div>
       )}
       {integration.isSuccess && !integrationReady && (
@@ -157,7 +174,7 @@ function ClientPaymentFormAttempt({ merchantId, setupHref }: { merchantId: strin
               // guidance and disable submission until the link is ready again.
               await queryClient.invalidateQueries({ queryKey: ["merchant", merchantId, "octopay"] });
             }
-            applyServerIssues(error, helpers, "Не удалось выставить счёт");
+            applyServerIssues(error, helpers, clientPaymentErrorText(error));
           } finally {
             helpers.setSubmitting(false);
           }

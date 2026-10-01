@@ -1,6 +1,6 @@
 name: CI
 
-# Каждый пуш и пул-реквест в main: типы и сборка всех четырёх приложений.
+# Каждый пуш и пул-реквест в main: тесты схем API, типы и сборка всех пяти приложений.
 # Сборка кабинетов уже включает tsc --noEmit, лендинга — проверку типов Next.
 # Красный CI до сервера не доходит: CD запускается только после зелёного.
 on:
@@ -31,6 +31,10 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      # Контракты с бэкендом: счёт OctōPAY, готовность связи, списание без названия товара
+      - name: API schema tests
+        run: pnpm test:integration-ui
 
       - name: Build all apps
         run: pnpm -r --filter "./apps/*" build

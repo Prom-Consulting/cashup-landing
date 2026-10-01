@@ -109,12 +109,6 @@ html {
   color: transparent;
 }
 
-/* Карточка заведения — нативный <dialog>: Esc, фокус и фон браузер берёт на себя */
-.partner-dialog::backdrop {
-  background: rgb(22 21 21 / 0.6);
-  backdrop-filter: blur(4px);
-}
-
 /* Точка заведения на карте каталога: цвет бренда, белый жирный текст — как на оранжевых кнопках */
 .map-pin--brand {
   background: var(--flame);

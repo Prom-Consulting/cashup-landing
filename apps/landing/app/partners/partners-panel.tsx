@@ -79,14 +79,12 @@ export function PartnersPanel({
   selectedId,
   onHover,
   onPick,
-  onOpen,
   onLayout,
 }: {
   partners: PublicPartner[];
   selectedId: string | null;
   onHover: (id: string | null) => void;
   onPick: (partner: PublicPartner) => void;
-  onOpen: (partner: PublicPartner) => void;
   onLayout: (layout: PanelLayout) => void;
 }) {
   const desktop = useDesktop();
@@ -448,8 +446,14 @@ export function PartnersPanel({
                           )}
                         </span>
                         <span className="block truncate text-sm text-slate">
-                          {[partner.category, onMap ? null : "без точки на карте"].filter(Boolean).join(" · ") ||
-                            "Бишкек"}
+                          {[
+                            partner.category,
+                            // OctōPAY + Loal: бонусы тратятся прямо при оплате по ссылке
+                            partner.tariff === "octopay" ? "оплата бонусами в OctōPAY" : null,
+                            onMap ? null : "без точки на карте",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || "Бишкек"}
                         </span>
                       </span>
                       {partner.maxCoveragePercent ? (
@@ -464,6 +468,7 @@ export function PartnersPanel({
                         {partner.description && (
                           <p className="line-clamp-3 text-base leading-snug text-graphite/85">{partner.description}</p>
                         )}
+                        {partner.address && <p className="text-base leading-snug text-slate">{partner.address}</p>}
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-base">
                           {partner.contactPhone && (
                             <a
@@ -494,13 +499,6 @@ export function PartnersPanel({
                             </a>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => onOpen(partner)}
-                          className="self-start rounded-full bg-flame px-5 py-2.5 text-base font-bold text-white transition-colors hover:bg-graphite"
-                        >
-                          Фото и подробности
-                        </button>
                       </div>
                     )}
                   </div>

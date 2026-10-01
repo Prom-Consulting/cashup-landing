@@ -4,7 +4,6 @@ import type { PublicPartner } from "@loal/api";
 import type { PaddingOptions } from "maplibre-gl";
 import dynamic from "next/dynamic";
 import { useState, type CSSProperties } from "react";
-import { PartnerDialog } from "./partner-dialog";
 import { PartnersPanel, type PanelLayout } from "./partners-panel";
 
 // MapLibre работает только в браузере — на сервере вместо карты тёплая подложка
@@ -21,7 +20,6 @@ export function PartnersExplorer({ partners }: { partners: PublicPartner[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [focus, setFocus] = useState<{ id: string; at: number } | null>(null);
-  const [opened, setOpened] = useState<PublicPartner | null>(null);
   const [layout, setLayout] = useState<PanelLayout>({ kind: "side", right: 424 });
 
   const padding: PaddingOptions =
@@ -54,10 +52,8 @@ export function PartnersExplorer({ partners }: { partners: PublicPartner[] }) {
         selectedId={selectedId}
         onHover={setHoveredId}
         onPick={pick}
-        onOpen={setOpened}
         onLayout={setLayout}
       />
-      <PartnerDialog partner={opened} onClose={() => setOpened(null)} />
     </section>
   );
 }

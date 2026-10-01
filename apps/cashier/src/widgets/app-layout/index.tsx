@@ -45,7 +45,9 @@ export function AppLayout() {
   const overview = useCashierOverview(kind === "branch");
   const merchant = useCashierMerchant(kind === "merchant" ? merchantId : "");
   const location = useLocation();
-  const nav = NAV[kind ?? "merchant"];
+  // «Счёт клиенту» — часть тарифа OctōPAY + Loal: на «Только Loal» его нет
+  const bundle = overview.data?.tariff === "octopay";
+  const nav = NAV[kind ?? "merchant"].filter((item) => item.to !== "/client-payments" || bundle);
 
   const place = kind === "branch" ? (overview.data?.branch?.name ?? overview.data?.merchant?.name) : merchant.data?.name;
   const name = kind === "branch" ? overview.data?.cashier?.fullName : null;

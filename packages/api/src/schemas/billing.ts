@@ -9,8 +9,13 @@ export const merchantSubscriptionSchema = z.looseObject({
   plan: z.string().nullish(),
   status: z.string(),
   startedAt: z.string().nullish(),
+  /** null — оплаченной подписки нет: магазин на тарифе OctōPAY + Loal. */
   expiresAt: z.string().nullish(),
+  /** Может ли магазин принимать бонусы: оплаченная подписка или тариф OctōPAY + Loal. */
   isActive: z.boolean(),
+  /** Активна ли именно оплаченная подписка. Старый шлюз поля не присылает — считаем по isActive. */
+  paidActive: z.boolean().nullish(),
+  tariff: z.string().nullish(),
 });
 export type MerchantSubscription = z.infer<typeof merchantSubscriptionSchema>;
 
@@ -21,16 +26,11 @@ export const octopayIntegrationSchema = z.looseObject({
   isEnabled: z.boolean().optional(),
   /** В Octopay выбран пригодный активный банковский счёт в KGS. */
   invoiceReady: z.boolean().optional(),
-  invoiceNotReadyReason: z
-    .enum([
-      "LOAL_LINK_NOT_FOUND",
-      "LOAL_LINK_INACTIVE",
-      "KGS_BANK_ACCOUNT_REQUIRED",
-      "KGS_BANK_ACCOUNT_NOT_PAYABLE",
-      "KGS_BANK_ACCOUNT_AMBIGUOUS",
-    ])
-    .nullable()
-    .optional(),
+  /**
+   * LOAL_LINK_NOT_FOUND, LOAL_LINK_INACTIVE, KGS_BANK_ACCOUNT_REQUIRED, KGS_BANK_ACCOUNT_NOT_PAYABLE,
+   * KGS_BANK_ACCOUNT_AMBIGUOUS. Строкой: новая причина не должна ронять экран — для неё общая подсказка.
+   */
+  invoiceNotReadyReason: z.string().nullable().optional(),
   activeKgsBankAccountCount: z.number().int().nonnegative().optional(),
   payableKgsBankAccountCount: z.number().int().nonnegative().optional(),
   /** Готовность выставлять счета с кнопкой Loal; отсутствие поля трактуется как «не готово». */

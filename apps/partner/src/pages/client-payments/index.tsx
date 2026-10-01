@@ -1,11 +1,40 @@
 import { ClientPaymentForm, ClientPaymentList } from "@loal/app-kit";
-import { Card, PageHeader } from "@loal/ui/shadcn";
+import { Button, Card, Loading, PageHeader } from "@loal/ui/shadcn";
+import { Link } from "react-router";
+import { useTariff } from "../../entities/merchant/api";
 import { useCurrentMerchant } from "../../entities/session/model";
 
 /** Счёт клиенту через OctōPAY: клиент выбирает бонусы Loal и оплачивает остаток банком. */
 export function ClientPaymentsPage() {
   const { merchantId, canManage } = useCurrentMerchant();
+  const { tariff, isPending } = useTariff(merchantId ?? "");
   if (!merchantId) return null;
+  if (isPending) return <Loading rows={3} />;
+  // «Счёт клиенту» — часть тарифа OctōPAY + Loal; на «Только Loal» объясняем, как его получить
+  if (tariff !== "octopay")
+    return (
+      <section className="flex max-w-[640px] flex-col gap-6">
+        <PageHeader title="Счёт клиенту" />
+        <Card className="flex flex-col gap-3">
+          <h2 className="text-xl font-bold">Доступно на тарифе OctōPAY + Loal</h2>
+          <p className="text-lg leading-snug text-muted-foreground">
+            Клиент платит по ссылке OctōPAY и сам решает, сколько бонусов потратить. А Loal на этом тарифе бесплатен.
+          </p>
+          <p className="text-base text-muted-foreground">
+            {canManage
+              ? "Подключите магазин в OctōPAY на главной — тариф сменится сам."
+              : "Подключить OctōPAY может владелец магазина."}
+          </p>
+          {canManage && (
+            <div>
+              <Button asChild>
+                <Link to="/">Подключить OctōPAY</Link>
+              </Button>
+            </div>
+          )}
+        </Card>
+      </section>
+    );
   return (
     <section className="flex flex-col gap-6">
       <PageHeader

@@ -109,9 +109,21 @@ app → pages → widgets → features → entities → shared
   `/admin/v1/partners/*`, бонусом партнёра, `mechanicPartnerAccess`/`bonusItemPartnerAccess` и `?via=`;
 - филиалы: `PATCH` — переименовать, `DELETE` — закрыть (`archivedAt`, операции его помнят; `?includeArchived=true`),
   пока в филиале люди — `409 BRANCH_HAS_MEMBERS`. Закрывает и переименовывает только владелец;
-- счёт клиенту через OctōPAY — `…/merchants/{id}/client-payments` (POST `{ clientPhone, amount }`, GET последние 100):
-  выставляют все три роли, бонусы на ту же сумму списываются после оплаты сами. Форма и список общие —
-  `ClientPaymentForm`/`ClientPaymentList` в `@loal/app-kit`;
+- интеграция с OctōPAY (`docs/Rabotka.md`, `docs/API.md`): владелец выбирает в OctōPAY счёт в KGS, получает
+  одноразовый код `loal_link_…` и вводит его в «Обзоре» (`…/octopay-integration`: GET — все, POST/DELETE — владелец).
+  Код — секретное поле, нигде не храним. Счёт выставлять можно только при `ready` (`isOctopayIntegrationReady`;
+  старый ответ без полей готовности — «не готово»); причина — `invoiceNotReadyReason` строкой, подсказки по ней;
+- тариф магазина (`tariff`: `octopay` | `loal`, `tariffOf`, `TARIFF_LABELS`) не выбирают — он следует из связи с
+  OctōPAY: связь подключена и включена → «OctōPAY + Loal» (Loal бесплатен, бонусы принимаются без оплаченной
+  подписки, есть «Счёт клиенту»), иначе «Только Loal» (помесячная подписка, бонусы — касса). Приходит у магазина,
+  подписки (`isActive` = оплачено или пакет, `paidActive` — только оплачено, `expiresAt: null` у пакета без оплаты),
+  в каталоге и обзоре кассира. «Счёт клиенту» в меню только на пакете. Подписка `404` — «ещё не оплачивали», не ошибка;
+- счёт клиенту — `POST …/client-payments { requestId, amount }`: телефона нет, его вводит плательщик на странице
+  OctōPAY и сам выбирает бонусы (банк / бонусы / бонусы + банк). `requestId` — UUID попытки: тот же при повторе
+  после ошибки или таймаута, новый только после успеха (`OCTOPAY_NOT_READY`, `OCTOPAY_INVOICE_LIMIT_REACHED`,
+  `IDEMPOTENCY_CONFLICT`, `502` — понятным текстом). Выставляют все три роли; форма и список общие —
+  `ClientPaymentForm`/`ClientPaymentList` в `@loal/app-kit`. В UI пишем «OctōPAY»;
+- название товара при списании необязательно: пусто или нет поля — «Покупка» (у 1С по-прежнему обязательно);
 - цены — в настройках платформы у агентства (`merchantAccessPriceKgs`, `cardSubscriptionPriceKgs`),
   счёт считает сервер: магазину шлём только `{ months }`, сумму показываем из ответа. Цена 990 на
   лендинге и в кабинете клиента — только для показа, держать равной цене в админке;

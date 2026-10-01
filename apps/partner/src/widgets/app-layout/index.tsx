@@ -16,16 +16,21 @@ import { Icon, type IconSvg } from "@loal/ui/shadcn";
 import { Select } from "@loal/ui/select";
 import { useId } from "react";
 import { Link, Outlet, useLocation } from "react-router";
+import { type MerchantTariff } from "@loal/api";
+import { useTariff } from "../../entities/merchant/api";
 import { useCurrentMerchant } from "../../entities/session/model";
 import { CASHIER_APP_URL } from "../../shared/config/env";
 
-/** Кто видит раздел: все, владелец и администратор филиала, или только владелец. */
-type Item = NavItem & { icon: IconSvg; access?: "branch" | "owner" };
+/**
+ * Кто видит раздел: все, владелец и администратор филиала, или только владелец.
+ * tariff — раздел есть только на этом тарифе («Счёт клиенту» — на OctōPAY + Loal).
+ */
+type Item = NavItem & { icon: IconSvg; access?: "branch" | "owner"; tariff?: MerchantTariff };
 
 const nav: Item[] = [
   { to: "/", label: "Обзор", icon: Chart01Icon },
   { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
-  { to: "/client-payments", label: "Счёт клиенту", icon: Wallet01Icon },
+  { to: "/client-payments", label: "Счёт клиенту", icon: Wallet01Icon, tariff: "octopay" },
   { to: "/storefront", label: "Витрина", icon: Store01Icon },
   { to: "/deductions", label: "Списания", icon: CreditCardIcon, access: "branch" },
   { to: "/team", label: "Команда", icon: UserGroupIcon, access: "branch" },
@@ -37,8 +42,11 @@ const nav: Item[] = [
 
 export function AppLayout() {
   const { label, logout, memberships, merchantId, selectMerchant, canManage, canRunBranch } = useCurrentMerchant();
+  const { tariff } = useTariff(merchantId ?? "");
   const items = nav.filter(
-    (item) => !item.access || (item.access === "owner" ? canManage : canRunBranch),
+    (item) =>
+      (!item.access || (item.access === "owner" ? canManage : canRunBranch)) &&
+      (!item.tariff || item.tariff === tariff),
   );
   const location = useLocation();
   const selectId = useId();

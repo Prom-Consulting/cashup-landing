@@ -13,3 +13,7 @@ test("a supplied product name is trimmed and remains limited to 200 characters",
   assert.equal(purchasedItemInputSchema.parse({ ...item, productName: "  Кофе  " }).productName, "Кофе");
   assert.throws(() => purchasedItemInputSchema.parse({ ...item, productName: "x".repeat(201) }));
 });
+
+test("a missing product name is stored as a generic purchase", () => {
+  assert.equal(purchasedItemInputSchema.parse(item).productName, "Покупка");
+});

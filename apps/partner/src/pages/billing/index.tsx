@@ -1,8 +1,8 @@
-import { invoiceState } from "@loal/api";
+import { TARIFF_LABELS, invoiceState } from "@loal/api";
 import { PromoCodeForm } from "@loal/app-kit";
 import { Badge, Button, Card, EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { useCurrentMerchant } from "../../entities/session/model";
-import { useInvoices, useRedeemMerchantPromo, useSubscription } from "../../entities/merchant/api";
+import { useInvoices, useRedeemMerchantPromo, useSubscription, useTariff } from "../../entities/merchant/api";
 import { InvoiceForm } from "../../features/billing/invoice-form";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
 
@@ -14,6 +14,8 @@ export function BillingPage() {
   const subscription = useSubscription(merchantId ?? "");
   const invoices = useInvoices(merchantId ?? "");
   const redeemPromo = useRedeemMerchantPromo(merchantId ?? "");
+  const { tariff } = useTariff(merchantId ?? "");
+  const paidActive = subscription.data ? (subscription.data.paidActive ?? subscription.data.isActive) : false;
 
   return (
     <section className="flex flex-col gap-6">
@@ -21,13 +23,25 @@ export function BillingPage() {
         title="Оплата"
         description="Счёт — это оплата. Приём бонусов включает подписка: она продлевается после оплаты."
         action={
-          subscription.data && (
-            <Badge tone={subscription.data.isActive ? "good" : "warn"}>
-              {subscription.data.isActive ? `доступ до ${formatDate(subscription.data.expiresAt)}` : "доступ закрыт"}
+          tariff === "octopay" ? (
+            <Badge tone="good">Loal бесплатно</Badge>
+          ) : (
+            <Badge tone={paidActive ? "good" : "warn"}>
+              {paidActive ? `доступ до ${formatDate(subscription.data?.expiresAt)}` : "доступ закрыт"}
             </Badge>
           )
         }
       />
+
+      {tariff === "octopay" && (
+        <Card className="flex flex-col gap-2">
+          <h2 className="text-xl font-bold">Ваш тариф — {TARIFF_LABELS.octopay.title}</h2>
+          <p className="max-w-[70ch] text-base text-muted-foreground">
+            Пока магазин подключён к OctōPAY, платить за Loal не нужно — бонусы принимаются и так. Оплаченные месяцы ниже
+            пригодятся, только если вы отключите OctōPAY.
+          </p>
+        </Card>
+      )}
 
       <Card>
         <h2 className="text-xl font-bold">Новый счёт</h2>

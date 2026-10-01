@@ -5,6 +5,8 @@ import {
   buyMonthsInputSchema,
   invoiceState,
   type BuyMonthsInput,
+  TARIFF_LABELS,
+  tariffOf,
 } from "@loal/api";
 import {
   AddMemberForm,
@@ -104,9 +106,14 @@ export function MerchantDetailsPage() {
         title={merchant.data.name}
         description={`${merchant.data.slug} · создан ${formatDate(merchant.data.createdAt)}`}
         action={
-          <Badge tone={merchant.data.status === "active" ? "good" : "warn"}>
-            {MERCHANT_STATUS_LABELS[merchant.data.status]}
-          </Badge>
+          <span className="flex flex-wrap gap-2">
+            <Badge tone={tariffOf(merchant.data.tariff) === "octopay" ? "good" : "quiet"}>
+              {TARIFF_LABELS[tariffOf(merchant.data.tariff)].short}
+            </Badge>
+            <Badge tone={merchant.data.status === "active" ? "good" : "warn"}>
+              {MERCHANT_STATUS_LABELS[merchant.data.status]}
+            </Badge>
+          </span>
         }
       />
 
@@ -137,7 +144,11 @@ export function MerchantDetailsPage() {
           <h2 className="text-xl font-bold">Подписка заведения</h2>
           {subscription.data && (
             <Badge tone={subscription.data.isActive ? "good" : "warn"}>
-              {subscription.data.isActive ? `активна до ${formatDate(subscription.data.expiresAt)}` : "не активна"}
+              {subscription.data.expiresAt && (subscription.data.paidActive ?? subscription.data.isActive)
+                ? `оплачена до ${formatDate(subscription.data.expiresAt)}`
+                : subscription.data.isActive
+                  ? "OctōPAY + Loal — без оплаты"
+                  : "не активна"}
             </Badge>
           )}
         </div>

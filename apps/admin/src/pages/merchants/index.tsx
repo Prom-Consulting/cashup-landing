@@ -1,5 +1,5 @@
 import { Search01Icon } from "@hugeicons/core-free-icons";
-import { MERCHANT_STATUS_LABELS, WORKFLOW_STATUS_LABELS, WORKFLOW_STATUS_ORDER, type Merchant } from "@loal/api";
+import { MERCHANT_STATUS_LABELS, WORKFLOW_STATUS_LABELS, WORKFLOW_STATUS_ORDER, type Merchant, TARIFF_LABELS, tariffOf } from "@loal/api";
 import { Badge, Button, Card, EmptyState, ErrorState, Icon, Input, Loading, PageHeader } from "@loal/ui/shadcn";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -80,7 +80,12 @@ export function MerchantsPage() {
                   {MERCHANT_STATUS_LABELS[merchant.status]}
                 </Badge>
               </div>
-              <p className="mt-2 text-base text-muted-foreground">{merchant.slug}</p>
+              <p className="mt-2 flex flex-wrap items-center gap-2 text-base text-muted-foreground">
+                {merchant.slug}
+                <Badge tone={tariffOf(merchant.tariff) === "octopay" ? "good" : "quiet"}>
+                  {TARIFF_LABELS[tariffOf(merchant.tariff)].short}
+                </Badge>
+              </p>
               <p className="mt-4 text-base">
                 {WORKFLOW_STATUS_LABELS[merchant.workflowStatus]}{" "}
                 <span className="text-muted-foreground">

@@ -22,6 +22,8 @@ export const cashierOverviewSchema = z.looseObject({
     })
     .nullish(),
   permissions: z.looseObject({ redeem: z.boolean().nullish() }).nullish(),
+  /** octopay — есть «Счёт клиенту» через OctōPAY; loal — только касса. */
+  tariff: z.string().nullish(),
 });
 export type CashierOverview = z.infer<typeof cashierOverviewSchema>;
 

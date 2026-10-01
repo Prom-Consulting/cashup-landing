@@ -1,7 +1,9 @@
 import {
+  ApiError,
   merchantCabinetApi,
   merchantsApi,
   promoApi,
+  tariffOf,
   type ConnectOctopayInput,
   type CreateBranchInput,
   type CreateInvoiceInput,
@@ -149,14 +151,36 @@ export function useMerchant(merchantId: string) {
   });
 }
 
-/** isActive — главное поле: пока false, заведение не может принимать бонусы. */
+/**
+ * isActive — главное поле: пока false, заведение не может принимать бонусы. null — подписки
+ * нет вовсе (магазин на «Только Loal» ещё ни разу не платил): это состояние, а не ошибка.
+ */
 export function useSubscription(merchantId: string) {
   const api = useApi();
   return useQuery({
     queryKey: merchantKeys.subscription(merchantId),
-    queryFn: () => merchantCabinetApi(api).subscription(merchantId),
+    queryFn: async () => {
+      try {
+        return await merchantCabinetApi(api).subscription(merchantId);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
+      }
+    },
     enabled: Boolean(merchantId),
   });
+}
+
+/** Тариф магазина: OctōPAY + Loal или только Loal — по связи с OctōPAY (tariffOf). */
+export function useTariff(merchantId: string) {
+  const merchant = useMerchant(merchantId);
+  return { tariff: tariffOf(merchant.data?.tariff), isPending: merchant.isPending };
+}
+
+/** Связь с OctōPAY меняет тариф: перечитываем магазин и подписку. */
+function refreshTariff(queryClient: ReturnType<typeof useQueryClient>, merchantId: string) {
+  void queryClient.invalidateQueries({ queryKey: merchantKeys.detail(merchantId), exact: true });
+  void queryClient.invalidateQueries({ queryKey: merchantKeys.subscription(merchantId), exact: true });
 }
 
 export function useOctopayIntegration(merchantId: string) {
@@ -174,7 +198,10 @@ export function useConnectOctopay(merchantId: string) {
   return useMutation({
     gcTime: 0,
     mutationFn: (input: ConnectOctopayInput) => merchantCabinetApi(api).connectOctopay(merchantId, input),
-    onSuccess: (data) => queryClient.setQueryData(merchantKeys.octopay(merchantId), data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(merchantKeys.octopay(merchantId), data);
+      refreshTariff(queryClient, merchantId);
+    },
   });
 }
 
@@ -183,7 +210,8 @@ export function useDisconnectOctopay(merchantId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => merchantCabinetApi(api).disconnectOctopay(merchantId),
-    onSuccess: () =>
+    onSuccess: () => {
+      refreshTariff(queryClient, merchantId);
       queryClient.setQueryData(merchantKeys.octopay(merchantId), {
         connected: false,
         isEnabled: false,
@@ -194,7 +222,8 @@ export function useDisconnectOctopay(merchantId: string) {
         ready: false,
         octopayBusinessName: null,
         connectedAt: null,
-      }),
+      });
+    },
   });
 }
 
