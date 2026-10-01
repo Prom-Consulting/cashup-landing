@@ -42,9 +42,9 @@ function readinessHint(reason?: string | null, activeAccounts?: number) {
     return "Активный счёт в KGS пока не готов принимать оплату. Проверьте поддерживаемый банк, реквизиты и подключение счёта в Octopay.";
   }
   if (reason === "KGS_BANK_ACCOUNT_AMBIGUOUS") {
-    return `Для счетов Loal нужен ровно один активный банковский счёт в KGS, готовый к оплате${
-      activeAccounts === undefined ? "" : `; сейчас активных: ${activeAccounts}`
-    }. Отключите лишние активные счета в Octopay.`;
+    return `В Octopay выберите банковский счёт в KGS для Loal${
+      activeAccounts === undefined ? "" : ` (сейчас активных: ${activeAccounts})`
+    }, затем создайте новый код, отключите текущую связь ниже и подключите Octopay заново.`;
   }
   if (reason === "LOAL_LINK_INACTIVE") {
     return "Откройте «Интеграции → Бонусы Loal» в кабинете Octopay и нажмите «Включить бонусы».";

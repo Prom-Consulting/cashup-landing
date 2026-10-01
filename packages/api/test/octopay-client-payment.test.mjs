@@ -42,6 +42,19 @@ test("Octopay readiness accepts either the aggregate flag or complete component 
   }), true);
 });
 
+test("Octopay readiness accepts a selected account when several KGS accounts are active", () => {
+  const status = octopayIntegrationSchema.parse({
+    ...baseIntegration,
+    isEnabled: true,
+    invoiceReady: true,
+    invoiceNotReadyReason: null,
+    activeKgsBankAccountCount: 2,
+    payableKgsBankAccountCount: 2,
+  });
+
+  assert.equal(isOctopayIntegrationReady(status), true);
+});
+
 test("client invoice amount supports kopecks but rejects fractions smaller than one kopeck", () => {
   const requestId = "11111111-1111-4111-8111-111111111111";
   assert.deepEqual(clientPaymentInputSchema.parse({ requestId, amount: "10.01" }), { requestId, amount: 10.01 });

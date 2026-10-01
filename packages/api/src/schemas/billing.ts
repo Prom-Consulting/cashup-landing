@@ -19,7 +19,7 @@ export const octopayIntegrationSchema = z.looseObject({
   connected: z.boolean(),
   /** Связь может быть подтверждена, но приём бонусов приостановлен в Octopay. */
   isEnabled: z.boolean().optional(),
-  /** В Octopay найден ровно один пригодный активный банковский счёт в KGS. */
+  /** В Octopay выбран пригодный активный банковский счёт в KGS. */
   invoiceReady: z.boolean().optional(),
   invoiceNotReadyReason: z
     .enum([

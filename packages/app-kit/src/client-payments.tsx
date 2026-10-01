@@ -71,7 +71,7 @@ function octopaySetupHint(reason?: string | null, activeAccounts?: number) {
     return "Активный счёт в KGS пока не готов принимать оплату. Владелец должен проверить поддерживаемый банк, реквизиты и подключение счёта в Octopay.";
   }
   if (reason === "KGS_BANK_ACCOUNT_AMBIGUOUS") {
-    return `В кабинете Octopay оставьте ровно один активный банковский счёт в KGS, готовый к оплате${
+    return `Владелец магазина должен выбрать в Octopay банковский счёт в KGS для Loal и переподключить Loal новым кодом${
       activeAccounts === undefined ? "" : ` (сейчас активных: ${activeAccounts})`
     }.`;
   }
