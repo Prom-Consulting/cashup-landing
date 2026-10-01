@@ -1,4 +1,9 @@
-import { ApiError, connectOctopayInputSchema, type ConnectOctopayInput } from "@loal/api";
+import {
+  ApiError,
+  connectOctopayInputSchema,
+  isOctopayIntegrationReady,
+  type ConnectOctopayInput,
+} from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Badge, Button, ConfirmDialog, FormField, FormStatus, Input, Skeleton } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
@@ -29,11 +34,30 @@ function disconnectErrorMessage(error: unknown) {
   return "Не удалось отключить Octopay. Попробуйте ещё раз.";
 }
 
+function readinessHint(reason?: string | null, activeAccounts?: number) {
+  if (reason === "KGS_BANK_ACCOUNT_REQUIRED") {
+    return "Добавьте и активируйте в Octopay один банковский счёт в KGS.";
+  }
+  if (reason === "KGS_BANK_ACCOUNT_NOT_PAYABLE") {
+    return "Активный счёт в KGS пока не готов принимать оплату. Проверьте поддерживаемый банк, реквизиты и подключение счёта в Octopay.";
+  }
+  if (reason === "KGS_BANK_ACCOUNT_AMBIGUOUS") {
+    return `Для счетов Loal нужен ровно один активный банковский счёт в KGS, готовый к оплате${
+      activeAccounts === undefined ? "" : `; сейчас активных: ${activeAccounts}`
+    }. Отключите лишние активные счета в Octopay.`;
+  }
+  if (reason === "LOAL_LINK_INACTIVE") {
+    return "Откройте «Интеграции → Бонусы Loal» в кабинете Octopay и нажмите «Включить бонусы».";
+  }
+  return "Octopay пока не подтвердил готовность интеграции. Обновите страницу или проверьте настройки в Octopay.";
+}
+
 export function OctopayIntegration({ merchantId }: { merchantId: string }) {
   const integration = useOctopayIntegration(merchantId);
   const connect = useConnectOctopay(merchantId);
   const disconnect = useDisconnectOctopay(merchantId);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const ready = Boolean(integration.data && isOctopayIntegrationReady(integration.data));
 
   const focusUpdatedState = () => {
     requestAnimationFrame(() => headingRef.current?.focus());
@@ -50,8 +74,8 @@ export function OctopayIntegration({ merchantId }: { merchantId: string }) {
           Octopay
         </h3>
         {integration.isSuccess && (
-          <Badge role="status" aria-live="polite" tone={integration.data.connected ? "good" : "quiet"}>
-            {integration.data.connected ? "Подключено" : "Не подключено"}
+          <Badge role="status" aria-live="polite" tone={ready ? "good" : integration.data.connected ? "warn" : "quiet"}>
+            {ready ? "Подключено" : integration.data.connected ? "Приём приостановлен" : "Не подключено"}
           </Badge>
         )}
       </div>
@@ -87,9 +111,18 @@ export function OctopayIntegration({ merchantId }: { merchantId: string }) {
               Подключено {formatDateTime(integration.data.connectedAt)}
             </p>
           )}
-          <p className="mt-3 text-base text-muted-foreground">
-            В счетах этого магазина доступна оплата бонусами Loal.
-          </p>
+          {ready ? (
+            <p className="mt-3 text-base text-muted-foreground">
+              В счетах этого магазина доступна оплата бонусами Loal.
+            </p>
+          ) : (
+            <div role="alert" className="mt-3 rounded-2xl bg-muted p-4 text-base">
+              {readinessHint(
+                integration.data.invoiceNotReadyReason,
+                integration.data.activeKgsBankAccountCount,
+              )}
+            </div>
+          )}
           <ConfirmDialog
             trigger={
               <Button type="button" variant="outline" size="sm" className="mt-4">

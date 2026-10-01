@@ -2,7 +2,7 @@ import { ClientPaymentForm, ClientPaymentList } from "@loal/app-kit";
 import { Card, PageHeader } from "@loal/ui/shadcn";
 import { useCashierSession } from "../../entities/cashier/api";
 
-/** Счёт клиенту через OctōPAY: оплатит по ссылке — бонусы на ту же сумму спишутся сами. */
+/** Счёт клиенту через OctōPAY: клиент выбирает бонусы Loal и оплачивает остаток банком. */
 export function ClientPaymentsPage() {
   const { merchantId } = useCashierSession();
   if (!merchantId) return null;
@@ -10,7 +10,7 @@ export function ClientPaymentsPage() {
     <section className="flex flex-col gap-6">
       <PageHeader
         title="Счёт клиенту"
-        description="Клиент оплачивает по ссылке OctōPAY, и бонусы на ту же сумму спишутся с его карты сами."
+        description="Клиент открывает ссылку OctōPAY, выбирает, сколько бонусов Loal использовать, и оплачивает остаток банком."
       />
       <Card>
         <ClientPaymentForm merchantId={merchantId} />

@@ -17,10 +17,38 @@ export type MerchantSubscription = z.infer<typeof merchantSubscriptionSchema>;
 /** Связь выбранного магазина Loal с бизнесом в Octopay. */
 export const octopayIntegrationSchema = z.looseObject({
   connected: z.boolean(),
+  /** Связь может быть подтверждена, но приём бонусов приостановлен в Octopay. */
+  isEnabled: z.boolean().optional(),
+  /** В Octopay найден ровно один пригодный активный банковский счёт в KGS. */
+  invoiceReady: z.boolean().optional(),
+  invoiceNotReadyReason: z
+    .enum([
+      "LOAL_LINK_NOT_FOUND",
+      "LOAL_LINK_INACTIVE",
+      "KGS_BANK_ACCOUNT_REQUIRED",
+      "KGS_BANK_ACCOUNT_NOT_PAYABLE",
+      "KGS_BANK_ACCOUNT_AMBIGUOUS",
+    ])
+    .nullable()
+    .optional(),
+  activeKgsBankAccountCount: z.number().int().nonnegative().optional(),
+  payableKgsBankAccountCount: z.number().int().nonnegative().optional(),
+  /** Готовность выставлять счета с кнопкой Loal; отсутствие поля трактуется как «не готово». */
+  ready: z.boolean().optional(),
   octopayBusinessName: z.string().nullable(),
   connectedAt: z.string().nullable(),
 });
 export type OctopayIntegration = z.infer<typeof octopayIntegrationSchema>;
+
+/** Старый ответ без полей готовности всегда трактуем безопасно: счета не выставляем. */
+export function isOctopayIntegrationReady(
+  integration: Pick<OctopayIntegration, "connected" | "isEnabled" | "invoiceReady" | "ready">,
+) {
+  return Boolean(
+    integration.ready ??
+      (integration.connected && integration.isEnabled === true && integration.invoiceReady === true),
+  );
+}
 
 /** Одноразовый код создаётся в Octopay и нигде не сохраняется на стороне клиента. */
 export const connectOctopayInputSchema = z.object({

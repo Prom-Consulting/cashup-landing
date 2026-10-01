@@ -4,6 +4,7 @@
   "packageManager": "pnpm@10.20.0",
   "scripts": {
     "dev": "pnpm --filter @loal/landing dev",
+    "test:integration-ui": "node --import tsx --test packages/api/test/*.test.mjs",
     "dev:partner": "pnpm --filter @loal/partner dev",
     "dev:client": "pnpm --filter @loal/client dev",
     "build": "pnpm -r --filter './apps/*' build",

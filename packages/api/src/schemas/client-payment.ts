@@ -2,18 +2,23 @@ import { z } from "zod";
 import { phoneSchema } from "./phone";
 
 /**
- * Счёт клиенту через OctōPAY: клиент платит магазину, и как только оплатит, бонусы на ту же
- * сумму спишутся с его карты сами. Выставляют владелец, администратор филиала и кассир;
- * операция записывается на того, кто выставил, и на его филиал.
+ * Счёт клиенту через OctōPAY: клиент сам выбирает сумму бонусов Loal, а остаток оплачивает
+ * банком. Выставляют владелец, администратор филиала и кассир.
  */
 export const clientPaymentInputSchema = z.object({
+  requestId: z.uuid("Не удалось создать идентификатор запроса"),
   clientPhone: phoneSchema,
   amount: z.coerce
     .number({ error: "Введите сумму" })
     .positive("Сумма больше нуля")
-    .max(100_000_000, "Слишком большая сумма"),
+    .max(100_000_000, "Слишком большая сумма")
+    .refine((value) => {
+      const scaled = value * 100;
+      const minor = Math.round(scaled);
+      return Number.isSafeInteger(minor) && Math.abs(scaled - minor) <= 1e-7;
+    }, "Сумма должна содержать не больше двух знаков после запятой"),
 });
-export type ClientPaymentInput = { clientPhone: string; amount: number | string };
+export type ClientPaymentInput = { requestId: string; clientPhone: string; amount: number | string };
 
 /** Счёт клиенту. Статус строкой: незнакомый не должен ронять список. */
 export const clientPaymentSchema = z.looseObject({

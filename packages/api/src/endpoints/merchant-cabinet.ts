@@ -180,7 +180,7 @@ export const merchantCabinetApi = (api: ApiClient) => ({
       method: "DELETE",
     }),
 
-  /** Счёт клиенту: оплатит — бонусы на ту же сумму спишутся с его карты сами. */
+  /** Счёт клиенту: на странице Octopay клиент сам выбирает, сколько бонусов Loal использовать. */
   createClientPayment: (merchantId: string, input: ClientPaymentInput) =>
     api.request(clientPaymentSchema, `/admin/v1/merchants/${merchantId}/client-payments`, {
       method: "POST",

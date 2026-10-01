@@ -186,6 +186,12 @@ export function useDisconnectOctopay(merchantId: string) {
     onSuccess: () =>
       queryClient.setQueryData(merchantKeys.octopay(merchantId), {
         connected: false,
+        isEnabled: false,
+        invoiceReady: false,
+        invoiceNotReadyReason: "LOAL_LINK_NOT_FOUND",
+        activeKgsBankAccountCount: 0,
+        payableKgsBankAccountCount: 0,
+        ready: false,
         octopayBusinessName: null,
         connectedAt: null,
       }),
