@@ -5,7 +5,11 @@ import { z } from "zod";
  * баллы; сколько это в баллах, считает сервер: по позиции цена × процент / 100, вниз.
  */
 export const purchasedItemInputSchema = z.object({
-  productName: z.string().trim().min(1, "Что купили").max(200, "Не длиннее 200 символов"),
+  productName: z
+    .string()
+    .trim()
+    .max(200, "Не длиннее 200 символов")
+    .transform((value) => value || "Покупка"),
   price: z.coerce.number({ error: "Введите цену" }).positive("Цена больше нуля"),
   deductionPercent: z.coerce
     .number({ error: "Введите процент" })

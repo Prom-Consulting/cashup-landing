@@ -177,11 +177,11 @@ export function RedeemForm({
                     onScan={(cardNumber) => {
                       void form.setFieldValue("cardSerialNumber", cardNumber);
                       void form.setFieldTouched("cardSerialNumber", true, false);
-                      // Карта считана — дальше вводят товар
+                      // Наименование необязательно — после карты сразу вводят цену.
                       setTimeout(
                         () =>
                           document
-                            .querySelector<HTMLInputElement>('input[name="whatPurchased.0.productName"]')
+                            .querySelector<HTMLInputElement>('input[name="whatPurchased.0.price"]')
                             ?.focus(),
                         50,
                       );
@@ -256,12 +256,12 @@ export function RedeemForm({
                         <div className="mt-2 grid gap-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
                           <div>
                             <label htmlFor={`${cardId}-${index}-name`} className="sr-only">
-                              Товар
+                              Наименование товара (необязательно)
                             </label>
                             <Input
                               id={`${cardId}-${index}-name`}
                               name={`${base}.productName`}
-                              placeholder="Товар"
+                              placeholder="Наименование (необязательно)"
                               value={item.productName}
                               onChange={form.handleChange}
                               onBlur={form.handleBlur}
