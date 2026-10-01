@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { phoneSchema } from "./phone";
 
 /**
  * Счёт клиенту через OctōPAY: клиент сам выбирает сумму бонусов Loal, а остаток оплачивает
@@ -7,7 +6,6 @@ import { phoneSchema } from "./phone";
  */
 export const clientPaymentInputSchema = z.object({
   requestId: z.uuid("Не удалось создать идентификатор запроса"),
-  clientPhone: phoneSchema,
   amount: z.coerce
     .number({ error: "Введите сумму" })
     .positive("Сумма больше нуля")
@@ -18,7 +16,7 @@ export const clientPaymentInputSchema = z.object({
       return Number.isSafeInteger(minor) && Math.abs(scaled - minor) <= 1e-7;
     }, "Сумма должна содержать не больше двух знаков после запятой"),
 });
-export type ClientPaymentInput = { requestId: string; clientPhone: string; amount: number | string };
+export type ClientPaymentInput = { requestId: string; amount: number | string };
 
 /** Счёт клиенту. Статус строкой: незнакомый не должен ронять список. */
 export const clientPaymentSchema = z.looseObject({

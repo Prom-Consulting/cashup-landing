@@ -9,7 +9,7 @@ import {
   type ClientPaymentInput,
 } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
-import { PhoneInput, formatPhone } from "@loal/ui/inputs";
+import { formatPhone } from "@loal/ui/inputs";
 import { Badge, Button, EmptyState, ErrorState, FormField, FormStatus, Icon, Input, Loading } from "@loal/ui/shadcn";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Form, Formik } from "formik";
@@ -102,7 +102,7 @@ function ClientPaymentFormAttempt({ merchantId, setupHref }: { merchantId: strin
   const [issued, setIssued] = useState<ClientPayment | null>(null);
   // Retry-safe identifier.
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
-  const initialValues: ClientPaymentInput = { requestId, clientPhone: "", amount: "" };
+  const initialValues: ClientPaymentInput = { requestId, amount: "" };
   const integrationReady = Boolean(integration.data && isOctopayIntegrationReady(integration.data));
 
   return (
@@ -148,7 +148,7 @@ function ClientPaymentFormAttempt({ merchantId, setupHref }: { merchantId: strin
             // recover the exact Octopay invoice. Rotate only after success.
             const nextRequestId = crypto.randomUUID();
             setRequestId(nextRequestId);
-            helpers.resetForm({ values: { requestId: nextRequestId, clientPhone: "", amount: "" } });
+            helpers.resetForm({ values: { requestId: nextRequestId, amount: "" } });
           } catch (error) {
             if (error instanceof ApiError && error.code === "OCTOPAY_NOT_READY") {
               // Readiness may have changed since the form was rendered (for
@@ -166,22 +166,7 @@ function ClientPaymentFormAttempt({ merchantId, setupHref }: { merchantId: strin
         {(form) => (
           <Form noValidate className="flex flex-col gap-4">
             <FocusFirstError form={form} />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                label="Телефон клиента"
-                hint="По нему найдём его карту Loal."
-                error={fieldError(form, "clientPhone")}
-              >
-                {(parts) => (
-                  <PhoneInput
-                    {...parts}
-                    name="clientPhone"
-                    value={form.values.clientPhone}
-                    onValueChange={(value) => form.setFieldValue("clientPhone", value)}
-                    onBlur={() => form.setFieldTouched("clientPhone", true)}
-                  />
-                )}
-              </FormField>
+            <div className="max-w-xl">
               <FormField label="Сумма" error={fieldError(form, "amount")}>
                 {(parts) => (
                   <div className="relative">

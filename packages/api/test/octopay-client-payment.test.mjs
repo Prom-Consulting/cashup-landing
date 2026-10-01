@@ -44,9 +44,9 @@ test("Octopay readiness accepts either the aggregate flag or complete component 
 
 test("client invoice amount supports kopecks but rejects fractions smaller than one kopeck", () => {
   const requestId = "11111111-1111-4111-8111-111111111111";
-  assert.equal(clientPaymentInputSchema.parse({ requestId, clientPhone: "+996700123456", amount: "10.01" }).amount, 10.01);
-  assert.throws(() => clientPaymentInputSchema.parse({ requestId, clientPhone: "+996700123456", amount: "1.005" }));
-  assert.throws(() => clientPaymentInputSchema.parse({ requestId, clientPhone: "+996700123456", amount: "10.001" }));
-  assert.throws(() => clientPaymentInputSchema.parse({ requestId: "not-a-uuid", clientPhone: "+996700123456", amount: "10.01" }));
-  assert.throws(() => clientPaymentInputSchema.parse({ clientPhone: "+996700123456", amount: "10.01" }));
+  assert.deepEqual(clientPaymentInputSchema.parse({ requestId, amount: "10.01" }), { requestId, amount: 10.01 });
+  assert.throws(() => clientPaymentInputSchema.parse({ requestId, amount: "1.005" }));
+  assert.throws(() => clientPaymentInputSchema.parse({ requestId, amount: "10.001" }));
+  assert.throws(() => clientPaymentInputSchema.parse({ requestId: "not-a-uuid", amount: "10.01" }));
+  assert.throws(() => clientPaymentInputSchema.parse({ amount: "10.01" }));
 });
