@@ -6,6 +6,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { CITY_CENTER, coordsOf } from "../_data/partner-coords";
 import { monogram } from "../_data/partners-api";
+import { fitLogo, partnerAvatar } from "./logo-fit";
 
 // OpenStreetMap через MapLibre, приглушённая до тёплого серого: на ней горят только
 // оранжевые точки заведений. Атрибуция OSM остаётся видимой — это условие лицензии.
@@ -61,10 +62,12 @@ function pinElement(partner: PublicPartner, index: number, onClick: () => void) 
   const drop = make("span", "loal-pin__drop");
   const lift = make("span", "loal-pin__lift");
   const face = make("span", "loal-pin__face");
-  const image = partner.photos[0] ?? partner.logoUrl;
+  const image = partnerAvatar(partner);
   if (image) {
     const img = make("img", "loal-pin__img") as HTMLImageElement;
+    img.crossOrigin = "anonymous";
     img.src = image;
+    fitLogo(img);
     img.alt = "";
     img.decoding = "async";
     face.append(img);

@@ -4,6 +4,7 @@ import type { PublicPartner } from "@loal/api";
 import type { KeyboardEvent, RefObject } from "react";
 import { highlight, type SearchResult } from "../_data/partner-search";
 import { monogram } from "../_data/partners-api";
+import { fitLogo, partnerAvatar } from "./logo-fit";
 
 export type SearchOption =
   | { kind: "category"; label: string; count: number }
@@ -206,16 +207,18 @@ export function Suggestions({
                       </li>
                     );
                   const partner = option.partner;
-                  const image = partner.photos[0] ?? partner.logoUrl;
+                  const image = partnerAvatar(partner);
                   return (
                     <li key={`p-${partner.id}`} {...common}>
                       <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[conic-gradient(from_210deg,var(--coral),var(--flame),var(--amber),var(--peach),var(--coral))] p-[2px]">
                         {image ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
+                            ref={fitLogo}
                             src={image}
                             alt=""
-                            className="h-full w-full rounded-full border-2 border-paper object-cover"
+                            crossOrigin="anonymous"
+                            className="h-full w-full rounded-full border-2 border-paper bg-paper object-cover"
                           />
                         ) : (
                           <span className="brand-gradient grid h-full w-full place-items-center rounded-full border-2 border-paper text-sm font-extrabold text-white">

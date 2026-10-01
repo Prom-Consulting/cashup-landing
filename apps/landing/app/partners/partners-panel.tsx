@@ -7,6 +7,7 @@ import { coordsOf } from "../_data/partner-coords";
 import { highlight, searchPartners } from "../_data/partner-search";
 import { monogram } from "../_data/partners-api";
 import { SearchField, Suggestions, type SearchOption } from "./smart-search";
+import { fitLogo, partnerAvatar } from "./logo-fit";
 
 const STORAGE_KEY = "loal.partners.panel";
 const PANEL_WIDTH = 400;
@@ -49,15 +50,17 @@ function Grip() {
 }
 
 function Avatar({ partner }: { partner: PublicPartner }) {
-  const image = partner.photos[0] ?? partner.logoUrl;
+  const image = partnerAvatar(partner);
   return (
     <span aria-hidden="true" className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-[conic-gradient(from_210deg,var(--coral),var(--flame),var(--amber),var(--peach),var(--coral))] p-[3px]">
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          ref={fitLogo}
           src={image}
           alt=""
-          className="h-full w-full rounded-full border-2 border-paper object-cover"
+          crossOrigin="anonymous"
+          className="h-full w-full rounded-full border-2 border-paper bg-paper object-cover"
           loading="lazy"
         />
       ) : (
