@@ -80,6 +80,10 @@ export function RedeemForm({
   const schema = useMemo(() => redemptionInputSchema(maxPercent), [maxPercent]);
   const defaultPercent = Math.min(5, maxPercent);
   const choices = percentChoices(maxPercent);
+  // Номер карты руками — запасной путь: поле открывается по кнопке, а не висит под сканером
+  const [manualCard, setManualCard] = useState(false);
+  // Позиции, где касса выбрала «Свой %» — вводит любое целое число до потолка
+  const [customPercent, setCustomPercent] = useState<Set<number>>(new Set());
   const cardId = useId();
 
   const initialValues: RedemptionForm = {
@@ -99,6 +103,8 @@ export function RedeemForm({
           const done = await redeem.mutateAsync({ input: { ...values, merchantId }, maxPercent });
           setResult(done);
           helpers.resetForm({ values: { ...initialValues, operationId: newOperationId() } });
+          setManualCard(false);
+          setCustomPercent(new Set());
           // Итог — первым делом на экране, особенно на телефоне
           requestAnimationFrame(() => resultRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
         } catch (error) {
@@ -118,6 +124,8 @@ export function RedeemForm({
           return (form.submitCount > 0 || getIn(form.touched, path)) && typeof error === "string" ? error : undefined;
         };
         const card = form.values.cardSerialNumber.trim();
+        // Плашка «карта считана» — только для сканера: номер, который вводят руками, остаётся в поле
+        const scanned = Boolean(card) && !manualCard;
         const cardError = fieldError(form, "cardSerialNumber");
 
         return (
@@ -159,13 +167,16 @@ export function RedeemForm({
                 <h2 id={`${cardId}-title`} className="text-lg font-bold">
                   Карта клиента
                 </h2>
-                {card ? (
+                {scanned ? (
                   <div className="mt-3 flex items-center gap-3 rounded-2xl bg-muted px-4 py-3">
                     <Icon icon={QrCode01Icon} size={24} className="text-primary" />
                     <span className="min-w-0 flex-1 truncate font-mono text-lg tabular-nums">{card}</span>
                     <button
                       type="button"
-                      onClick={() => void form.setFieldValue("cardSerialNumber", "")}
+                      onClick={() => {
+                        setManualCard(false);
+                        void form.setFieldValue("cardSerialNumber", "");
+                      }}
                       className="shrink-0 text-base font-semibold text-flame-ink underline-offset-4 hover:underline"
                     >
                       Другая
@@ -175,6 +186,7 @@ export function RedeemForm({
                   <QrScanButton
                     className="mt-3 h-16 w-full rounded-2xl text-lg"
                     onScan={(cardNumber) => {
+                      setManualCard(false);
                       void form.setFieldValue("cardSerialNumber", cardNumber);
                       void form.setFieldTouched("cardSerialNumber", true, false);
                       // Наименование необязательно — после карты сразу вводят цену.
@@ -191,10 +203,22 @@ export function RedeemForm({
                     Сканировать QR-код карты
                   </QrScanButton>
                 )}
-                {/* Считали карту — поле ввода прячем, номер уже в плашке выше */}
-                <div hidden={Boolean(card)}>
+                {/* Номер руками — по кнопке; если форма уже ругается на номер, поле открыто сразу */}
+                {!scanned && !manualCard && !cardError && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManualCard(true);
+                      setTimeout(() => document.getElementById(cardId)?.focus(), 30);
+                    }}
+                    className="mt-3 w-full rounded-2xl py-2 text-base font-semibold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                  >
+                    Ввести номер вручную
+                  </button>
+                )}
+                <div hidden={scanned || !(manualCard || cardError)}>
                   <label htmlFor={cardId} className="mt-4 block text-base text-muted-foreground">
-                    или введите номер под QR-кодом
+                    Номер карты — под QR-кодом
                   </label>
                   <Input
                     id={cardId}
@@ -229,6 +253,10 @@ export function RedeemForm({
                     const nameError = at(`${base}.productName`);
                     const priceError = at(`${base}.price`);
                     const percentError = at(`${base}.deductionPercent`);
+                    // «Свой» — выбран явно или процент не совпадает ни с одной кнопкой
+                    const custom =
+                      customPercent.has(index) ||
+                      (String(item.deductionPercent) !== "" && !choices.includes(Number(item.deductionPercent)));
                     return (
                       <li key={index} className="rounded-2xl border-2 border-border p-4">
                         <div className="flex items-center gap-3">
@@ -240,12 +268,13 @@ export function RedeemForm({
                             <button
                               type="button"
                               aria-label={`Убрать позицию ${index + 1}`}
-                              onClick={() =>
-                                form.setFieldValue(
+                              onClick={() => {
+                                setCustomPercent(new Set());
+                                void form.setFieldValue(
                                   "whatPurchased",
                                   items.filter((_, i) => i !== index),
-                                )
-                              }
+                                );
+                              }}
                               className="-my-2 -mr-2 grid h-10 w-10 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
                             >
                               <Icon icon={Cancel01Icon} />
@@ -261,7 +290,7 @@ export function RedeemForm({
                             <Input
                               id={`${cardId}-${index}-name`}
                               name={`${base}.productName`}
-                              placeholder="Наименование (необязательно)"
+                              placeholder="Товар (необязательно)"
                               value={item.productName}
                               onChange={form.handleChange}
                               onBlur={form.handleBlur}
@@ -295,19 +324,26 @@ export function RedeemForm({
 
                         <div
                           className="mt-3 grid gap-2"
-                          style={{ gridTemplateColumns: `repeat(${choices.length}, minmax(0, 1fr))` }}
+                          style={{ gridTemplateColumns: `repeat(${choices.length + 1}, minmax(0, 1fr))` }}
                           role="radiogroup"
                           aria-label="Сколько процентов цены закрыть бонусами"
                         >
                           {choices.map((value) => {
-                            const active = Number(item.deductionPercent) === value;
+                            const active = !custom && Number(item.deductionPercent) === value;
                             return (
                               <button
                                 key={value}
                                 type="button"
                                 role="radio"
                                 aria-checked={active}
-                                onClick={() => form.setFieldValue(`${base}.deductionPercent`, value)}
+                                onClick={() => {
+                                  setCustomPercent((current) => {
+                                    const next = new Set(current);
+                                    next.delete(index);
+                                    return next;
+                                  });
+                                  void form.setFieldValue(`${base}.deductionPercent`, value);
+                                }}
                                 className={`h-11 rounded-full text-base font-bold tabular-nums transition-colors ${
                                   active ? "bg-graphite text-white" : "bg-muted text-foreground hover:bg-border"
                                 }`}
@@ -316,7 +352,44 @@ export function RedeemForm({
                               </button>
                             );
                           })}
+                          <button
+                            type="button"
+                            role="radio"
+                            aria-checked={custom}
+                            onClick={() => {
+                              setCustomPercent((current) => new Set(current).add(index));
+                              setTimeout(() => document.getElementById(`${cardId}-${index}-percent`)?.focus(), 30);
+                            }}
+                            className={`h-11 rounded-full text-base font-bold transition-colors ${
+                              custom ? "bg-graphite text-white" : "bg-muted text-foreground hover:bg-border"
+                            }`}
+                          >
+                            Свой
+                          </button>
                         </div>
+                        {custom && (
+                          <div className="mt-2 flex items-center gap-3">
+                            <label htmlFor={`${cardId}-${index}-percent`} className="text-sm text-muted-foreground">
+                              Свой процент
+                            </label>
+                            <div className="relative w-28">
+                              <Input
+                                id={`${cardId}-${index}-percent`}
+                                name={`${base}.deductionPercent`}
+                                inputMode="numeric"
+                                placeholder={`1–${maxPercent}`}
+                                className="pr-9 tabular-nums"
+                                value={String(item.deductionPercent)}
+                                onChange={form.handleChange}
+                                onBlur={form.handleBlur}
+                                invalid={Boolean(percentError)}
+                              />
+                              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-base text-muted-foreground">
+                                %
+                              </span>
+                            </div>
+                          </div>
+                        )}
                         {percentError && <p className="mt-1 text-sm font-medium text-destructive">{percentError}</p>}
                       </li>
                     );
@@ -332,27 +405,6 @@ export function RedeemForm({
                   <Icon icon={Add01Icon} />
                   Добавить позицию
                 </button>
-
-                <details className="group mt-4">
-                  <summary className="cursor-pointer text-sm text-muted-foreground select-none">
-                    Номер операции: <span className="font-mono">{form.values.operationId}</span>
-                  </summary>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Номер чека. Повтор с тем же номером не спишет второй раз — при обрыве связи можно смело нажать ещё раз.
-                  </p>
-                  <Input
-                    name="operationId"
-                    aria-label="Номер операции"
-                    className="mt-2 font-mono text-base"
-                    value={form.values.operationId}
-                    onChange={form.handleChange}
-                    onBlur={form.handleBlur}
-                    invalid={Boolean(fieldError(form, "operationId"))}
-                  />
-                  {fieldError(form, "operationId") && (
-                    <p className="mt-1 text-sm font-medium text-destructive">{fieldError(form, "operationId")}</p>
-                  )}
-                </details>
               </section>
             </div>
 
