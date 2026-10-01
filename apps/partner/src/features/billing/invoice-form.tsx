@@ -1,4 +1,4 @@
-import { createInvoiceInputSchema, type CreateInvoiceInput, type Invoice } from "@loal/api";
+import { ApiError, createInvoiceInputSchema, type CreateInvoiceInput, type Invoice } from "@loal/api";
 import { FocusFirstError, applyServerIssues, formError, zodValidate } from "@loal/forms";
 import { Button, FormStatus, cn } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
@@ -59,7 +59,7 @@ export function InvoiceForm({ merchantId }: { merchantId: string }) {
         try {
           setIssued(await createInvoice.mutateAsync(values));
         } catch (error) {
-          applyServerIssues(error, helpers, "Не удалось выставить счёт. Попробуйте ещё раз.");
+          applyServerIssues(error, helpers, invoiceErrorText(error));
         } finally {
           helpers.setSubmitting(false);
         }
@@ -101,4 +101,22 @@ export function InvoiceForm({ merchantId }: { merchantId: string }) {
       )}
     </Formik>
   );
+}
+
+/**
+ * Почему счёт не выставился — словами, а не общим «не удалось»: иначе владелец не узнает,
+ * что дело в телефоне магазина или в OctōPAY, а не в нём.
+ */
+function invoiceErrorText(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 401) return "Сессия закончилась. Войдите в кабинет заново и выставьте счёт.";
+    if (error.status === 403) return "Выставить счёт на Loal может только владелец магазина.";
+    // 400 — сервер объясняет сам: например, у магазина не указан телефон для счёта
+    if (error.status === 400 && error.message) return error.message;
+    if (error.status === 502 || error.status === 503 || error.status === 504)
+      return "OctōPAY не принял счёт. Попробуйте через пару минут; если повторяется — напишите нам.";
+    if (error.message) return `Не удалось выставить счёт: ${error.message}`;
+  }
+  if (error instanceof TypeError) return "Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.";
+  return "Не удалось выставить счёт. Попробуйте ещё раз.";
 }
