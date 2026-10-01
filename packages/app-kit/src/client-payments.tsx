@@ -100,6 +100,7 @@ function ClientPaymentFormAttempt({ merchantId, setupHref }: { merchantId: strin
     onSuccess: () => queryClient.invalidateQueries({ queryKey: clientPaymentsKey(merchantId) }),
   });
   const [issued, setIssued] = useState<ClientPayment | null>(null);
+  // Retry-safe identifier.
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const initialValues: ClientPaymentInput = { requestId, clientPhone: "", amount: "" };
   const integrationReady = Boolean(integration.data && isOctopayIntegrationReady(integration.data));
