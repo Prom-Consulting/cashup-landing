@@ -443,9 +443,9 @@ export function PartnerForm() {
             if (!token) throw new PhoneExpired("Подтвердите телефон ещё раз.");
             const result = resultSchema.parse(await call("/v1/public/partner-onboarding/password", { password }, token));
             acceptResult(result);
-            if (result.state === "action_required") throw new FormError("Подключение не завершено. Проверьте действующий пароль OctoPay или обратитесь в поддержку.");
+            if (result.state === "action_required") throw new FormError("Подключение не завершено. Попробуйте ещё раз через минуту или обратитесь в поддержку.");
           }); }}>
-            <p>{sent.state === "action_required" ? "Если на этот номер уже есть бизнес в OctoPay, введите его действующий пароль. Подключим существующий аккаунт; ваша карта LOAL сохранится." : "Для входа в OctoPay задайте пароль."}</p>
+            <p>{sent.state === "action_required" ? "Задайте новый пароль OctoPay. После подтверждения номера он заменит старый пароль существующего аккаунта. Аккаунт и карта LOAL сохранятся." : "Для входа в OctoPay задайте пароль."}</p>
             <PasswordFields password={password} confirm={passwordConfirm} setPassword={setPassword} setConfirm={setPasswordConfirm} disabled={sending} />
             <Button type="submit" disabled={sending}>{sending ? "Подключаем…" : sent.state === "action_required" ? "Повторить подключение" : "Сохранить пароль OctoPay"}</Button>
           </form>}
@@ -758,7 +758,7 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
       : sent.state === "pending_payment"
         ? "Оплата откроется в новой вкладке. Эта страница сама узнает, когда платёж пройдёт, — закрывать её не нужно."
         : sent.state === "action_required"
-          ? sent.requiresOctopayPassword ? "Заявка сохранена. Если у вас уже есть аккаунт OctoPay, подтвердите его паролем ниже. Если подключение не удаётся — свяжитесь с нами." : "Заявка сохранена, но автоматически подключить не получилось. Напишите или позвоните нам — закончим вручную."
+          ? sent.requiresOctopayPassword ? "Заявка сохранена. Укажите новый пароль OctoPay ниже — он заменит старый пароль аккаунта на подтверждённом номере. Если подключение не удаётся — свяжитесь с нами." : "Заявка сохранена, но автоматически подключить не получилось. Напишите или позвоните нам — закончим вручную."
           : "Заявка сохранена. Страница обновится сама, когда всё будет готово.";
 
   return (
@@ -906,7 +906,7 @@ function PasswordFields({ password, confirm, setPassword, setConfirm, disabled }
     <section className="space-y-4 rounded-2xl border border-current/10 p-5" aria-labelledby="octopay-password-heading">
       <div>
         <h2 id="octopay-password-heading" className="text-xl font-semibold">Пароль для OctōPAY</h2>
-        <p className="mt-1 text-sm opacity-75">Уже есть OctōPAY на этот номер? Укажите действующий пароль. В Loal вход останется по коду из WhatsApp.</p>
+        <p className="mt-1 text-sm opacity-75">Уже есть OctōPAY на этот номер? После подтверждения номера этот пароль заменит старый. В Loal вход останется по коду из WhatsApp.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Пароль">
