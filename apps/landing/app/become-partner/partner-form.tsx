@@ -4,20 +4,21 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Field } from "@loal/ui/field";
-import { Button, ChoiceCards, PhoneInput, Spinner, Textarea, TextInput } from "@loal/ui/inputs";
+import { Button, ChoiceCards, OtpInput, PhoneInput, Spinner, Textarea, TextInput, formatPhone } from "@loal/ui/inputs";
 import { Select } from "@loal/ui/select";
 import { z } from "zod";
 import { toPhoneDigits } from "@loal/api";
 import { categories } from "../_data/categories";
-import { API_URL, EMAIL, PARTNER_APP_URL } from "../_data/site";
+import { API_URL, EMAIL, PARTNER_APP_URL, PHONE, PHONE_HREF } from "../_data/site";
 
 gsap.registerPlugin(useGSAP);
 
 const plans = [
-  { id: "loyalty", label: "Только лояльность", note: "8 750 сом / месяц · 100 $ × 87,5" },
+  { id: "loyalty", label: "Только лояльность", note: "8 750 сом в месяц" },
   { id: "bundle", label: "OctōPAY + лояльность", note: "без абонентской платы" },
   { id: "octopay", label: "Только OctōPAY", note: "комиссия с оборота" },
 ] as const;
+const PLAN_LABEL: Record<PlanId, string> = { loyalty: plans[0].label, bundle: plans[1].label, octopay: plans[2].label };
 
 type PlanId = (typeof plans)[number]["id"];
 type FieldName = "name" | "category" | "contact" | "phone" | "comment";
@@ -25,7 +26,7 @@ type FieldName = "name" | "category" | "contact" | "phone" | "comment";
 const empty = { name: "", category: "", contact: "", phone: "", comment: "" };
 type Values = typeof empty;
 
-// Проверки полей. Возвращают текст ошибки или пустую строку.
+// Проверки полей — те же пределы, что у сервера. Возвращают текст ошибки или пустую строку.
 const rules: Record<FieldName, (v: Values) => string> = {
   name: ({ name }) => {
     const value = name.trim();
@@ -45,57 +46,130 @@ const rules: Record<FieldName, (v: Values) => string> = {
   },
   // Те же правила номера, что у бэкенда: код страны и проверка по стране
   phone: ({ phone }) => {
-    if (!phone.trim()) return "Оставьте телефон для связи";
+    if (!phone.trim()) return "Укажите телефон — он станет логином";
     return toPhoneDigits(phone) ? "" : "Проверьте номер: не хватает цифр или неверный код страны";
   },
   comment: ({ comment }) => (comment.length > 500 ? "Не длиннее 500 символов" : ""),
 };
-
 const order: FieldName[] = ["name", "category", "contact", "phone", "comment"];
 
 const resultSchema = z.object({
-  id: z.string().uuid(), plan: z.enum(["loyalty", "bundle", "octopay"]),
+  id: z.string().uuid(),
+  plan: z.enum(["loyalty", "bundle", "octopay"]),
   state: z.enum(["processing", "pending_payment", "ready", "action_required"]),
-  amount: z.number(), currency: z.literal("KGS"), paymentUrl: z.string().url().nullable(),
-  partnerUrl: z.string().url().nullable(), octopayUrl: z.string().url().nullable(),
+  amount: z.number(),
+  currency: z.literal("KGS"),
+  paymentUrl: z.string().url().nullable(),
+  partnerUrl: z.string().url().nullable(),
+  octopayUrl: z.string().url().nullable(),
 });
 type Registration = z.infer<typeof resultSchema>;
+
 class FormError extends Error {}
 class PhoneExpired extends FormError {}
+
 async function call(path: string, body?: unknown, token?: string) {
   const response = await fetch(`${API_URL.replace(/\/$/, "")}${path}`, {
-    method: body === undefined ? "GET" : "POST", cache: "no-store",
+    method: body === undefined ? "GET" : "POST",
+    cache: "no-store",
     signal: AbortSignal.timeout(20_000),
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
-  if (response.status === 401) throw new PhoneExpired("Подтвердите номер ещё раз или проверьте код.");
-  if (response.status === 409) throw new FormError("Заявка или аккаунт уже существует. Обратитесь в поддержку.");
-  if (response.status === 429) throw new FormError("Слишком много попыток. Подождите минуту.");
-  if (!response.ok) throw new FormError("Сервис временно недоступен. Попробуйте ещё раз.");
+  if (response.status === 401) throw new PhoneExpired("Код не подошёл или подтверждение устарело. Запросите новый код.");
+  if (response.status === 409)
+    throw new FormError("На этот номер уже есть заявка или аккаунт. Проверьте статус заявки или напишите нам.");
+  if (response.status === 429) throw new FormError("Слишком много попыток. Подождите минуту и попробуйте снова.");
+  if (response.status === 400) throw new FormError("Проверьте поля заявки: сервер не принял данные.");
+  if (!response.ok) throw new FormError("Сервис временно недоступен. Попробуйте через минуту.");
   return response.json();
 }
+
+/**
+ * Черновик живёт в sessionStorage: перезагрузка или возврат со страницы оплаты не теряют ни
+ * данные, ни requestId (повтор с ним не создаст вторую заявку), ни подтверждение телефона
+ * (токен регистрации действует 30 минут).
+ */
+const DRAFT_KEY = "loal.partner-onboarding";
+const TOKEN_TTL = 29 * 60_000;
+type Draft = { plan: PlanId; values: Values; requestId: string | null; token: string | null; tokenUntil: number };
+
+function readDraft(): Partial<Draft> {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    return raw ? (JSON.parse(raw) as Partial<Draft>) : {};
+  } catch {
+    return {};
+  }
+}
+function writeDraft(draft: Draft) {
+  try {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // Без памяти форма просто не переживёт перезагрузку
+  }
+}
+
+const money = new Intl.NumberFormat("ru-RU");
+
+type Step = "details" | "code";
 
 export function PartnerForm() {
   const [plan, setPlan] = useState<PlanId>("bundle");
   const [values, setValues] = useState<Values>(empty);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
+  const [step, setStep] = useState<Step>("details");
+  const [recovering, setRecovering] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState<Registration | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
-  const [otpRequested, setOtpRequested] = useState(false);
   const [otp, setOtp] = useState("");
   const [token, setToken] = useState<string | null>(null);
+  const [tokenUntil, setTokenUntil] = useState(0);
   const [resendAt, setResendAt] = useState(0);
   const [resendSeconds, setResendSeconds] = useState(0);
-  const [recovering, setRecovering] = useState(false);
   const requestId = useRef<string | null>(null);
+  const restored = useRef(false);
   const root = useRef<HTMLDivElement>(null);
 
+  // Тариф из ссылки (?plan=…) важнее черновика: человек только что нажал на карточку тарифа
   useEffect(() => {
+    const draft = readDraft();
+    if (draft.values) setValues({ ...empty, ...draft.values });
+    if (draft.plan && plans.some((item) => item.id === draft.plan)) setPlan(draft.plan);
+    requestId.current = draft.requestId ?? null;
+    if (draft.token && (draft.tokenUntil ?? 0) > Date.now()) {
+      setToken(draft.token);
+      setTokenUntil(draft.tokenUntil ?? 0);
+    }
     const selected = new URLSearchParams(window.location.search).get("plan");
     if (plans.some((item) => item.id === selected)) setPlan(selected as PlanId);
+    restored.current = true;
   }, []);
+
+  useEffect(() => {
+    if (!restored.current) return;
+    writeDraft({ plan, values, requestId: requestId.current, token, tokenUntil });
+  }, [plan, values, token, tokenUntil, sent]);
+
+  // Подтверждённый телефон после перезагрузки — сразу показываем заявку, если она есть
+  useEffect(() => {
+    if (!token || sent) return;
+    let active = true;
+    call("/v1/public/partner-onboarding", undefined, token)
+      .then((data) => {
+        const existing = resultSchema.nullable().parse(data);
+        if (active && existing) setSent(existing);
+      })
+      .catch((error) => {
+        if (active && error instanceof PhoneExpired) setToken(null);
+      });
+    return () => {
+      active = false;
+    };
+    // Только при восстановлении токена; дальше заявку ведёт отправка и опрос
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   useEffect(() => {
     const update = () => setResendSeconds(Math.max(0, Math.ceil((resendAt - Date.now()) / 1000)));
@@ -106,28 +180,92 @@ export function PartnerForm() {
 
   useGSAP(
     () => {
-      if (!sent || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      gsap.from(root.current!.querySelector("[data-sent]"), { y: 24, autoAlpha: 0, duration: 0.6, ease: "power3.out" });
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const panel = root.current?.querySelector("[data-panel]");
+      if (panel) gsap.from(panel, { y: 16, autoAlpha: 0, duration: 0.45, ease: "power3.out" });
     },
-    { scope: root, dependencies: [sent?.state], revertOnUpdate: false },
+    { scope: root, dependencies: [step, sent?.state, recovering], revertOnUpdate: false },
   );
+
+  // Изменили данные до создания заявки — это новая попытка: прежний requestId с другими полями сервер отклонит
+  const freshAttempt = () => {
+    if (!sent) requestId.current = null;
+  };
 
   const set = (field: FieldName) => (value: string) => {
     setValues((v) => ({ ...v, [field]: value }));
-    if (field === "phone") { setOtpRequested(false); setOtp(""); setToken(null); }
-    // Ошибку убираем сразу, как только человек начал править поле.
+    if (field === "phone") {
+      setToken(null);
+      setOtp("");
+    }
+    freshAttempt();
     setErrors((e) => (e[field] ? { ...e, [field]: undefined } : e));
   };
 
   const check = (field: FieldName) => () => {
-    setValues((v) => {
-      const message = rules[field](v);
-      setErrors((e) => ({ ...e, [field]: message || undefined }));
-      return v;
-    });
+    const message = rules[field](values);
+    setErrors((e) => ({ ...e, [field]: message || undefined }));
   };
 
-  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const focusFirst = (found: Partial<Record<FieldName, string>>) => {
+    const firstBad = order.find((f) => found[f]);
+    if (!firstBad) return false;
+    const el = root.current?.querySelector<HTMLElement>(`[data-field="${firstBad}"] :is(input, textarea, button)`);
+    el?.focus();
+    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    return true;
+  };
+
+  const phoneDigits = () => toPhoneDigits(values.phone)!;
+
+  const sendCode = async () => {
+    await call("/auth/otp/request", { phone: phoneDigits() });
+    setResendAt(Date.now() + 60_000);
+    setOtp("");
+  };
+
+  /** Телефон подтверждён — продолжаем существующую заявку или создаём новую. */
+  const finish = async (proof: string) => {
+    const existing = resultSchema.nullable().parse(await call("/v1/public/partner-onboarding", undefined, proof));
+    if (existing) return setSent(existing);
+    if (recovering) {
+      setRecovering(false);
+      setStep("details");
+      throw new FormError("Заявки на этот номер нет. Телефон подтверждён — заполните данные, и подключим.");
+    }
+    requestId.current ??= crypto.randomUUID();
+    const result = await call(
+      "/v1/public/partner-onboarding",
+      {
+        requestId: requestId.current,
+        plan,
+        name: values.name.trim(),
+        contactName: values.contact.trim(),
+        category: values.category,
+        comment: values.comment.trim(),
+      },
+      proof,
+    );
+    setSent(resultSchema.parse(result));
+  };
+
+  const run = async (action: () => Promise<unknown>) => {
+    setSending(true);
+    setFailed(null);
+    try {
+      await action();
+    } catch (error) {
+      if (error instanceof PhoneExpired) {
+        setToken(null);
+        setOtp("");
+      }
+      setFailed(error instanceof FormError ? error.message : "Не удалось связаться с сервером. Попробуйте ещё раз.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const submitDetails = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const found: Partial<Record<FieldName, string>> = {};
     for (const field of recovering ? ["phone" as const] : order) {
@@ -135,53 +273,27 @@ export function PartnerForm() {
       if (message) found[field] = message;
     }
     setErrors(found);
-
-    const firstBad = order.find((f) => found[f]);
-    if (firstBad) {
-      const el = root.current?.querySelector<HTMLElement>(`[data-field="${firstBad}"] :is(input, textarea, button)`);
-      el?.focus();
-      el?.scrollIntoView({ block: "center", behavior: "smooth" });
-      return;
-    }
-
-    setSending(true);
-    setFailed(null);
-    try {
-      const phone = toPhoneDigits(values.phone)!;
-      if (!otpRequested && !token) {
-        await call("/auth/otp/request", { phone });
-        setOtpRequested(true);
-        setResendAt(Date.now() + 60_000);
-        return;
-      }
-      let proof = token;
-      if (!proof) {
-        if (!/^\d{6}$/.test(otp)) throw new FormError("Введите 6 цифр из WhatsApp.");
-        const verified = z.object({ token: z.string().min(1) }).parse(await call("/auth/partner-onboarding/verify", { phone, otp }));
-        proof = verified.token;
-        setToken(proof);
-      }
-      // A new OTP can resume an existing request after reload or a lost response.
-      const existing = resultSchema.nullable().parse(await call("/v1/public/partner-onboarding", undefined, proof));
-      if (existing) { setSent(existing); return; }
-      if (recovering) {
-        setRecovering(false);
-        throw new FormError("Заявка не найдена. Телефон подтверждён — заполните данные для подключения.");
-      }
-      requestId.current ??= crypto.randomUUID();
-      const result = await call("/v1/public/partner-onboarding", {
-        requestId: requestId.current, plan, name: values.name.trim(),
-        contactName: values.contact.trim(), category: values.category, comment: values.comment.trim(),
-      }, proof);
-      setSent(resultSchema.parse(result));
-    } catch (error) {
-      if (error instanceof PhoneExpired) { setToken(null); }
-      setFailed(error instanceof FormError ? error.message : "Не удалось подключиться. Попробуйте ещё раз.");
-    } finally {
-      setSending(false);
-    }
+    if (focusFirst(found)) return;
+    void run(async () => {
+      // Номер уже подтверждён в этой сессии — второй код не нужен
+      if (token) return finish(token);
+      await sendCode();
+      setStep("code");
+    });
   };
 
+  const submitCode = (code: string) =>
+    run(async () => {
+      if (!/^\d{6}$/.test(code)) throw new FormError("Введите 6 цифр из WhatsApp.");
+      const verified = z
+        .object({ token: z.string().min(1) })
+        .parse(await call("/auth/partner-onboarding/verify", { phone: phoneDigits(), otp: code }));
+      setToken(verified.token);
+      setTokenUntil(Date.now() + TOKEN_TTL);
+      await finish(verified.token);
+    });
+
+  // Опрос: ждём создания кабинетов и подтверждения оплаты бэкендом
   useEffect(() => {
     if (!token || !sent || sent.state === "ready" || sent.state === "action_required") return;
     let active = true;
@@ -189,165 +301,409 @@ export function PartnerForm() {
     const poll = async () => {
       try {
         const next = resultSchema.nullable().parse(await call("/v1/public/partner-onboarding", undefined, token));
-        if (active && next) { setSent(next); setFailed(null); }
-      } catch (error) {
-        if (active) {
-          setFailed("Не удалось обновить статус. Подключение продолжится автоматически.");
-          if (error instanceof PhoneExpired) {
-            setToken(null); setSent(null); setOtpRequested(false); setOtp(""); setRecovering(true);
-            setFailed("Подтвердите телефон ещё раз, чтобы увидеть статус заявки.");
-          }
+        if (active && next) {
+          setSent(next);
+          setFailed(null);
         }
+      } catch (error) {
+        if (!active) return;
+        if (error instanceof PhoneExpired) {
+          setToken(null);
+          setSent(null);
+          setOtp("");
+          setRecovering(true);
+          setStep("details");
+          setFailed("Подтверждение телефона устарело. Подтвердите номер ещё раз, чтобы увидеть статус заявки.");
+          return;
+        }
+        setFailed("Не удалось обновить статус — пробуем снова. Подключение идёт и без этой страницы.");
       }
       if (active) timer = setTimeout(poll, 5000);
     };
     timer = setTimeout(poll, 3000);
-    return () => { active = false; clearTimeout(timer); };
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [token, sent?.state]);
 
   const badCount = order.filter((f) => errors[f]).length;
 
-  if (sent) {
-    const title = sent.state === "ready" ? "Подключение завершено" : sent.state === "pending_payment" ? "Оплатите первый месяц" : sent.state === "action_required" ? "Нужна помощь с подключением" : "Подключаем ваш бизнес";
-    return <div ref={root} className="rounded-[32px] border-2 border-graphite bg-paper p-8 sm:p-12">
-      <div data-sent aria-live="polite">
-        <h2 className="display text-3xl text-flame">{title}</h2>
-        <p className="mt-4 text-lg leading-relaxed">
-          {sent.state === "ready" ? (sent.plan === "octopay" ? "Аккаунт OctoPay создан. Войдите по указанному телефону и коду из WhatsApp." : "Кабинет LOAL готов. Войдите по указанному телефону и коду из WhatsApp.") :
-           sent.state === "pending_payment" ? "Только лояльность — 8 750 сом в месяц (100 $ по курсу 87,5 сом). После оплаты кабинет создастся автоматически." :
-           sent.state === "action_required" ? "Заявка сохранена. Обратитесь в поддержку для завершения подключения." :
-           "Заявка сохранена. Эта страница обновится автоматически, когда кабинеты будут готовы."}
-        </p>
-        <div className="mt-8 flex flex-wrap gap-4">
-          {sent.state === "pending_payment" && sent.paymentUrl && new URL(sent.paymentUrl).origin === "https://payment.octopay.click" && <a href={sent.paymentUrl} target="_blank" rel="noopener noreferrer" className="rounded-full bg-flame px-7 py-4 font-bold text-white">Оплатить 8 750 сом</a>}
-          {sent.partnerUrl && <a href={PARTNER_APP_URL} className="rounded-full bg-flame px-7 py-4 font-bold text-white">Войти в LOAL</a>}
-          {sent.octopayUrl && <a href="https://octopay.click/auth/loal" className="rounded-full bg-graphite px-7 py-4 font-bold text-white">Войти в OctoPay</a>}
-        </div>
-        {sent.state === "ready" && sent.plan !== "loyalty" && <p className="mt-5 text-sm">Абонентской платы нет. Комиссия взимается с платежей. Подключите банковский счёт в OctoPay, чтобы принимать оплату.</p>}
-        {failed && <p role="alert" className="mt-4">{failed}</p>}
-        <p className="mt-6 text-sm">Поддержка: <a href={`mailto:${EMAIL}`} className="underline">{EMAIL}</a></p>
-      </div>
-    </div>;
-  }
-
   return (
-    <div ref={root} className="rounded-[32px] border-2 border-graphite bg-paper p-6 sm:p-10">
-      <form onSubmit={submit} noValidate>
-        <fieldset disabled={sending} className="flex min-w-0 flex-col gap-6">
-        <Button type="button" variant="outline" onClick={() => { setRecovering(!recovering); setErrors({}); setFailed(null); }}>
-          {recovering ? "Создать новую заявку" : "Уже подавали заявку? Проверить статус"}
-        </Button>
-        {recovering && <p>Подтвердите телефон из заявки, чтобы продолжить подключение или оплату.</p>}
-        <div hidden={recovering}>
-        <ChoiceCards name="plan" legend="Что подключаем" value={plan} onChange={setPlan} options={[...plans]} />
-        </div>
+    <div ref={root} className="min-w-0 rounded-[32px] border-2 border-graphite bg-paper p-6 sm:p-10">
+      <Progress current={sent ? (sent.state === "ready" ? 4 : 3) : step === "code" ? 2 : 1} />
 
-        <div className="grid gap-6 sm:grid-cols-2">
-          <div data-field="name" hidden={recovering}>
-            <Field label="Название заведения" error={errors.name}>
-              {(parts) => (
-                <TextInput
-                  {...parts}
-                  name="name"
-                  placeholder="Dolce Vita"
-                  maxLength={60}
-                  value={values.name}
-                  onChange={(e) => set("name")(e.target.value)}
-                  onBlur={check("name")}
-                />
-              )}
-            </Field>
+      {sent ? (
+        <Status sent={sent} failed={failed} phone={values.phone} />
+      ) : step === "code" ? (
+        <div data-panel className="mt-8 flex flex-col gap-6">
+          <div>
+            <h3 className="display text-[1.75rem] leading-tight">Код из WhatsApp</h3>
+            <p className="mt-2 text-lg leading-snug">
+              Отправили на <span className="font-bold whitespace-nowrap">{formatPhone(values.phone)}</span>. Этот номер
+              станет логином в кабинет.
+            </p>
           </div>
 
-          <div data-field="category" hidden={recovering}>
-            <Field label="Категория" error={errors.category}>
-              {(parts) => (
-                <Select
-                  {...parts}
-                  value={values.category}
-                  onChange={set("category")}
-                  onBlur={check("category")}
-                  options={categories.map((c) => ({ id: c.id, label: c.label }))}
-                  placeholder="Выберите категорию"
-                />
-              )}
-            </Field>
-          </div>
+          {!recovering && (
+            <div className="flex flex-col rounded-2xl bg-cream px-4 py-3 text-base">
+              <span className="font-bold">{PLAN_LABEL[plan]}</span>
+              <span className="min-w-0 truncate">{values.name.trim()}</span>
+            </div>
+          )}
 
-          <div data-field="contact" hidden={recovering}>
-            <Field label="Контактное лицо" error={errors.contact}>
-              {(parts) => (
-                <TextInput
-                  {...parts}
-                  name="contact"
-                  placeholder="Азамат"
-                  autoComplete="name"
-                  value={values.contact}
-                  onChange={(e) => set("contact")(e.target.value)}
-                  onBlur={check("contact")}
-                />
-              )}
-            </Field>
-          </div>
-
-          <div data-field="phone">
-            <Field label="Телефон" hint="Подтвердите номер кодом из WhatsApp — он будет вашим логином" error={errors.phone}>
-              {(parts) => (
-                <PhoneInput {...parts} value={values.phone} onValueChange={set("phone")} onBlur={check("phone")} />
-              )}
-            </Field>
-          </div>
-        </div>
-
-        <div data-field="comment" hidden={recovering}>
-          <Field label="Комментарий" optional error={errors.comment}>
+          <Field label="Код" hint="6 цифр. Код действует 5 минут." error={undefined}>
             {(parts) => (
-              <Textarea
+              <OtpInput
                 {...parts}
-                value={values.comment}
-                onValueChange={set("comment")}
-                onBlur={check("comment")}
-                placeholder="Сколько точек, какой процент планируете, когда удобно созвониться"
+                value={otp}
+                onValueChange={setOtp}
+                onComplete={(code) => void submitCode(code)}
+                autoFocus
+                disabled={sending}
               />
             )}
           </Field>
+
+          {failed && <Alert text={failed} />}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" disabled={sending || otp.length < 6} onClick={() => void submitCode(otp)} className="gap-3">
+              {sending && <Spinner />}
+              {sending ? "Проверяем…" : recovering ? "Показать заявку" : plan === "loyalty" ? "Перейти к оплате" : "Подключить"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={sending || resendSeconds > 0}
+              onClick={() => void run(sendCode)}
+            >
+              {resendSeconds > 0 ? `Новый код через ${resendSeconds} с` : "Отправить код ещё раз"}
+            </Button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setStep("details");
+              setFailed(null);
+              setOtp("");
+            }}
+            className="w-fit text-base text-flame-ink underline underline-offset-4"
+          >
+            ← Изменить данные или номер
+          </button>
         </div>
+      ) : (
+        <form data-panel onSubmit={submitDetails} noValidate className="mt-8">
+          <fieldset disabled={sending} className="flex min-w-0 flex-col gap-6">
+            {recovering ? (
+              <div>
+                <h3 className="display text-[1.75rem] leading-tight">Статус заявки</h3>
+                <p className="mt-2 text-lg leading-snug">
+                  Укажите телефон из заявки — пришлём код и покажем, на каком она этапе.
+                </p>
+              </div>
+            ) : (
+              <ChoiceCards
+                name="plan"
+                legend="Тариф"
+                value={plan}
+                onChange={(next) => {
+                  setPlan(next);
+                  freshAttempt();
+                }}
+                options={[...plans]}
+              />
+            )}
 
-        {otpRequested && !token && <Field label="Код из WhatsApp" hint="6 цифр. Код действует 5 минут.">
-          {(parts) => <TextInput {...parts} inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, ""))} />}
-        </Field>}
-        {otpRequested && !token && <Button type="button" variant="outline" disabled={sending || resendSeconds > 0} onClick={async () => {
-          if (Date.now() < resendAt) { setFailed("Повторная отправка доступна через минуту."); return; }
-          setSending(true);
-          try { await call("/auth/otp/request", { phone: toPhoneDigits(values.phone)! }); setResendAt(Date.now() + 60_000); setFailed(null); }
-          catch { setFailed("Не удалось отправить код. Попробуйте позже."); }
-          finally { setSending(false); }
-        }}>{resendSeconds > 0 ? `Повторить через ${resendSeconds} с` : "Отправить код повторно"}</Button>}
+            {!recovering && (
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div data-field="name">
+                  <Field label="Название заведения" error={errors.name}>
+                    {(parts) => (
+                      <TextInput
+                        {...parts}
+                        name="name"
+                        placeholder="Dolce Vita"
+                        maxLength={60}
+                        value={values.name}
+                        onChange={(e) => set("name")(e.target.value)}
+                        onBlur={check("name")}
+                      />
+                    )}
+                  </Field>
+                </div>
 
-        <p aria-live="polite" className="sr-only">
-          {badCount > 0 ? `Не заполнено полей: ${badCount}` : ""}
-        </p>
+                <div data-field="category">
+                  <Field label="Категория" error={errors.category}>
+                    {(parts) => (
+                      <Select
+                        {...parts}
+                        value={values.category}
+                        onChange={set("category")}
+                        onBlur={check("category")}
+                        options={categories.map((c) => ({ id: c.id, label: c.label }))}
+                        placeholder="Выберите категорию"
+                      />
+                    )}
+                  </Field>
+                </div>
 
-        {failed && (
-          <p role="alert" className="text-base font-medium text-flame-ink">
-            {failed}{" "}
-            <a href={`mailto:${EMAIL}`} className="underline underline-offset-4">
-              {EMAIL}
-            </a>
-          </p>
+                <div data-field="contact">
+                  <Field label="Как к вам обращаться" error={errors.contact}>
+                    {(parts) => (
+                      <TextInput
+                        {...parts}
+                        name="contact"
+                        placeholder="Азамат"
+                        autoComplete="name"
+                        value={values.contact}
+                        onChange={(e) => set("contact")(e.target.value)}
+                        onBlur={check("contact")}
+                      />
+                    )}
+                  </Field>
+                </div>
+
+                <div data-field="phone">
+                  <Field label="Телефон" hint="Пришлём код в WhatsApp. Номер станет логином." error={errors.phone}>
+                    {(parts) => (
+                      <PhoneInput {...parts} value={values.phone} onValueChange={set("phone")} onBlur={check("phone")} />
+                    )}
+                  </Field>
+                </div>
+              </div>
+            )}
+
+            {recovering && (
+              <div data-field="phone">
+                <Field label="Телефон из заявки" error={errors.phone}>
+                  {(parts) => (
+                    <PhoneInput {...parts} value={values.phone} onValueChange={set("phone")} onBlur={check("phone")} />
+                  )}
+                </Field>
+              </div>
+            )}
+
+            {!recovering && (
+              <div data-field="comment">
+                <Field label="Комментарий" optional error={errors.comment}>
+                  {(parts) => (
+                    <Textarea
+                      {...parts}
+                      value={values.comment}
+                      onValueChange={set("comment")}
+                      onBlur={check("comment")}
+                      placeholder="Сколько точек, какой процент планируете, когда удобно созвониться"
+                    />
+                  )}
+                </Field>
+              </div>
+            )}
+
+            <p aria-live="polite" className="sr-only">
+              {badCount > 0 ? `Не заполнено полей: ${badCount}` : ""}
+            </p>
+
+            {failed && <Alert text={failed} />}
+
+            <div className="flex flex-col gap-4">
+              <Button type="submit" disabled={sending} className="w-full gap-3 sm:w-fit">
+                {sending && <Spinner />}
+                {sending ? "Отправляем код…" : token ? "Продолжить" : "Получить код в WhatsApp"}
+              </Button>
+              {!recovering && (
+                <p className="max-w-[52ch] text-sm leading-relaxed opacity-75">
+                  {plan === "loyalty"
+                    ? "После кода — оплата первого месяца через OctōPAY. Кабинет откроется, как только оплата пройдёт."
+                    : "После кода подключим сразу: оплата не нужна."}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setRecovering(!recovering);
+                  setErrors({});
+                  setFailed(null);
+                }}
+                className="w-fit text-base text-flame-ink underline underline-offset-4"
+              >
+                {recovering ? "← Подать новую заявку" : "Уже подавали заявку? Проверить статус"}
+              </button>
+            </div>
+          </fieldset>
+        </form>
+      )}
+    </div>
+  );
+}
+
+/** Три шага подачи: где человек сейчас. */
+function Progress({ current }: { current: 1 | 2 | 3 | 4 }) {
+  const labels = ["Заявка", "Код", "Подключение"];
+  return (
+    <ol className="flex items-center gap-2 text-sm font-bold sm:gap-3" aria-label="Шаги подключения">
+      {labels.map((label, index) => {
+        const n = index + 1;
+        const state = n < current ? "done" : n === current ? "now" : "next";
+        return (
+          <li key={label} className="flex min-w-0 items-center gap-2 sm:gap-3" aria-current={state === "now" ? "step" : undefined}>
+            <span
+              className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-sm ${
+                state === "next" ? "border-2 border-smoke text-graphite/50" : "bg-flame-ink text-paper"
+              }`}
+            >
+              {state === "done" ? "✓" : n}
+            </span>
+            {/* На телефоне подпись только у текущего шага — остальные кружками */}
+            <span className={`truncate ${state === "next" ? "opacity-50" : ""} ${state === "now" ? "" : "hidden sm:inline"}`}>
+              {label}
+            </span>
+            {n < labels.length && <span aria-hidden="true" className="h-0.5 w-4 shrink-0 bg-smoke sm:w-8" />}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function Alert({ text }: { text: string }) {
+  return (
+    <p role="alert" className="rounded-2xl bg-cream px-4 py-3 text-base font-medium text-flame-ink">
+      {text}{" "}
+      <span className="font-normal text-graphite">
+        Нужна помощь —{" "}
+        <a href={`mailto:${EMAIL}`} className="underline underline-offset-4">
+          {EMAIL}
+        </a>
+        .
+      </span>
+    </p>
+  );
+}
+
+/** Этапы подключения: для лояльности есть оплата, для бесплатных тарифов — нет. */
+function Status({ sent, failed, phone }: { sent: Registration; failed: string | null; phone: string }) {
+  const paid = sent.plan === "loyalty";
+  const stages = paid ? ["Заявка принята", "Оплата", "Кабинет готов"] : ["Заявка принята", "Создаём кабинеты", "Кабинеты готовы"];
+  const at =
+    sent.state === "ready" ? 3 : sent.state === "pending_payment" ? 1 : sent.state === "processing" ? (paid ? 2 : 1) : 1;
+  const amount = `${money.format(sent.amount)} сом`;
+  // Оплачиваем только на странице OctōPAY: адрес из ответа сверяем, чужой не открываем
+  const paymentUrl =
+    sent.paymentUrl && new URL(sent.paymentUrl).origin === "https://payment.octopay.click" ? sent.paymentUrl : null;
+
+  const title =
+    sent.state === "ready"
+      ? "Готово — можно входить"
+      : sent.state === "pending_payment"
+        ? `Оплатите первый месяц — ${amount}`
+        : sent.state === "action_required"
+          ? "Нужна помощь с подключением"
+          : "Подключаем ваш бизнес";
+
+  const text =
+    sent.state === "ready"
+      ? sent.plan === "octopay"
+        ? "Аккаунт OctōPAY создан. Войдите по этому телефону и коду из WhatsApp."
+        : sent.plan === "bundle"
+          ? "Кабинеты Loal и OctōPAY созданы и связаны. Войдите в каждый по этому телефону и коду из WhatsApp."
+          : "Кабинет Loal готов. Войдите по этому телефону и коду из WhatsApp."
+      : sent.state === "pending_payment"
+        ? "Оплата откроется в новой вкладке. Эта страница сама узнает, когда платёж пройдёт, — закрывать её не нужно."
+        : sent.state === "action_required"
+          ? "Заявка сохранена, но автоматически подключить не получилось. Напишите или позвоните нам — закончим вручную."
+          : "Заявка сохранена. Страница обновится сама, когда всё будет готово.";
+
+  return (
+    <div data-panel aria-live="polite" className="mt-8 flex flex-col gap-6">
+      <div>
+        <h3 className="display text-[clamp(1.6rem,3vw,2.1rem)] leading-tight text-flame">{title}</h3>
+        <p className="mt-3 max-w-[52ch] text-lg leading-relaxed">{text}</p>
+      </div>
+
+      {sent.state !== "action_required" && (
+        <ol className="flex flex-col gap-3">
+          {stages.map((stage, index) => {
+            const done = index < at || sent.state === "ready";
+            const now = !done && index === at;
+            return (
+              <li key={stage} className="flex items-center gap-3 text-base">
+                <span
+                  aria-hidden="true"
+                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${
+                    done ? "bg-flame-ink text-paper" : now ? "border-2 border-flame-ink" : "border-2 border-smoke"
+                  }`}
+                >
+                  {done ? "✓" : now ? <Spinner /> : null}
+                </span>
+                <span className={done || now ? "font-bold" : "opacity-50"}>{stage}</span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      <div className="flex flex-wrap gap-3">
+        {sent.state === "pending_payment" && paymentUrl && (
+          <a
+            href={paymentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full bg-flame px-7 py-4 text-lg font-bold text-white transition-colors hover:bg-flame-ink"
+          >
+            Оплатить {amount}
+          </a>
         )}
+        {sent.state === "ready" && sent.partnerUrl && (
+          <a href={PARTNER_APP_URL} className="rounded-full bg-flame px-7 py-4 text-lg font-bold text-white transition-colors hover:bg-flame-ink">
+            Войти в Loal
+          </a>
+        )}
+        {sent.state === "ready" && sent.octopayUrl && (
+          <a
+            href="https://octopay.click/auth/loal"
+            className="rounded-full bg-graphite px-7 py-4 text-lg font-bold text-white transition-opacity hover:opacity-85"
+          >
+            Войти в OctōPAY
+          </a>
+        )}
+        {sent.state === "action_required" && (
+          <a href={PHONE_HREF} className="rounded-full bg-graphite px-7 py-4 text-lg font-bold text-white">
+            Позвонить {PHONE}
+          </a>
+        )}
+      </div>
 
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          <Button type="submit" disabled={sending} className="gap-3">
-            {sending && <Spinner />}
-            {sending ? "Подождите…" : !otpRequested && !token ? "Подтвердить телефон" : recovering ? "Проверить статус" : plan === "loyalty" ? "Перейти к оплате" : "Подключить бесплатно"}
-          </Button>
-          <p className="max-w-[40ch] text-sm opacity-75">
-            Для лояльности кабинет создаётся после оплаты. Бесплатные тарифы подключаются после подтверждения телефона.
-          </p>
-        </div>
-        </fieldset>
-      </form>
+      {sent.state === "ready" && phone && (
+        <p className="text-base">
+          Логин: <span className="font-bold whitespace-nowrap">{formatPhone(phone)}</span>
+        </p>
+      )}
+      {sent.state === "ready" && sent.plan !== "loyalty" && (
+        <p className="rounded-2xl bg-cream px-4 py-3 text-base leading-relaxed">
+          Абонентской платы нет — только комиссия с платежей. Чтобы принимать оплату, подключите банковский счёт в
+          кабинете OctōPAY.
+        </p>
+      )}
+      {sent.state === "pending_payment" && (
+        <p className="text-sm opacity-75">
+          Вернулись со страницы оплаты, а статус не сменился? Подождите минуту: платёж подтверждает банк.
+        </p>
+      )}
+      {failed && <Alert text={failed} />}
+
+      <p className="text-sm opacity-75">
+        Поддержка:{" "}
+        <a href={`mailto:${EMAIL}`} className="underline underline-offset-4">
+          {EMAIL}
+        </a>{" "}
+        ·{" "}
+        <a href={PHONE_HREF} className="underline underline-offset-4">
+          {PHONE}
+        </a>
+      </p>
     </div>
   );
 }
