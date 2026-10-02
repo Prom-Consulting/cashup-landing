@@ -16,7 +16,7 @@
 #   DEPLOY_PORT     порт SSH, по умолчанию 22
 #   DEPLOY_SSH_KEY  путь к закрытому ключу; по умолчанию — ssh-agent и ~/.ssh
 #   FRONT_PATH      папка фронта на сервере, по умолчанию /var/www/cashup-landing
-#   BACK_PATH       папка бэкенда на сервере, по умолчанию /var/www/cashup
+#   BACK_PATH       папка бэкенда на сервере, по умолчанию /var/www/cashup_platform
 #   BACK_REPO       локальный репозиторий бэкенда, по умолчанию ../cashup_platform
 #
 # Выкатывается только закоммиченный и запушенный код: сервер фронта сам забирает коммит
@@ -31,7 +31,7 @@ CONFIG="${LOAL_DEPLOY_CONFIG:-$HOME/.config/loal/deploy.env}"
 DEPLOY_USER="${DEPLOY_USER:-root}"
 DEPLOY_PORT="${DEPLOY_PORT:-22}"
 FRONT_PATH="${FRONT_PATH:-/var/www/cashup-landing}"
-BACK_PATH="${BACK_PATH:-/var/www/cashup}"
+BACK_PATH="${BACK_PATH:-/var/www/cashup_platform}"
 BACK_REPO="${BACK_REPO:-$FRONT_REPO/../cashup_platform}"
 
 TARGET="${1:-}"; shift || true
@@ -109,7 +109,11 @@ cd "$APP_DIR"
 echo "Код: $SHA"
 git fetch --quiet origin main
 git reset --hard "$SHA"
-docker compose -f infra/docker-compose.yml build
+# По одному образу: пять сборок разом на небольшом сервере съедают всю память (было — OOM и падение Traefik)
+for service in $(docker compose -f infra/docker-compose.yml config --services); do
+  echo "Сборка: $service"
+  docker compose -f infra/docker-compose.yml build "$service"
+done
 docker compose -f infra/docker-compose.yml up -d --remove-orphans
 docker image prune -f > /dev/null
 docker compose -f infra/docker-compose.yml ps
@@ -180,7 +184,11 @@ cd "$APP_DIR/infra"
 df -h / | tail -1
 docker builder prune -af > /dev/null
 docker image prune -af > /dev/null
-docker compose -f docker-compose.prod.yml build
+# По одному образу — чтобы сборка не вытеснила из памяти работающие сервисы
+for service in $(docker compose -f docker-compose.prod.yml config --services); do
+  echo "Сборка: $service"
+  docker compose -f docker-compose.prod.yml build "$service"
+done
 docker compose -f docker-compose.prod.yml up -d --remove-orphans
 docker image prune -af > /dev/null
 docker compose -f docker-compose.prod.yml ps
