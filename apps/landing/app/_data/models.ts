@@ -25,7 +25,7 @@ export function models(partnerUrl: string): Model[] {
         "Приём бонусов по QR-коду карты",
         "Продление подписки в кабинете",
       ],
-      cta: { label: "Подключить лояльность", href: partnerUrl },
+      cta: { label: "Подключить лояльность", href: `${partnerUrl.split("#")[0]}?plan=loyalty#form` },
     },
     {
       key: "bundle",
@@ -40,7 +40,7 @@ export function models(partnerUrl: string): Model[] {
         "Платите только комиссию с оборота",
       ],
       featured: true,
-      cta: { label: "Подключить пакет", href: partnerUrl },
+      cta: { label: "Подключить пакет", href: `${partnerUrl.split("#")[0]}?plan=bundle#form` },
     },
     {
       key: "octopay",
@@ -48,7 +48,7 @@ export function models(partnerUrl: string): Model[] {
       price: "%",
       priceNote: "комиссия с оборота",
       points: ["Приём QR-платежей в Кыргызстане", "Деньги зачисляются на ваш счёт", "Без участия в программе Loal"],
-      cta: { label: "Подключить OctōPAY", href: partnerUrl },
+      cta: { label: "Подключить OctōPAY", href: `${partnerUrl.split("#")[0]}?plan=octopay#form` },
     },
   ];
 }

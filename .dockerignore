@@ -7,3 +7,9 @@
 design_md
 tech_spec
 **/*.md
+
+# Never include deployment credentials in the build context.
+**/.env*
+**/*.pem
+**/*.key
+production.env
