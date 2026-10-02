@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { phoneSchema } from "./phone";
 
 /**
  * Мерчант — заведение, принимающее бонусы. Раньше назывался store; карты, клиенты
@@ -40,6 +41,8 @@ export const merchantSchema = z.looseObject({
   /** octopay — OctōPAY + Loal, loal — только Loal (см. tariffOf). */
   tariff: z.string().nullish(),
   createdAt: z.string(),
+  /** Архив: магазин удалён агентством, его можно только смотреть. */
+  deletedAt: z.string().nullish(),
 });
 export type Merchant = z.infer<typeof merchantSchema>;
 
@@ -73,6 +76,9 @@ export const merchantMemberSchema = z.looseObject({
   userId: z.string().nullish(),
   role: z.string(),
   permissions: z.record(z.string(), z.boolean()).default({}),
+  /** Назначенные филиалы. Администратору филиалов сервер показывает только пересечение с его филиалами. */
+  branchIds: z.array(z.string()).default([]),
+  /** Прежнее поле — единственный филиал; читать через memberBranchIds. */
   branchId: z.string().nullish(),
   invitedAt: z.string().nullish(),
   acceptedAt: z.string().nullish(),
@@ -85,6 +91,10 @@ export const merchantMemberSchema = z.looseObject({
   registeredAt: z.string().nullish(),
 });
 export type MerchantMember = z.infer<typeof merchantMemberSchema>;
+
+/** Филиалы человека: branchIds, а у старого ответа — его единственный branchId. */
+export const memberBranchIds = (member: Pick<MerchantMember, "branchIds" | "branchId">): string[] =>
+  member.branchIds.length > 0 ? member.branchIds : member.branchId ? [member.branchId] : [];
 
 export const merchantInviteSchema = z.looseObject({
   id: z.string(),
@@ -107,11 +117,8 @@ export const createMerchantInputSchema = z.object({
     .regex(/^[a-z0-9-]+$/, "Латиница, цифры и дефис"),
   name: z.string().trim().min(2, "Введите название").max(120, "Слишком длинное название"),
   contactEmail: z.union([z.literal(""), z.email("Похоже, в почте опечатка")]).optional(),
-  contactPhone: z
-    .string()
-    .trim()
-    .refine((value) => value === "" || value.replace(/\D/g, "").length >= 9, "Проверьте номер телефона")
-    .optional(),
+  /** Телефон владельца: по нему создаётся членство admin, владелец входит по коду из WhatsApp. */
+  contactPhone: phoneSchema,
 });
 export type CreateMerchantInput = z.infer<typeof createMerchantInputSchema>;
 
@@ -122,10 +129,8 @@ export type CreateMerchantInput = z.infer<typeof createMerchantInputSchema>;
 export const createMerchantFormSchema = z.object({
   name: z.string().trim().min(2, "Введите название").max(120, "Слишком длинное название"),
   category: z.string().trim().min(1, "Выберите категорию"),
-  contactPhone: z
-    .string()
-    .trim()
-    .refine((value) => value === "" || value.replace(/\D/g, "").length >= 9, "Проверьте номер телефона"),
+  /** Телефон владельца — он войдёт в кабинет партнёра по этому номеру и коду из WhatsApp. */
+  contactPhone: phoneSchema,
   contactEmail: z.union([z.literal(""), z.email("Похоже, в почте опечатка")]),
   description: z.string().trim().max(2000, "Не длиннее 2000 символов"),
 });

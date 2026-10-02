@@ -1,5 +1,5 @@
 import { Delete02Icon, ImageAdd01Icon } from "@hugeicons/core-free-icons";
-import { PARTNER_CATEGORIES, createMerchantFormSchema, slugify, type CreateMerchantForm } from "@loal/api";
+import { ApiError, PARTNER_CATEGORIES, createMerchantFormSchema, slugify, type CreateMerchantForm } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { PhoneInput } from "@loal/ui/inputs";
 import { Button, FileButton, FormField, FormStatus, Icon, Input, Label, Textarea, cn } from "@loal/ui/shadcn";
@@ -77,6 +77,12 @@ export function CreateMerchantForm({ onCreated }: { onCreated?: (merchantId: str
           setPhotos([]);
           onCreated?.(merchant.id);
         } catch (error) {
+          // Номер заблокированного, удалённого или служебного аккаунта владельцем не станет
+          if (error instanceof ApiError && error.code === "MERCHANT_OWNER_UNAVAILABLE")
+            return helpers.setFieldError(
+              "contactPhone",
+              "Этот номер нельзя сделать владельцем: аккаунт заблокирован, удалён или служебный. Укажите другой.",
+            );
           applyServerIssues(error, helpers, "Не удалось создать заведение");
         } finally {
           helpers.setSubmitting(false);
@@ -139,7 +145,11 @@ export function CreateMerchantForm({ onCreated }: { onCreated?: (merchantId: str
           </fieldset>
 
           <div className="grid gap-6 sm:grid-cols-2">
-            <FormField label="Телефон" error={fieldError(form, "contactPhone")}>
+            <FormField
+              label="Телефон владельца"
+              hint="Владелец войдёт в кабинет партнёра по этому номеру — код придёт в WhatsApp. Уже есть аккаунт Loal — права добавятся к нему."
+              error={fieldError(form, "contactPhone")}
+            >
               {(parts) => (
                 <PhoneInput
                   {...parts}

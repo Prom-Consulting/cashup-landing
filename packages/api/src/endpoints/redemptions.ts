@@ -10,7 +10,7 @@ export const redemptionsApi = (api: ApiClient) => ({
    * При любом отказе ничего не списано: 400 — процент выше потолка магазина,
    * 403 — подписка магазина неактивна, 404 — карты нет, 409 — не хватает баллов.
    */
-  redeem: (input: RedemptionForm & { merchantId?: string }, maxPercent: number) =>
+  redeem: (input: RedemptionForm & { merchantId?: string; branchId?: string }, maxPercent: number) =>
     api.request(redemptionResultSchema, "/v1/redemptions", {
       method: "POST",
       body: redemptionInputSchema(maxPercent).parse(input),

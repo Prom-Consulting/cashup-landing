@@ -1,12 +1,14 @@
 import {
   DEDUCTION_CHANNEL_LABELS,
   MEMBER_ROLE_LABELS,
+  memberBranchIds,
   MERCHANT_STATUS_LABELS,
   buyMonthsInputSchema,
   invoiceState,
   type BuyMonthsInput,
   TARIFF_LABELS,
   tariffOf,
+  type Merchant,
 } from "@loal/api";
 import {
   AddMemberForm,
@@ -95,6 +97,7 @@ export function MerchantDetailsPage() {
 
   if (merchant.isPending) return <Loading />;
   if (merchant.isError) return <ErrorState error={merchant.error} onRetry={() => merchant.refetch()} />;
+  if (merchant.data.deletedAt) return <ArchivedMerchant merchant={merchant.data} />;
 
   return (
     <section className="flex flex-col gap-6">
@@ -246,6 +249,14 @@ export function MerchantDetailsPage() {
                   {[member.fullName, member.phone ? formatPhone(member.phone) : null].filter(Boolean).join(" · ") ||
                     "—"}
                 </span>
+                {memberBranchIds(member).length > 0 && (
+                  <span className="block text-sm text-muted-foreground">
+                    {memberBranchIds(member).length > 1 ? "Филиалы" : "Филиал"}:{" "}
+                    {memberBranchIds(member)
+                      .map((id) => branches.data?.find((branch) => branch.id === id)?.name ?? "закрытый")
+                      .join(", ")}
+                  </span>
+                )}
               </span>
               <span className="flex flex-wrap items-center gap-2">
                 {member.acceptedAt ? (
@@ -321,7 +332,7 @@ export function MerchantDetailsPage() {
         <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
           {merchant.data.status === "suspended"
             ? "Платформа его сейчас не обслуживает: бонусы здесь не принимаются. Верните в работу — и всё заработает, как раньше, если подписка заведения действует."
-            : "Приостановленное заведение перестаёт обслуживаться платформой, вернуть его можно в любой момент. Удаление убирает его насовсем — клиенты, карты и их баланс остаются: они принадлежат платформе, а не заведению."}
+            : "Приостановленное заведение перестаёт обслуживаться платформой, вернуть его можно в любой момент. Удаление отправляет его в архив насовсем: сотрудники теряют доступ и могут работать в другом магазине, связь с OctōPAY и 1С отключается. Клиенты, карты, подписки и балансы остаются — они принадлежат платформе."}
         </p>
         {suspend.isError && <ErrorState error={suspend.error} />}
         {activate.isError && <ErrorState error={activate.error} />}
@@ -342,7 +353,7 @@ export function MerchantDetailsPage() {
           <ConfirmDialog
             trigger={<Button variant="danger">Удалить заведение</Button>}
             title={`Удалить «${merchant.data.name}»?`}
-            description="Заведение, его сотрудники, витрина и журнал исчезнут из кабинетов. Держатели карт ничего не потеряют. Отменить нельзя."
+            description="Заведение уйдёт в архив: его сотрудники сразу потеряют доступ, связь с OctōPAY и 1С отключится, из каталога оно пропадёт. Историю операций можно будет смотреть. Держатели карт ничего не потеряют. Восстановить нельзя."
             confirmLabel="Удалить"
             onConfirm={async () => {
               await remove.mutateAsync(merchantId);
@@ -354,7 +365,7 @@ export function MerchantDetailsPage() {
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-xl font-bold">Коды приглашения владельца</h2>
+          <h2 className="text-xl font-bold">Коды приглашения (прежний способ)</h2>
           <Button
             type="button"
             variant="outline"
@@ -365,7 +376,8 @@ export function MerchantDetailsPage() {
           </Button>
         </div>
         <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
-          По коду владелец регистрируется сам и сразу получает права на это заведение.
+          Новым заведениям код не нужен: владелец назначается по телефону при создании и входит по коду из WhatsApp.
+          Код — запасной путь для старых заведений без владельца: по нему он регистрируется сам.
         </p>
         {createInvite.isError && <ErrorState error={createInvite.error} />}
         {invites.isPending && <Loading />}
@@ -382,6 +394,78 @@ export function MerchantDetailsPage() {
               </span>
             </li>
           ))}
+        </ul>
+      </Card>
+    </section>
+  );
+}
+
+/**
+ * Удалённый магазин — архив только для чтения (docs/API.md, «Удаление магазина»): правки и новые
+ * операции сервер отклоняет (410 MERCHANT_DELETED), а историю агентство смотреть может.
+ */
+function ArchivedMerchant({ merchant }: { merchant: Merchant }) {
+  const deductions = useMerchantDeductions(merchant.id, { page: 1, pageSize: 10 });
+  const invoices = useMerchantInvoices(merchant.id);
+  return (
+    <section className="flex flex-col gap-6">
+      <Link to="/" className="text-base text-slate underline-offset-4 hover:underline">
+        ← К списку заведений
+      </Link>
+      <PageHeader
+        title={merchant.name}
+        description={`${merchant.slug} · создан ${formatDate(merchant.createdAt)}`}
+        action={<Badge tone="quiet">удалён {formatDate(merchant.deletedAt)}</Badge>}
+      />
+      <Card>
+        <h2 className="text-xl font-bold">Заведение в архиве</h2>
+        <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
+          Сотрудники потеряли доступ, связь с OctōPAY и 1С отключена, в каталоге его нет. Клиенты, карты и балансы
+          сохранились. Менять заведение и проводить операции нельзя, восстановление не предусмотрено.
+        </p>
+        <p className="mt-3 text-base">
+          {[merchant.contactPhone ? formatPhone(merchant.contactPhone) : null, merchant.contactEmail]
+            .filter(Boolean)
+            .join(" · ") || "Контактов не было"}
+        </p>
+      </Card>
+      <Card>
+        <h2 className="text-xl font-bold">Последние списания</h2>
+        {deductions.isPending && <Loading />}
+        {deductions.isError && <ErrorState error={deductions.error} onRetry={() => deductions.refetch()} />}
+        {deductions.isSuccess && deductions.data.items.length === 0 && (
+          <p className="mt-3 text-lg text-muted-foreground">Списаний не было.</p>
+        )}
+        <ul className="mt-3 flex flex-col gap-3">
+          {(deductions.data?.items ?? []).map((row) => (
+            <li key={row.id} className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-3">
+              <span className="text-lg">
+                {row.customerName ?? "Клиент"} · {row.productName ?? "покупка"}
+              </span>
+              <span className="text-lg tabular-nums">−{row.points}</span>
+            </li>
+          ))}
+        </ul>
+      </Card>
+      <Card>
+        <h2 className="text-xl font-bold">Счета</h2>
+        {invoices.isPending && <Loading rows={2} />}
+        {invoices.isError && <ErrorState error={invoices.error} onRetry={() => invoices.refetch()} />}
+        {invoices.isSuccess && invoices.data.length === 0 && (
+          <p className="mt-3 text-lg text-muted-foreground">Счетов не выставляли.</p>
+        )}
+        <ul className="mt-3 flex flex-col gap-3">
+          {(invoices.data ?? []).map((invoice) => {
+            const state = invoiceState(invoice);
+            return (
+              <li key={invoice.id} className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-3">
+                <span className="text-lg tabular-nums">
+                  {invoice.amount != null ? `${money.format(invoice.amount)} сом` : "—"}
+                </span>
+                <Badge tone={state.tone}>{state.label}</Badge>
+              </li>
+            );
+          })}
         </ul>
       </Card>
     </section>

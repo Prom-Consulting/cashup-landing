@@ -54,6 +54,17 @@ export type DeductionQuery = {
  * Кабинет заведения: журнал списаний, подписка, счета, витрина и обмен с 1С.
  * Всё привязано к merchantId — платформенные клиенты и карты сюда не входят.
  */
+/**
+ * Филиалы в теле запроса так, чтобы его понял и прежний шлюз (одно поле branchId, строгая схема),
+ * и новый (branchIds, а branchId — для совместимости; оба сразу — 400). Один филиал — branchId,
+ * несколько — branchIds; ни одного — при замене branchId: null, при добавлении поле не шлём.
+ */
+function branchesBody(branchIds: string[], replace: boolean) {
+  if (branchIds.length > 1) return { branchIds };
+  if (branchIds.length === 1) return { branchId: branchIds[0] };
+  return replace ? { branchId: null } : {};
+}
+
 export const merchantCabinetApi = (api: ApiClient) => ({
   deductions: (merchantId: string, query: DeductionQuery = {}) =>
     api.request(deductionPageSchema, `/admin/v1/merchants/${merchantId}/deductions`, { query }),
@@ -155,17 +166,24 @@ export const merchantCabinetApi = (api: ApiClient) => ({
   addMember: (merchantId: string, input: AddMemberInput) =>
     api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members`, {
       method: "POST",
-      body: addMemberInputSchema.parse(input),
+      body: (() => {
+        const { branchIds, ...rest } = addMemberInputSchema.parse(input);
+        return { ...rest, ...branchesBody(branchIds, false) };
+      })(),
     }),
 
+  /**
+   * Заменить филиалы человека целиком. Администратор филиалов меняет только свои назначения —
+   * остальные сервер сохраняет. Права меняются со следующего входа: сессия человека гаснет.
+   */
   updateMember: (
     merchantId: string,
     memberId: string,
-    input: { branchId: string | null },
+    input: { branchIds: string[] },
   ) =>
     api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members/${memberId}`, {
       method: "PATCH",
-      body: input,
+      body: branchesBody(input.branchIds, true),
     }),
 
   /** Подтвердить приглашённого: до этого он в списке, но доступа не имеет. */
@@ -175,10 +193,17 @@ export const merchantCabinetApi = (api: ApiClient) => ({
       body: {},
     }),
 
-  removeMember: (merchantId: string, memberId: string) =>
-    api.request(z.looseObject({}).or(z.null()), `/admin/v1/merchants/${merchantId}/members/${memberId}`, {
-      method: "DELETE",
-    }),
+  /**
+   * Без branchId владелец закрывает членство целиком (человек сможет работать в другом
+   * магазине), администратор филиалов снимает только свои назначения. С branchId — снять один
+   * филиал; последний филиал администратора филиалов так не снять (400).
+   */
+  removeMember: (merchantId: string, memberId: string, options: { branchId?: string } = {}) =>
+    api.request(
+      z.looseObject({}).or(z.null()),
+      `/admin/v1/merchants/${merchantId}/members/${memberId}${options.branchId ? `?branchId=${encodeURIComponent(options.branchId)}` : ""}`,
+      { method: "DELETE" },
+    ),
 
   /** Счёт клиенту: на странице Octopay клиент сам выбирает, сколько бонусов Loal использовать. */
   createClientPayment: (merchantId: string, input: ClientPaymentInput) =>

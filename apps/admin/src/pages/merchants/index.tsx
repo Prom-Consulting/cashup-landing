@@ -14,7 +14,8 @@ function matches(merchant: Merchant, query: string) {
 
 /** Заведения, принимающие бонусы. Карты и клиенты принадлежат платформе, не им. */
 export function MerchantsPage() {
-  const merchants = useMerchants();
+  const [showArchive, setShowArchive] = useState(false);
+  const merchants = useMerchants(showArchive);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
@@ -47,7 +48,8 @@ export function MerchantsPage() {
         </Card>
       )}
 
-      <div className="relative max-w-[420px]">
+      <div className="flex flex-wrap items-center gap-4">
+      <div className="relative w-full max-w-[420px]">
         <Icon icon={Search01Icon} className="absolute top-1/2 left-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={query}
@@ -56,6 +58,16 @@ export function MerchantsPage() {
           aria-label="Поиск по заведениям"
           className="pl-12"
         />
+      </div>
+        <label className="flex items-center gap-2 text-base">
+          <input
+            type="checkbox"
+            className="h-5 w-5 accent-[var(--primary)]"
+            checked={showArchive}
+            onChange={(event) => setShowArchive(event.target.checked)}
+          />
+          Показать удалённые
+        </label>
       </div>
 
       {merchants.isPending && <Loading />}
@@ -71,14 +83,18 @@ export function MerchantsPage() {
         {rows.map((merchant) => {
           const step = WORKFLOW_STATUS_ORDER.indexOf(merchant.workflowStatus) + 1;
           return (
-            <Card key={merchant.id}>
+            <Card key={merchant.id} className={merchant.deletedAt ? "opacity-70" : undefined}>
               <div className="flex items-start justify-between gap-3">
                 <Link to={`/merchants/${merchant.id}`} className="text-xl font-bold underline-offset-4 hover:underline">
                   {merchant.name}
                 </Link>
-                <Badge tone={merchant.status === "active" ? "good" : "warn"}>
-                  {MERCHANT_STATUS_LABELS[merchant.status]}
-                </Badge>
+                {merchant.deletedAt ? (
+                  <Badge tone="quiet">удалён {formatDate(merchant.deletedAt)}</Badge>
+                ) : (
+                  <Badge tone={merchant.status === "active" ? "good" : "warn"}>
+                    {MERCHANT_STATUS_LABELS[merchant.status]}
+                  </Badge>
+                )}
               </div>
               <p className="mt-2 flex flex-wrap items-center gap-2 text-base text-muted-foreground">
                 {merchant.slug}

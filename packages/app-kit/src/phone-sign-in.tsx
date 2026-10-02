@@ -4,7 +4,7 @@ import { Field } from "@loal/ui/field";
 import { Button, OtpInput, PhoneInput, Spinner } from "@loal/ui/inputs";
 import { Form, Formik, type FormikHelpers } from "formik";
 import { useEffect, useState } from "react";
-import { useLoginByOtp, useRegisterByPhone, useRequestOtp, useSession } from "./session";
+import { useCheckPhone, useLoginByOtp, useRegisterByPhone, useRequestOtp, useSession } from "./session";
 
 type Step = "phone" | "code";
 
@@ -63,6 +63,9 @@ export function PhoneSignInForm({
   onReferralRejected?: () => void;
 }) {
   const requestOtp = useRequestOtp();
+  const checkPhone = useCheckPhone();
+  // Знаем ли номер: true — войдёт в свой аккаунт, false — создадим новый, null — не знаем
+  const [known, setKnown] = useState<boolean | null>(null);
   const loginByOtp = useLoginByOtp();
   const registerByPhone = useRegisterByPhone();
   const { endedReason } = useSession();
@@ -120,11 +123,21 @@ export function PhoneSignInForm({
         helpers.setStatus(undefined);
         try {
           if (step === "phone") {
-            await sendCode(values.phone);
+            // Проверка номера — только подсказка: её сбой не мешает отправить код
+            const [, exists] = await Promise.all([sendCode(values.phone), checkPhone(values.phone)]);
+            setKnown(exists);
             setStep("code");
             // Отправка телефона отметила все поля тронутыми — код ещё не вводили, ошибку не показываем
             helpers.setFieldTouched("otp", false, false);
-            setNotice("Отправили код в WhatsApp.");
+            setNotice(
+              exists === true
+                ? referralCode
+                  ? "Этот номер уже есть в Loal — вы войдёте в свой аккаунт. Бонус за приглашение достаётся только новым. Код отправили в WhatsApp."
+                  : "С возвращением! Отправили код в WhatsApp."
+                : exists === false
+                  ? "Отправили код в WhatsApp — после него создадим аккаунт."
+                  : "Отправили код в WhatsApp.",
+            );
           } else {
             await submitCode(values, helpers);
           }
@@ -192,7 +205,7 @@ export function PhoneSignInForm({
           )}
 
           <Button type="submit" disabled={form.isSubmitting}>
-            {form.isSubmitting ? <Spinner /> : step === "phone" ? "Получить код" : "Войти"}
+            {form.isSubmitting ? <Spinner /> : step === "phone" ? "Получить код" : known === false ? "Создать аккаунт" : "Войти"}
           </Button>
 
           {step === "code" && (
@@ -217,6 +230,7 @@ export function PhoneSignInForm({
                 type="button"
                 onClick={() => {
                   setStep("phone");
+                  setKnown(null);
                   setNotice(null);
                   clearCode(form);
                   form.setStatus(undefined);

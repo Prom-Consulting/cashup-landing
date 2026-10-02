@@ -1,4 +1,4 @@
-import { isBranchAdmin, isMerchantOwner } from "@loal/api";
+import { isBranchAdmin, isMerchantOwner, membershipBranchIds } from "@loal/api";
 import { useSession } from "@loal/app-kit";
 import { createContext, createElement, use, useCallback, useMemo, useState, type ReactNode } from "react";
 
@@ -59,7 +59,8 @@ function useCurrentMerchantValue() {
       isBranchAdmin: isBranchAdmin(membership?.role),
       /** Команда и журнал: владелец — весь магазин, администратор филиала — свой филиал. */
       canRunBranch: isMerchantOwner(membership?.role) || isBranchAdmin(membership?.role),
-      branchId: membership?.branchId ?? null,
+      /** Филиалы администратора филиалов (у владельца пусто — ему открыт весь магазин). */
+      branchIds: membership ? membershipBranchIds(membership) : [],
       label: session?.email ?? "",
       selectMerchant,
     }),

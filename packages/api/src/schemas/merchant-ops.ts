@@ -21,19 +21,21 @@ export type CreateBranchInput = z.infer<typeof createBranchInputSchema>;
 
 /**
  * Человека заводят заранее по имени и телефону: номер резервируется, и когда он впервые войдёт
- * по коду из WhatsApp, аккаунт уже будет с ролью и филиалом. Администратору филиала филиал
- * обязателен; администратор филиала сам добавляет только кассиров — филиал сервер ставит его.
+ * по коду из WhatsApp, аккаунт уже будет с ролью и филиалами. Один человек может работать в
+ * нескольких филиалах, но только одного магазина (`409 EMPLOYEE_ALREADY_ASSIGNED`).
+ * Администратору филиалов нужен хотя бы один филиал; сам он добавляет только кассиров и только
+ * в свои филиалы — пустой список сервер заменит всеми его филиалами.
  */
 export const addMemberInputSchema = z
   .object({
     fullName: z.string().trim().min(2, "Введите имя").max(120, "Слишком длинное имя"),
     phone: phoneSchema,
     role: z.enum(["admin", "branch_admin", "staff"]),
-    branchId: z.string().trim().optional(),
+    branchIds: z.array(z.string().trim().min(1)).max(100, "Не больше 100 филиалов").default([]),
   })
-  .refine((input) => input.role !== "branch_admin" || Boolean(input.branchId), {
-    path: ["branchId"],
-    message: "Выберите филиал — администратор отвечает за один филиал",
+  .refine((input) => input.role !== "branch_admin" || input.branchIds.length > 0, {
+    path: ["branchIds"],
+    message: "Выберите хотя бы один филиал — администратор отвечает за свои филиалы",
   });
 export type AddMemberInput = z.infer<typeof addMemberInputSchema>;
 

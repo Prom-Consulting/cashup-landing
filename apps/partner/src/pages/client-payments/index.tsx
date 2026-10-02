@@ -1,13 +1,18 @@
 import { ClientPaymentForm, ClientPaymentList } from "@loal/app-kit";
 import { Button, Card, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Link } from "react-router";
-import { useTariff } from "../../entities/merchant/api";
+import { useBranches, useTariff } from "../../entities/merchant/api";
 import { useCurrentMerchant } from "../../entities/session/model";
 
 /** Счёт клиенту через OctōPAY: клиент выбирает бонусы Loal и оплачивает остаток банком. */
 export function ClientPaymentsPage() {
-  const { merchantId, canManage } = useCurrentMerchant();
+  const { merchantId, canManage, isBranchAdmin, branchIds } = useCurrentMerchant();
   const { tariff, isPending } = useTariff(merchantId ?? "");
+  const branches = useBranches(merchantId ?? "");
+  // Счёт администратора нескольких филиалов записывается на выбранный; владельцу филиал не нужен
+  const workBranches = isBranchAdmin
+    ? (branches.data ?? []).filter((branch) => !branch.archivedAt && branchIds.includes(branch.id))
+    : undefined;
   if (!merchantId) return null;
   if (isPending) return <Loading rows={3} />;
   // «Счёт клиенту» — часть тарифа OctōPAY + Loal; на «Только Loal» объясняем, как его получить
@@ -42,7 +47,7 @@ export function ClientPaymentsPage() {
         description="Клиент открывает ссылку OctōPAY, выбирает, сколько бонусов Loal использовать, и оплачивает остаток банком."
       />
       <Card>
-        <ClientPaymentForm merchantId={merchantId} setupHref={canManage ? "/" : undefined} />
+        <ClientPaymentForm merchantId={merchantId} setupHref={canManage ? "/" : undefined} branches={workBranches} />
       </Card>
       <Card>
         <h2 className="mb-4 text-xl font-bold">{canManage ? "Все счета" : "Счета филиала"}</h2>

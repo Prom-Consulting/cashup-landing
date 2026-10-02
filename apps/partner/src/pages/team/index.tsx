@@ -1,5 +1,5 @@
 import { UserAdd01Icon } from "@hugeicons/core-free-icons";
-import { MEMBER_ROLE_LABELS, createBranchInputSchema, type MerchantMember } from "@loal/api";
+import { MEMBER_ROLE_LABELS, createBranchInputSchema, memberBranchIds, type MerchantMember } from "@loal/api";
 import { AddMemberForm, useJustRegistered } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import {
@@ -26,26 +26,29 @@ import { MemberRow } from "../../features/team/member-row";
 
 type Group = { key: string; title: string; members: MerchantMember[] };
 
-/** Сначала владелец, потом каждый открытый филиал со своими людьми, в конце — кто без филиала. */
+/**
+ * Сначала владелец, потом каждый открытый филиал со своими людьми, в конце — кто без филиала.
+ * Человек в нескольких филиалах стоит в каждом из них: так видно, кто где работает.
+ */
 function groupMembers(members: MerchantMember[], branches: { id: string; name: string; archivedAt?: string | null }[]): Group[] {
   const owners = members.filter((member) => member.role === "admin");
   const rest = members.filter((member) => member.role !== "admin");
-  const known = new Set(branches.map((branch) => branch.id));
+  const open = branches.filter((item) => !item.archivedAt);
   const groups: Group[] = [{ key: "owner", title: "Владелец", members: owners }];
-  for (const branch of branches.filter((item) => !item.archivedAt)) {
+  for (const branch of open) {
     groups.push({
       key: branch.id,
       title: branch.name,
       // Администратор филиала — первым, за ним кассиры.
       members: rest
-        .filter((member) => member.branchId === branch.id)
+        .filter((member) => memberBranchIds(member).includes(branch.id))
         .sort((a, b) => Number(b.role === "branch_admin") - Number(a.role === "branch_admin")),
     });
   }
   groups.push({
     key: "none",
     title: "Без филиала",
-    members: rest.filter((member) => !member.branchId || !known.has(member.branchId) || branches.find((b) => b.id === member.branchId)?.archivedAt),
+    members: rest.filter((member) => !memberBranchIds(member).some((id) => open.some((branch) => branch.id === id))),
   });
   return groups.filter((group) => group.members.length > 0);
 }
@@ -55,7 +58,7 @@ function groupMembers(members: MerchantMember[], branches: { id: string; name: s
  * и добавляет только кассиров своего филиала (сервер отдаёт ему только их).
  */
 export function TeamPage() {
-  const { merchantId, canManage, isBranchAdmin, branchId } = useCurrentMerchant();
+  const { merchantId, canManage, isBranchAdmin, branchIds } = useCurrentMerchant();
   const branches = useBranches(merchantId ?? "");
   const members = useMembers(merchantId ?? "");
   const createBranch = useCreateBranch(merchantId ?? "");
@@ -69,10 +72,20 @@ export function TeamPage() {
   const canAdd = canManage || isBranchAdmin;
   const branchList = branches.data ?? [];
   const openBranches = branchList.filter((branch) => !branch.archivedAt);
-  const myBranch = branchList.find((branch) => branch.id === branchId);
+  // Администратор филиалов работает только со своими; владелец — со всеми открытыми
+  const myBranches = openBranches.filter((branch) => branchIds.includes(branch.id));
+  const editableBranches = canManage ? openBranches : myBranches;
   const groups = canManage
     ? groupMembers(members.data ?? [], branchList)
-    : [{ key: "mine", title: myBranch ? `Кассиры · ${myBranch.name}` : "Кассиры", members: members.data ?? [] }];
+    : myBranches.length > 1
+      ? groupMembers(members.data ?? [], myBranches).filter((group) => group.key !== "owner")
+      : [
+          {
+            key: "mine",
+            title: myBranches[0] ? `Кассиры · ${myBranches[0].name}` : "Кассиры",
+            members: members.data ?? [],
+          },
+        ];
 
   return (
     <section className="flex flex-col gap-6">
@@ -81,7 +94,9 @@ export function TeamPage() {
         title="Команда"
         description={
           isBranchAdmin
-            ? "Кассиры вашего филиала. Кассир входит по номеру телефона и коду из WhatsApp."
+            ? myBranches.length > 1
+              ? `Кассиры ваших филиалов: ${myBranches.map((branch) => branch.name).join(", ")}. Кассир входит по номеру телефона и коду из WhatsApp.`
+              : "Кассиры вашего филиала. Кассир входит по номеру телефона и коду из WhatsApp."
             : "Филиалы и люди. Сотрудник входит по номеру телефона и коду из WhatsApp."
         }
         action={
@@ -100,7 +115,7 @@ export function TeamPage() {
                 <AddMemberForm
                   bare
                   merchantId={merchantId ?? ""}
-                  branches={branchList}
+                  branches={canManage ? branchList : myBranches}
                   actor={canManage ? "owner" : "branch"}
                   onAdded={() => {
                     setAdding(false);
@@ -135,7 +150,7 @@ export function TeamPage() {
                   key={branch.id}
                   merchantId={merchantId ?? ""}
                   branch={branch}
-                  people={(members.data ?? []).filter((member) => member.branchId === branch.id).length}
+                  people={(members.data ?? []).filter((member) => memberBranchIds(member).includes(branch.id)).length}
                 />
               ))}
             </ul>
@@ -217,6 +232,7 @@ export function TeamPage() {
                       merchantId={merchantId ?? ""}
                       member={member}
                       branches={branchList}
+                      editableBranches={editableBranches}
                       canManage={canManage}
                       canRemove={canManage || (isBranchAdmin && member.role === "staff")}
                     />

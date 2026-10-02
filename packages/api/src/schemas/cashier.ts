@@ -10,8 +10,10 @@ const named = z.looseObject({ id: z.string().nullish(), name: z.string().nullish
 /** Обзор филиала: кто вошёл, где работает и принимает ли заведение бонусы. */
 export const cashierOverviewSchema = z.looseObject({
   cashier: z.looseObject({ memberId: z.string().nullish(), fullName: z.string().nullish() }).nullish(),
-  /** null — кассир без филиала. */
+  /** Единственный филиал; null, если филиалов нет или их несколько. */
   branch: named.nullish(),
+  /** Все доступные филиалы: при нескольких кассир выбирает, на какой записать операцию. */
+  branches: z.array(z.looseObject({ id: z.string(), name: z.string().nullish() })).default([]),
   merchant: named.nullish(),
   /** null — у заведения нет подписки, бонусы не принимаются. */
   subscription: z

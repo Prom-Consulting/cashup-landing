@@ -15,8 +15,10 @@ export const clientPaymentInputSchema = z.object({
       const minor = Math.round(scaled);
       return Number.isSafeInteger(minor) && Math.abs(scaled - minor) <= 1e-7;
     }, "Сумма должна содержать не больше двух знаков после запятой"),
+  /** Филиал счёта: обязателен, если у человека их несколько (`400 BRANCH_REQUIRED`). */
+  branchId: z.string().optional(),
 });
-export type ClientPaymentInput = { requestId: string; amount: number | string };
+export type ClientPaymentInput = { requestId: string; amount: number | string; branchId?: string };
 
 /** Счёт клиенту. Статус строкой: незнакомый не должен ронять список. */
 export const clientPaymentSchema = z.looseObject({

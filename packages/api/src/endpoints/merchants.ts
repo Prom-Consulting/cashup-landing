@@ -19,7 +19,9 @@ const orNull = (value: string | undefined) =>
  * само. Клиенты, карты и шаблоны сюда больше не входят: они принадлежат платформе.
  */
 export const merchantsApi = (api: ApiClient) => ({
-  list: () => api.request(z.array(merchantSchema), "/admin/v1/merchants"),
+  /** includeDeleted — вместе с архивом удалённых магазинов. */
+  list: (options: { includeDeleted?: boolean } = {}) =>
+    api.request(z.array(merchantSchema), `/admin/v1/merchants${options.includeDeleted ? "?includeDeleted=true" : ""}`),
 
   get: (merchantId: string) => api.request(merchantSchema, `/admin/v1/merchants/${merchantId}`),
 
@@ -28,7 +30,7 @@ export const merchantsApi = (api: ApiClient) => ({
       method: "POST",
       body: (() => {
         const parsed = createMerchantInputSchema.parse(input);
-        return { ...parsed, contactEmail: orNull(parsed.contactEmail), contactPhone: orNull(parsed.contactPhone) };
+        return { ...parsed, contactEmail: orNull(parsed.contactEmail) };
       })(),
     }),
 
@@ -41,8 +43,16 @@ export const merchantsApi = (api: ApiClient) => ({
       })(),
     }),
 
-  /** Убирает заведение. Клиенты, карты и их баланс остаются — они принадлежат платформе. */
-  remove: (merchantId: string) => api.request(z.unknown(), `/admin/v1/merchants/${merchantId}`, { method: "DELETE" }),
+  /**
+   * В архив: магазин, филиалы и все членства закрываются, сессии сотрудников гаснут. Аккаунты,
+   * карты, подписки и балансы клиентов остаются. Восстановления нет. Повтор — та же дата.
+   */
+  remove: (merchantId: string) =>
+    api.request(
+      z.looseObject({ id: z.string(), slug: z.string().nullish(), deletedAt: z.string().nullish() }).or(z.null()),
+      `/admin/v1/merchants/${merchantId}`,
+      { method: "DELETE" },
+    ),
 
   suspend: (merchantId: string) =>
     api.request(merchantSchema, `/admin/v1/merchants/${merchantId}/suspend`, { method: "POST", body: {} }),

@@ -17,8 +17,7 @@ import {
   type OtpRequestInput,
   type PhoneRegisterInput,
   type RegisterInput,
-  type UpdateProfileInput,
-} from "../schemas/auth";
+  type UpdateProfileInput, phoneCheckResultSchema } from "../schemas/auth";
 
 /**
  * Вход один на все кабинеты: почта с паролем или телефон с кодом из WhatsApp.
@@ -26,6 +25,18 @@ import {
  * и вход с другого устройства гасит эту. Refresh-токена нет: на 401 нужен новый вход.
  */
 export const authApi = (api: ApiClient) => ({
+  /**
+   * Есть ли у номера аккаунт — до регистрации, без кода. Только подсказка интерфейсу: войти
+   * всё равно можно лишь по коду. 429 PHONE_CHECK_RATE_LIMITED (10 в минуту с IP) и
+   * 503 PHONE_CHECK_UNAVAILABLE — не «номера нет», а «не знаем»: продолжаем без подсказки.
+   */
+  checkPhone: (phone: string) =>
+    api.request(phoneCheckResultSchema, "/auth/check-phone", {
+      method: "POST",
+      body: { phone: `+${phone.replace(/\D/g, "")}` },
+      anonymous: true,
+    }),
+
   /** Код живёт 5 минут, повторный запрос раньше 60 секунд — 429. На код даётся 5 попыток. */
   requestOtp: (input: OtpRequestInput) =>
     api.request(otpRequestResultSchema, "/auth/otp/request", {

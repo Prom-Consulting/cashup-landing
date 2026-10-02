@@ -2,7 +2,10 @@ import { RegisterForm } from "@loal/app-kit";
 import { Logo } from "@loal/ui/logo";
 import { Link, useNavigate } from "react-router";
 
-/** Регистрация владельца заведения по коду приглашения от Loal. */
+/**
+ * Регистрация по коду приглашения — прежний путь для старых заведений. Новых владельцев Loal
+ * заводит по телефону, и они просто входят по коду из WhatsApp.
+ */
 export function RegisterPage() {
   const navigate = useNavigate();
 
@@ -13,6 +16,13 @@ export function RegisterPage() {
         <h1 className="display mt-6 text-[2rem]">Регистрация</h1>
         <p className="mt-2 text-lg text-slate">
           По коду приглашения вы становитесь владельцем заведения и сразу попадаете в кабинет.
+        </p>
+        <p className="mt-3 rounded-2xl bg-cream px-4 py-3 text-base">
+          Кода нет, а Loal подключил ваше заведение по номеру телефона?{" "}
+          <Link to="/login" className="text-flame-ink underline underline-offset-4">
+            Войдите по номеру
+          </Link>{" "}
+          — регистрироваться не нужно.
         </p>
         <div className="mt-8">
           <RegisterForm onDone={() => navigate("/", { replace: true })} />

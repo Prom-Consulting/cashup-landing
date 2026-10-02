@@ -16,6 +16,7 @@ import { Form, Formik } from "formik";
 import { useState } from "react";
 import { Link } from "react-router";
 import { useApi } from "./session";
+import { WorkBranchPicker, useWorkBranch, type WorkBranch } from "./work-branch";
 
 const money = new Intl.NumberFormat("ru-RU");
 const dateTime = new Intl.DateTimeFormat("ru-RU", { dateStyle: "short", timeStyle: "short" });
@@ -84,6 +85,7 @@ function octopaySetupHint(reason?: string | null, activeAccounts?: number) {
 /** Ошибки выставления счёта — понятным языком; сырой ответ провайдера не показываем. */
 function clientPaymentErrorText(error: unknown) {
   if (error instanceof ApiError) {
+    if (error.code === "BRANCH_REQUIRED") return "Выберите филиал, где вы сейчас работаете. Счёт не выставлен.";
     if (error.code === "OCTOPAY_NOT_READY") return "Связь с OctōPAY сейчас не готова — подсказка выше. Счёт не выставлен.";
     if (error.code === "OCTOPAY_INVOICE_LIMIT_REACHED")
       return "В OctōPAY исчерпан лимит счетов этого магазина. Владельцу нужно проверить тариф OctōPAY.";
@@ -102,13 +104,32 @@ function clientPaymentErrorText(error: unknown) {
  * Счёт клиенту через OctōPAY: на странице оплаты клиент сам выбирает, сколько бонусов Loal
  * использовать, а остаток оплачивает банком. Подписка и связь магазина должны быть активны.
  */
-export function ClientPaymentForm({ merchantId, setupHref }: { merchantId: string; setupHref?: string }) {
+export function ClientPaymentForm({
+  merchantId,
+  setupHref,
+  branches,
+}: {
+  merchantId: string;
+  setupHref?: string;
+  /** Филиалы, где человек может работать: при нескольких счёт запишется на выбранный. */
+  branches?: WorkBranch[];
+}) {
   // Remounting on a business switch guarantees that an idempotency key can
   // never be carried from one merchant to another.
-  return <ClientPaymentFormAttempt key={merchantId} merchantId={merchantId} setupHref={setupHref} />;
+  return <ClientPaymentFormAttempt key={merchantId} merchantId={merchantId} setupHref={setupHref} branches={branches} />;
 }
 
-function ClientPaymentFormAttempt({ merchantId, setupHref }: { merchantId: string; setupHref?: string }) {
+function ClientPaymentFormAttempt({
+  merchantId,
+  setupHref,
+  branches,
+}: {
+  merchantId: string;
+  setupHref?: string;
+  branches?: WorkBranch[];
+}) {
+  const work = useWorkBranch(branches, merchantId);
+  const [branchMissing, setBranchMissing] = useState(false);
   const api = useApi();
   const queryClient = useQueryClient();
   const integration = useOctopayReadiness(merchantId);
@@ -159,8 +180,13 @@ function ClientPaymentFormAttempt({ merchantId, setupHref }: { merchantId: strin
         onSubmit={async (values, helpers) => {
           helpers.setStatus(undefined);
           setIssued(null);
+          if (work.needsChoice) {
+            setBranchMissing(true);
+            return helpers.setSubmitting(false);
+          }
           try {
-            setIssued(await create.mutateAsync(values));
+            // Филиал шлём, только когда выбирали из нескольких: единственный сервер ставит сам
+            setIssued(await create.mutateAsync({ ...values, branchId: work.canSwitch ? work.branch?.id : undefined }));
             // A failed or uncertain request keeps the same key, so retrying can
             // recover the exact Octopay invoice. Rotate only after success.
             const nextRequestId = crypto.randomUUID();
@@ -183,6 +209,7 @@ function ClientPaymentFormAttempt({ merchantId, setupHref }: { merchantId: strin
         {(form) => (
           <Form noValidate className="flex flex-col gap-4">
             <FocusFirstError form={form} />
+            <WorkBranchPicker work={work} invalid={branchMissing && work.needsChoice} />
             <div className="max-w-xl">
               <FormField label="Сумма" error={fieldError(form, "amount")}>
                 {(parts) => (

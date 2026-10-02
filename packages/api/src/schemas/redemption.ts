@@ -41,6 +41,8 @@ export function redemptionInputSchema(maxPercent: number) {
       .min(1, "Добавьте хотя бы одну позицию")
       .max(50, "Не больше 50 позиций"),
     merchantId: z.string().optional(),
+    /** Филиал операции: обязателен, если у человека их несколько (`400 BRANCH_REQUIRED`). */
+    branchId: z.string().optional(),
   });
 }
 

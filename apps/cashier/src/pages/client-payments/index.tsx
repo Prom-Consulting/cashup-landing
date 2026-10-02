@@ -27,7 +27,7 @@ export function ClientPaymentsPage() {
         description="Клиент открывает ссылку OctōPAY, выбирает, сколько бонусов Loal использовать, и оплачивает остаток банком."
       />
       <Card>
-        <ClientPaymentForm merchantId={merchantId} />
+        <ClientPaymentForm merchantId={merchantId} branches={overview.data?.branches} />
       </Card>
       <Card>
         <h2 className="mb-4 text-xl font-bold">Мои счета</h2>

@@ -13,10 +13,11 @@ export function LoginPage() {
         <h1 className="display mt-6 text-[2rem]">Кабинет магазина</h1>
         <p className="mt-2 text-lg text-slate">Вход для заведений, принимающих бонусы Loal.</p>
         <div className="mt-8">
-          <LoginForm onDone={() => navigate("/", { replace: true })} />
+          {/* Владельцев теперь заводят по телефону — основной вход по коду из WhatsApp */}
+          <LoginForm defaultMode="phone" onDone={() => navigate("/", { replace: true })} />
         </div>
         <p className="mt-6 text-base text-slate">
-          Есть код приглашения?{" "}
+          Дали код приглашения?{" "}
           <Link to="/register" className="text-flame-ink underline underline-offset-4">
             Зарегистрироваться
           </Link>

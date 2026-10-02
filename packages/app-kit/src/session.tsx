@@ -181,6 +181,21 @@ export function useLogin() {
 }
 
 /** Запрос кода в WhatsApp. Повтор раньше минуты — 429 с текстом, сколько ждать. */
+/**
+ * Есть ли у номера аккаунт — подсказка интерфейсу до кода (docs/API.md, «Проверка номера до
+ * регистрации»). Ошибки (429, 503, сеть) не ломают вход: тогда просто null — «не знаем».
+ */
+export function useCheckPhone() {
+  const { api } = useSession();
+  return async (phone: string): Promise<boolean | null> => {
+    try {
+      return (await authApi(api).checkPhone(phone)).exists;
+    } catch {
+      return null;
+    }
+  };
+}
+
 export function useRequestOtp() {
   const { api } = useSession();
   return useMutation({ mutationFn: (input: { phone: string }) => authApi(api).requestOtp(input) });

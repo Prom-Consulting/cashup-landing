@@ -1,6 +1,7 @@
 export * from "./badge";
 export * from "./button";
 export * from "./card";
+export * from "./chips";
 export * from "./confirm";
 export * from "./dialog";
 export * from "./form";

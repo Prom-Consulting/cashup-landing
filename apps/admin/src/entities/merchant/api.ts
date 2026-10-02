@@ -25,9 +25,13 @@ export const merchantKeys = {
   invoices: (id: string) => ["merchants", id, "invoices"] as const,
 };
 
-export function useMerchants() {
+/** includeDeleted — вместе с архивом удалённых магазинов. */
+export function useMerchants(includeDeleted = false) {
   const api = useApi();
-  return useQuery({ queryKey: merchantKeys.all, queryFn: () => merchantsApi(api).list() });
+  return useQuery({
+    queryKey: [...merchantKeys.all, { includeDeleted }],
+    queryFn: () => merchantsApi(api).list({ includeDeleted }),
+  });
 }
 
 export function useMerchant(merchantId: string) {
@@ -201,6 +205,7 @@ export function useDeleteMerchant() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (merchantId: string) => merchantsApi(api).remove(merchantId),
+    // Карточка остаётся открытой на чтение — перечитываем и её, и список
     onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.all }),
   });
 }

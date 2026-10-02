@@ -48,7 +48,9 @@ function BranchRedeem() {
   if (!canRedeem)
     return (
       <p role="alert" className="rounded-2xl bg-muted px-5 py-4 text-base">
-        Списывать бонусы вам сейчас не разрешено. Спросите партнёра, который вас добавил.
+        {overview.data.branches.length === 0 && !overview.data.branch
+          ? "Вас пока не назначили ни в один филиал — без этого списывать нельзя. Попросите владельца отметить ваш филиал в разделе «Команда»."
+          : "Списывать бонусы вам сейчас не разрешено. Спросите владельца или администратора филиала."}
       </p>
     );
   return (
@@ -65,6 +67,7 @@ function BranchRedeem() {
       <RedeemForm
         ceiling={limit.data?.maxCoveragePercent ?? null}
         merchantId={manyPlaces ? merchantId : undefined}
+        branches={overview.data.branches}
         onRedeemed={refresh}
       />
     </>

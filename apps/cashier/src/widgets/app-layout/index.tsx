@@ -49,6 +49,7 @@ export function AppLayout() {
   const bundle = overview.data?.tariff === "octopay";
   const nav = NAV[kind ?? "merchant"].filter((item) => item.to !== "/client-payments" || bundle);
 
+  // Несколько филиалов — в шапке магазин: на какой филиал записать операцию, выбирают на кассе
   const place = kind === "branch" ? (overview.data?.branch?.name ?? overview.data?.merchant?.name) : merchant.data?.name;
   const name = kind === "branch" ? overview.data?.cashier?.fullName : null;
   const isActive = (to: string) => (to === "/" ? location.pathname === "/" : location.pathname.startsWith(to));

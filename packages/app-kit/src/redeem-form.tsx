@@ -15,6 +15,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useId, useMemo, useRef, useState } from "react";
 import { QrScanButton } from "./qr-scanner";
 import { useApi } from "./session";
+import { WorkBranchPicker, useWorkBranch, type WorkBranch } from "./work-branch";
 
 const money = new Intl.NumberFormat("ru-RU");
 
@@ -28,7 +29,7 @@ const emptyItem = (percent: number) => ({ productName: "", price: "", deductionP
 export function useRedeem(onDone?: () => void) {
   const api = useApi();
   return useMutation({
-    mutationFn: ({ input, maxPercent }: { input: RedemptionForm & { merchantId?: string }; maxPercent: number }) =>
+    mutationFn: ({ input, maxPercent }: { input: RedemptionForm & { merchantId?: string; branchId?: string }; maxPercent: number }) =>
       redemptionsApi(api).redeem(input, maxPercent),
     onSuccess: () => onDone?.(),
   });
@@ -37,6 +38,9 @@ export function useRedeem(onDone?: () => void) {
 /** Отказы кассы — человеческим языком: при любом из них ничего не списано. */
 function redeemErrorText(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === "BRANCH_REQUIRED") return "Выберите филиал, где вы сейчас работаете. Ничего не списано.";
+    // Филиал закрыли или сняли с человека — сервер называет причину сам
+    if (error.status === 403 && /филиал/i.test(error.message)) return `${error.message}. Ничего не списано.`;
     if (error.status === 403)
       return "Подписка заведения неактивна — принимать бонусы сейчас нельзя. Ничего не списано.";
     if (error.status === 404) return "Карты с таким номером нет. Ничего не списано.";
@@ -66,10 +70,13 @@ const panel = "rounded-[24px] bg-surface p-5 shadow-[0_0.75rem_2rem_rgb(22_21_21
 export function RedeemForm({
   ceiling,
   merchantId,
+  branches,
   onRedeemed,
 }: {
   ceiling: number | null;
   merchantId?: string;
+  /** Филиалы, где человек может работать: при нескольких касса спросит, на какой записать операцию. */
+  branches?: WorkBranch[];
   /** После успешного списания — например, обновить историю кассира. */
   onRedeemed?: () => void;
 }) {
@@ -85,6 +92,8 @@ export function RedeemForm({
   // Позиции, где касса выбрала «Свой %» — вводит любое целое число до потолка
   const [customPercent, setCustomPercent] = useState<Set<number>>(new Set());
   const cardId = useId();
+  const work = useWorkBranch(branches, merchantId ?? "default");
+  const [branchMissing, setBranchMissing] = useState(false);
 
   const initialValues: RedemptionForm = {
     cardSerialNumber: "",
@@ -99,8 +108,16 @@ export function RedeemForm({
       onSubmit={async (values, helpers) => {
         helpers.setStatus(undefined);
         setResult(null);
+        if (work.needsChoice) {
+          setBranchMissing(true);
+          return helpers.setSubmitting(false);
+        }
         try {
-          const done = await redeem.mutateAsync({ input: { ...values, merchantId }, maxPercent });
+          const done = await redeem.mutateAsync({
+            // Филиал шлём, только когда выбирали из нескольких: единственный сервер ставит сам
+            input: { ...values, merchantId, branchId: work.canSwitch ? work.branch?.id : undefined },
+            maxPercent,
+          });
           setResult(done);
           helpers.resetForm({ values: { ...initialValues, operationId: newOperationId() } });
           setManualCard(false);
@@ -160,6 +177,12 @@ export function RedeemForm({
                     <Icon icon={Cancel01Icon} />
                   </button>
                 </div>
+              )}
+
+              {work.canSwitch && (
+                <section className={panel}>
+                  <WorkBranchPicker work={work} invalid={branchMissing && work.needsChoice} />
+                </section>
               )}
 
               {/* Карта: сканер — главное действие, номер руками — запасной путь */}

@@ -1,7 +1,7 @@
 import { ApiError, MEMBER_ROLE_LABELS, addMemberInputSchema, merchantCabinetApi, type AddMemberInput, type Branch } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { PhoneInput, formatPhone } from "@loal/ui/inputs";
-import { Button, FormField, FormStatus, Input, NativeSelect } from "@loal/ui/shadcn";
+import { Button, ChipSelect, FormField, FormStatus, Input, NativeSelect } from "@loal/ui/shadcn";
 import { useMutation } from "@tanstack/react-query";
 import { Form, Formik } from "formik";
 import { useState } from "react";
@@ -11,8 +11,9 @@ const OWNER_ROLES = ["staff", "branch_admin", "admin"] as const;
 
 /**
  * Добавить человека в магазин по имени и телефону (docs/API.md, «Сотрудники»). Владелец и
- * агентство выбирают роль и филиал; администратору филиала филиал обязателен. Администратор
- * филиала (actor="branch") добавляет только кассиров — филиал сервер ставит его сам.
+ * агентство выбирают роль и филиалы — один человек может работать в нескольких; администратору
+ * филиалов нужен хотя бы один. Администратор филиалов (actor="branch") добавляет только
+ * кассиров и только в свои филиалы: в `branches` — его филиалы; не выбрал — сервер поставит все.
  * onAdded — перечитать список.
  */
 export function AddMemberForm({
@@ -36,7 +37,9 @@ export function AddMemberForm({
   });
   const [done, setDone] = useState<string>();
   const open = branches.filter((branch) => !branch.archivedAt);
-  const initialValues: AddMemberInput = { fullName: "", phone: "", role: "staff", branchId: "" };
+  const initialValues: AddMemberInput = { fullName: "", phone: "", role: "staff", branchIds: [] };
+  // Один филиал выбирать незачем: у администратора филиалов сервер подставит его сам
+  const pickBranches = actor === "owner" ? open.length > 0 : open.length > 1;
 
   return (
     <Formik
@@ -50,15 +53,21 @@ export function AddMemberForm({
           await add.mutateAsync({
             ...values,
             role,
-            // Администратору филиала филиал ставит сервер — чужой был бы 400
-            branchId: actor === "branch" ? undefined : values.branchId || undefined,
+            // Владельцу филиалы не назначают — ему открыт весь магазин; закрытый филиал сервер не примет
+            branchIds: role === "admin" ? [] : values.branchIds.filter((id) => open.some((branch) => branch.id === id)),
           });
           helpers.resetForm();
           setDone(
             `${values.fullName} — ${(MEMBER_ROLE_LABELS[role] ?? "сотрудник").toLowerCase()}. Пусть войдёт по номеру ${formatPhone(values.phone)} — код придёт в WhatsApp.`,
           );
         } catch (error) {
-          // Номер уже занят другим магазином или аккаунтом — показываем у поля
+          // Сотрудник уже работает в другом магазине — у человека может быть только одно место работы
+          if (error instanceof ApiError && error.code === "EMPLOYEE_ALREADY_ASSIGNED")
+            return helpers.setFieldError(
+              "phone",
+              "Этот человек уже работает в другом магазине. Пусть прежний магазин уберёт его из команды — тогда добавьте снова.",
+            );
+          // Номер уже занят или человек уже во всех выбранных филиалах — показываем у поля
           if (error instanceof ApiError && error.isConflict)
             return helpers.setFieldError("phone", error.message || "Этот номер уже занят");
           applyServerIssues(error, helpers, "Не удалось добавить");
@@ -101,41 +110,48 @@ export function AddMemberForm({
             </FormField>
           </div>
           {actor === "owner" && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label="Роль">
-                {(parts) => (
-                  <NativeSelect
-                    {...parts}
-                    name="role"
-                    value={form.values.role}
-                    onChange={form.handleChange}
-                    options={OWNER_ROLES.map((role) => ({ value: role, label: MEMBER_ROLE_LABELS[role] ?? role }))}
-                  />
-                )}
-              </FormField>
-              <FormField
-                label="Филиал"
-                hint={
-                  open.length === 0
-                    ? "Филиалов пока нет — создайте их выше."
+            <FormField label="Роль">
+              {(parts) => (
+                <NativeSelect
+                  {...parts}
+                  name="role"
+                  value={form.values.role}
+                  onChange={form.handleChange}
+                  options={OWNER_ROLES.map((role) => ({ value: role, label: MEMBER_ROLE_LABELS[role] ?? role }))}
+                />
+              )}
+            </FormField>
+          )}
+          {form.values.role !== "admin" && (pickBranches || (actor === "owner" && open.length === 0)) && (
+            <FormField
+              label="Филиалы"
+              hint={
+                open.length === 0
+                  ? "Филиалов пока нет — создайте их выше. Без филиала кассир не сможет списывать бонусы."
+                  : actor === "branch"
+                    ? "Не выбрали — кассир будет во всех ваших филиалах."
                     : form.values.role === "branch_admin"
-                      ? "Администратор ведёт один филиал."
-                      : undefined
-                }
-                error={fieldError(form, "branchId")}
-              >
-                {(parts) => (
-                  <NativeSelect
+                      ? "Администратор ведёт отмеченные филиалы. Можно несколько."
+                      : "Можно несколько: на кассе человек выберет, где работает сейчас."
+              }
+              error={fieldError(form, "branchIds")}
+            >
+              {(parts) =>
+                open.length > 0 ? (
+                  <ChipSelect
                     {...parts}
-                    name="branchId"
-                    value={form.values.branchId ?? ""}
-                    onChange={form.handleChange}
-                    placeholder={form.values.role === "branch_admin" ? "Выберите филиал" : "Без филиала"}
                     options={open.map((branch) => ({ value: branch.id, label: branch.name }))}
+                    value={form.values.branchIds}
+                    onChange={(next) => {
+                      form.setFieldValue("branchIds", next);
+                      form.setFieldTouched("branchIds", true, false);
+                    }}
                   />
-                )}
-              </FormField>
-            </div>
+                ) : (
+                  <span id={parts.id} />
+                )
+              }
+            </FormField>
           )}
           <FormStatus message={formError(form)} />
           <FormStatus tone="success" message={done} />

@@ -294,13 +294,16 @@ export function useAcceptMember(merchantId: string) {
   });
 }
 
-/** Точка, с которой человек сканирует: по ней в «Продажах» видно, где прошла операция. */
+/**
+ * Филиалы человека — весь список целиком. Операции на кассе записываются на выбранный из них,
+ * поэтому в «Продажах» видно, где прошла каждая. Права меняются со следующего входа человека.
+ */
 export function useUpdateMember(merchantId: string) {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ memberId, branchId }: { memberId: string; branchId: string | null }) =>
-      merchantCabinetApi(api).updateMember(merchantId, memberId, { branchId }),
+    mutationFn: ({ memberId, branchIds }: { memberId: string; branchIds: string[] }) =>
+      merchantCabinetApi(api).updateMember(merchantId, memberId, { branchIds }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
   });
 }

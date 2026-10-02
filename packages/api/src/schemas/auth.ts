@@ -27,11 +27,24 @@ export const membershipSchema = z.looseObject({
   memberId: z.string(),
   merchantId: z.string(),
   role: merchantMemberRoleSchema,
-  /** Филиал администратора филиала или кассира; у владельца null. */
+  /**
+   * Филиалы сотрудника: один человек может работать в нескольких филиалах одного магазина.
+   * У владельца пусто — ему открыт весь магазин. Старый токен этого поля не знает.
+   */
+  branchIds: z.array(z.string()).default([]),
+  /** Прежнее поле: единственный филиал, иначе null. Читать через membershipBranchIds. */
   branchId: z.string().nullish(),
   permissions: z.record(z.string(), z.boolean()).default({}),
 });
 export type Membership = z.infer<typeof membershipSchema>;
+
+/** Филиалы членства: новое branchIds, а для старого токена — его единственный branchId. */
+export const membershipBranchIds = (membership: Pick<Membership, "branchIds" | "branchId">): string[] =>
+  membership.branchIds.length > 0 ? membership.branchIds : membership.branchId ? [membership.branchId] : [];
+
+/** Проверка номера до регистрации: есть ли у него аккаунт платформы. */
+export const phoneCheckResultSchema = z.looseObject({ exists: z.boolean() });
+export type PhoneCheckResult = z.infer<typeof phoneCheckResultSchema>;
 
 /** Содержимое токена, оно же ответ GET /auth/me. */
 export const sessionSchema = z.looseObject({
