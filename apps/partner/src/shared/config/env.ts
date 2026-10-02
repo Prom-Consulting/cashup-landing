@@ -4,5 +4,10 @@ export const SITE_URL = import.meta.env.VITE_SITE_URL ?? "https://loal.kg";
 
 export const TOKEN_STORAGE_KEY = "loal.partner.token";
 
+/** Кабинет бизнеса в OctōPAY: переход из карточки связи и раздел интеграций, где берут код для Loal. */
+export const OCTOPAY_APP_URL = (import.meta.env.VITE_OCTOPAY_APP_URL ?? "https://octopay.click").replace(/\/$/, "");
+export const OCTOPAY_BUSINESS_URL = `${OCTOPAY_APP_URL}/business`;
+export const OCTOPAY_INTEGRATIONS_URL = `${OCTOPAY_APP_URL}/business/integrations`;
+
 /** Кабинет кассира филиала: кассиров партнёра отправляем туда. */
 export const CASHIER_APP_URL = import.meta.env.VITE_CASHIER_APP_URL ?? "https://cashier.loal.kg";

@@ -5,7 +5,9 @@ import {
   type ConnectOctopayInput,
 } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
-import { Badge, Button, ConfirmDialog, FormField, FormStatus, Input, Skeleton } from "@loal/ui/shadcn";
+import { LinkSquare02Icon } from "@hugeicons/core-free-icons";
+import { Badge, Button, ConfirmDialog, FormField, FormStatus, Icon, Input, Skeleton } from "@loal/ui/shadcn";
+import { OCTOPAY_BUSINESS_URL, OCTOPAY_INTEGRATIONS_URL } from "../../shared/config/env";
 import { Form, Formik } from "formik";
 import { useRef } from "react";
 import {
@@ -123,9 +125,16 @@ export function OctopayIntegration({ merchantId }: { merchantId: string }) {
               )}
             </div>
           )}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button asChild size="sm">
+              <a href={OCTOPAY_BUSINESS_URL} target="_blank" rel="noopener noreferrer">
+                <Icon icon={LinkSquare02Icon} />
+                Открыть кабинет OctōPAY
+              </a>
+            </Button>
           <ConfirmDialog
             trigger={
-              <Button type="button" variant="outline" size="sm" className="mt-4">
+              <Button type="button" variant="outline" size="sm">
                 Отключить
               </Button>
             }
@@ -141,6 +150,7 @@ export function OctopayIntegration({ merchantId }: { merchantId: string }) {
               }
             }}
           />
+          </div>
         </div>
       )}
 
@@ -155,6 +165,12 @@ export function OctopayIntegration({ merchantId }: { merchantId: string }) {
               <li>В кабинете OctōPAY создайте одноразовый код для Loal.</li>
               <li>Вставьте код ниже и нажмите «Подключить».</li>
             </ol>
+            <Button asChild variant="outline" size="sm" className="mt-3">
+              <a href={OCTOPAY_INTEGRATIONS_URL} target="_blank" rel="noopener noreferrer">
+                <Icon icon={LinkSquare02Icon} />
+                Открыть «Интеграции» в OctōPAY
+              </a>
+            </Button>
           </div>
 
           <Formik<ConnectOctopayInput>
