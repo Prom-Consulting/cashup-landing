@@ -7,7 +7,8 @@ import { Field } from "@loal/ui/field";
 import { Button, ChoiceCards, OtpInput, PhoneInput, Spinner, Textarea, TextInput, formatPhone } from "@loal/ui/inputs";
 import { Select } from "@loal/ui/select";
 import { z } from "zod";
-import { toPhoneDigits } from "@loal/api";
+import { StorefrontImages } from "./storefront-images";
+import { toPhoneDigits, coordsFrom2gis, merchantProfileFormSchema } from "@loal/api";
 import { categories } from "../_data/categories";
 import { API_URL, EMAIL, PARTNER_APP_URL, PHONE, PHONE_HREF } from "../_data/site";
 
@@ -21,9 +22,9 @@ const plans = [
 const PLAN_LABEL: Record<PlanId, string> = { loyalty: plans[0].label, bundle: plans[1].label, octopay: plans[2].label };
 
 type PlanId = (typeof plans)[number]["id"];
-type FieldName = "name" | "category" | "contact" | "phone" | "comment";
+type FieldName = "name" | "category" | "contact" | "phone" | "comment" | "description" | "address" | "instagramUrl" | "twogisUrl";
 
-const empty = { name: "", category: "", contact: "", phone: "", comment: "" };
+const empty = { name: "", category: "", contact: "", phone: "", comment: "", description: "", address: "", instagramUrl: "", twogisUrl: "" };
 type Values = typeof empty;
 
 // Проверки полей — те же пределы, что у сервера. Возвращают текст ошибки или пустую строку.
@@ -49,9 +50,19 @@ const rules: Record<FieldName, (v: Values) => string> = {
     if (!phone.trim()) return "Укажите телефон — он станет логином";
     return toPhoneDigits(phone) ? "" : "Проверьте номер: не хватает цифр или неверный код страны";
   },
+  description: ({ description }) => description.trim().length > 2000 ? "Не длиннее 2000 символов" : "",
+  address: ({ address }) => address.trim().length > 200 ? "Не длиннее 200 символов" : "",
+  instagramUrl: ({ instagramUrl }) => {
+    const result = merchantProfileFormSchema.shape.instagramUrl.safeParse(instagramUrl);
+    return result.success ? "" : result.error.issues[0]?.message ?? "Проверьте ссылку";
+  },
+  twogisUrl: ({ twogisUrl }) => {
+    const result = merchantProfileFormSchema.shape.twogisUrl.safeParse(twogisUrl);
+    return result.success ? "" : result.error.issues[0]?.message ?? "Проверьте ссылку";
+  },
   comment: ({ comment }) => (comment.length > 500 ? "Не длиннее 500 символов" : ""),
 };
-const order: FieldName[] = ["name", "category", "contact", "phone", "comment"];
+const order: FieldName[] = ["name", "category", "contact", "phone", "description", "address", "instagramUrl", "twogisUrl", "comment"];
 
 const resultSchema = z.object({
   id: z.string().uuid(),
@@ -117,6 +128,10 @@ const money = new Intl.NumberFormat("ru-RU");
 type Step = "details" | "code";
 
 export function PartnerForm() {
+  const [logo, setLogo] = useState<File | null>(null);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const uploaded = useRef(new Map<File, string>());
+  const [uploadProgress, setUploadProgress] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [plan, setPlan] = useState<PlanId>("bundle");
@@ -233,6 +248,36 @@ export function PartnerForm() {
     setOtp("");
   };
 
+  const uploadImage = async (file: File, slot: "merchantLogo" | "merchantPhoto", proof: string) => {
+    const saved = uploaded.current.get(file);
+    if (saved) return saved;
+    const body = new FormData(); body.append("file", file);
+    const response = await fetch(`${API_URL.replace(/\/$/, "")}/v1/public/partner-onboarding/assets?slot=${slot}`, {
+      method: "POST", headers: { Authorization: `Bearer ${proof}` }, body, signal: AbortSignal.timeout(60_000),
+    });
+    if (response.status === 401) throw new PhoneExpired("Подтвердите телефон ещё раз, чтобы загрузить фотографии.");
+    if (response.status === 413) throw new FormError("Размер изображения не должен превышать 5 МБ.");
+    if (response.status === 429) throw new FormError("Загрузка временно занята. Подождите минуту и повторите.");
+    if (!response.ok) throw new FormError("Не удалось загрузить изображение. Повторите отправку или выберите другой PNG/JPG.");
+    const { url } = z.object({ url: z.string().url() }).parse(await response.json());
+    uploaded.current.set(file, url); return url;
+  };
+  const collectStorefront = async (proof: string) => {
+    try {
+      let logoUrl: string | null = null;
+      const photoUrls: string[] = [];
+      if (logo) { setUploadProgress("Загружаем логотип…"); logoUrl = await uploadImage(logo, "merchantLogo", proof); }
+      for (let i = 0; i < photos.length; i++) {
+        setUploadProgress(`Загружаем фото ${i + 1} из ${photos.length}…`);
+        photoUrls.push(await uploadImage(photos[i], "merchantPhoto", proof));
+      }
+      const geo = coordsFrom2gis(values.twogisUrl);
+      return { description: values.description.trim() || null, address: values.address.trim() || null,
+        instagramUrl: values.instagramUrl.trim() || null, twogisUrl: values.twogisUrl.trim() || null,
+        logoUrl, photos: photoUrls, lat: geo?.lat ?? null, lng: geo?.lng ?? null };
+    } finally { setUploadProgress(""); }
+  };
+
   /** Телефон подтверждён — продолжаем существующую заявку или создаём новую. */
   const finish = async (proof: string) => {
     const existing = resultSchema.nullable().parse(await call("/v1/public/partner-onboarding", undefined, proof));
@@ -251,6 +296,7 @@ export function PartnerForm() {
     if (plan !== "loyalty") {
       try { validatePassword(); } catch (error) { setStep("details"); throw error; }
     }
+    const storefront = plan !== "octopay" ? await collectStorefront(proof) : undefined;
     requestId.current ??= crypto.randomUUID();
     const result = await call(
       "/v1/public/partner-onboarding",
@@ -261,6 +307,7 @@ export function PartnerForm() {
         contactName: values.contact.trim(),
         category: values.category,
         comment: values.comment.trim(),
+        ...(storefront ? { storefront } : {}),
         ...(plan !== "loyalty" ? { password } : {}),
       },
       proof,
@@ -289,6 +336,7 @@ export function PartnerForm() {
     e.preventDefault();
     const found: Partial<Record<FieldName, string>> = {};
     for (const field of recovering ? ["phone" as const] : order) {
+      if (plan === "octopay" && ["description", "address", "instagramUrl", "twogisUrl"].includes(field)) continue;
       const message = rules[field](values);
       if (message) found[field] = message;
     }
@@ -305,6 +353,7 @@ export function PartnerForm() {
 
   const submitCode = (code: string) =>
     run(async () => {
+      if (token && tokenUntil > Date.now()) return finish(token);
       if (!/^\d{6}$/.test(code)) throw new FormError("Введите 6 цифр из WhatsApp.");
       const verified = z
         .object({ token: z.string().min(1) })
@@ -397,6 +446,7 @@ export function PartnerForm() {
             )}
           </Field>
 
+          {uploadProgress && <p role="status" className="text-sm">{uploadProgress}</p>}
           {failed && <Alert text={failed} />}
 
           <div className="flex flex-wrap items-center gap-3">
@@ -508,6 +558,15 @@ export function PartnerForm() {
               </div>
             )}
 
+            {!recovering && plan !== "octopay" && <section className="space-y-5 rounded-2xl border border-current/10 p-5" aria-labelledby="storefront-heading">
+              <div><h2 id="storefront-heading" className="text-xl font-semibold">Витрина заведения</h2><p className="mt-2 text-sm opacity-75">Эти данные появятся в карточке заведения после проверки супер-админом. Их можно будет изменить в кабинете.</p></div>
+              <div data-field="description"><Field label="Описание заведения" optional error={errors.description}>{parts => <Textarea {...parts} maxLength={2000} value={values.description} onValueChange={set("description")} onBlur={check("description")} placeholder="Расскажите о заведении, товарах или услугах" />}</Field></div>
+              <div data-field="address"><Field label="Адрес" optional error={errors.address}>{parts => <TextInput {...parts} value={values.address} onChange={event => set("address")(event.target.value)} onBlur={check("address")} placeholder="Город, улица, дом" />}</Field></div>
+              <div data-field="instagramUrl"><Field label="Ссылка на Instagram" optional error={errors.instagramUrl}>{parts => <TextInput {...parts} value={values.instagramUrl} onChange={event => set("instagramUrl")(event.target.value)} onBlur={check("instagramUrl")} placeholder="https://www.instagram.com/…" />}</Field></div>
+              <div data-field="twogisUrl"><Field label="Ссылка на 2ГИС" optional error={errors.twogisUrl} hint="Если в ссылке есть координаты, добавим точку на карту.">{parts => <TextInput {...parts} value={values.twogisUrl} onChange={event => set("twogisUrl")(event.target.value)} onBlur={check("twogisUrl")} placeholder="https://2gis.kg/…" />}</Field></div>
+              <StorefrontImages logo={logo} photos={photos} disabled={sending} onLogo={file => { setLogo(file); freshAttempt(); }} onPhotos={files => { setPhotos(files); freshAttempt(); }} />
+            </section>}
+
             {!recovering && plan !== "loyalty" && <PasswordFields password={password} confirm={passwordConfirm} setPassword={setPassword} setConfirm={setPasswordConfirm} disabled={sending} />}
 
             {recovering && (
@@ -540,6 +599,7 @@ export function PartnerForm() {
               {badCount > 0 ? `Не заполнено полей: ${badCount}` : ""}
             </p>
 
+            {uploadProgress && <p role="status" className="text-sm">{uploadProgress}</p>}
             {failed && <Alert text={failed} />}
 
             <div className="flex flex-col gap-4">
@@ -639,7 +699,7 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
           : "Подключаем ваш бизнес";
 
   const text =
-    sent.verificationStatus === "pending" ? "Кабинет создан. До проверки супер-админа заведение не показывается в каталоге LOAL и не принимает бонусы. Вы уже можете войти и заполнить данные." : sent.state === "ready"
+    sent.verificationStatus === "pending" ? "Кабинет создан. До проверки супер-админа заведение не показывается в каталоге LOAL и не принимает бонусы. Вы уже можете войти и проверить данные витрины." : sent.state === "ready"
       ? sent.plan === "octopay"
         ? "Аккаунт OctōPAY создан. Войдите по этому телефону и паролю, заданному в форме."
         : sent.plan === "bundle"
