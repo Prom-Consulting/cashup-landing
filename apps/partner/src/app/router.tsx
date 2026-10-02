@@ -1,6 +1,7 @@
 import { RequireAuth } from "@loal/app-kit";
 import { Route, Routes } from "react-router";
 import { BillingPage } from "../pages/billing";
+import { CheckoutPointsPage } from "../pages/checkout-points";
 import { ClientPaymentsPage } from "../pages/client-payments";
 import { DashboardPage } from "../pages/dashboard";
 import { DeductionsPage } from "../pages/deductions";
@@ -36,6 +37,14 @@ export function AppRouter() {
         <Route index element={<DashboardPage />} />
         <Route path="redeem" element={<RedeemPage />} />
         <Route path="client-payments" element={<ClientPaymentsPage />} />
+        <Route
+          path="checkout-points"
+          element={
+            <OwnerOnly title="NFC-кассы">
+              <CheckoutPointsPage />
+            </OwnerOnly>
+          }
+        />
         <Route
           path="deductions"
           element={

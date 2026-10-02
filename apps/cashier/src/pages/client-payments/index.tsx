@@ -30,7 +30,7 @@ export function ClientPaymentsPage() {
         <ClientPaymentForm merchantId={merchantId} branches={overview.data?.branches} />
       </Card>
       <Card>
-        <h2 className="mb-4 text-xl font-bold">Мои счета</h2>
+        <h2 className="mb-4 text-xl font-bold">Мои счета и NFC-оплаты</h2>
         <ClientPaymentList merchantId={merchantId} />
       </Card>
     </section>

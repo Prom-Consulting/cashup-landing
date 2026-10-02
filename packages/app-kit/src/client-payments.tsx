@@ -3,6 +3,8 @@ import {
   ApiError,
   CLIENT_PAYMENT_STATUS_LABELS,
   clientPaymentInputSchema,
+  clientPaymentOutcome,
+  isSelfServicePayment,
   isOctopayIntegrationReady,
   merchantCabinetApi,
   type ClientPayment,
@@ -29,6 +31,8 @@ export function useClientPayments(merchantId: string) {
     queryKey: clientPaymentsKey(merchantId),
     queryFn: () => merchantCabinetApi(api).clientPayments(merchantId),
     enabled: Boolean(merchantId),
+    // NFC/QR-оплаты появляются без действий кассира — перечитываем, пока экран открыт, и пустой тоже
+    refetchInterval: 5000,
   });
 }
 
@@ -274,38 +278,94 @@ function ClientPaymentFormAttempt({
 }
 
 /** Выставленные счета: кому, сколько, в каком состоянии; у владельца — ещё кто и где выставил. */
+/** Разбивка по серверу: известные части — числами (0 — явно), неизвестные — словами, не догадкой. */
+function Breakdown({ payment, outcome }: { payment: ClientPayment; outcome: string }) {
+  // Старый ответ без этих полей — разбивку не показываем вовсе
+  if (payment.bonusAmount === undefined && payment.bankAmount === undefined) return null;
+  if (payment.bonusAmount != null && payment.bankAmount != null)
+    return (
+      <p className="text-sm tabular-nums">
+        Баллами: <span className="font-semibold">{money.format(payment.bonusAmount)}</span> · Банком:{" "}
+        <span className="font-semibold">{money.format(payment.bankAmount)} сом</span>
+      </p>
+    );
+  return (
+    <p className="text-sm text-muted-foreground">
+      {outcome === "pending" || outcome === "finishing" ? "Разбивка ещё не подтверждена" : "Разбивка недоступна"}
+    </p>
+  );
+}
+
+/**
+ * Счета клиенту и самостоятельные оплаты по NFC/QR. Обновляется сам раз в 5 секунд. Оплачен —
+ * только по серверу (paid + fulfilled), а не по тому, что показал телефон покупателя.
+ */
 export function ClientPaymentList({ merchantId }: { merchantId: string }) {
   const payments = useClientPayments(merchantId);
   if (payments.isPending) return <Loading rows={3} />;
-  if (payments.isError) return <ErrorState error={payments.error} onRetry={() => payments.refetch()} />;
-  if (payments.data.length === 0) return <EmptyState title="Счетов пока не выставляли" />;
+  // Ошибка без данных — экран ошибки; с данными — последнее известное и предупреждение
+  if (payments.isError && !payments.data) return <ErrorState error={payments.error} onRetry={() => payments.refetch()} />;
+  const list = payments.data ?? [];
+  const now = Date.now();
 
   return (
-    <ul className="flex flex-col">
-      {payments.data.map((payment) => {
-        const status = payment.status ?? "";
-        const who = [payment.cashierName, payment.branchName].filter(Boolean).join(" · ");
-        return (
-          <li
-            key={payment.id}
-            className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-border py-3 first:border-t-0 first:pt-0"
-          >
-            <div className="min-w-0">
-              <p className="text-lg">
-                {payment.customerName || (payment.clientPhone ? formatPhone(payment.clientPhone) : "Клиент")}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {payment.createdAt ? dateTime.format(new Date(payment.createdAt)) : ""}
-                {who ? ` · ${who}` : ""}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Badge tone={status === "paid" ? "good" : "quiet"}>{CLIENT_PAYMENT_STATUS_LABELS[status] ?? status}</Badge>
-              <span className="text-lg font-bold tabular-nums">{money.format(payment.amount ?? 0)} сом</span>
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="flex flex-col gap-3">
+      {payments.isError && (
+        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-muted px-4 py-3 text-sm">
+          <span>Не удалось обновить список — показываем последнее известное состояние.</span>
+          <Button variant="outline" size="sm" onClick={() => payments.refetch()}>
+            Повторить
+          </Button>
+        </div>
+      )}
+      {list.length === 0 ? (
+        <EmptyState
+          title="Счетов пока нет"
+          description="Новые счета и оплаты покупателей по NFC/QR появятся здесь сами."
+        />
+      ) : (
+        <ul className="flex flex-col">
+          {list.map((payment) => {
+            const outcome = clientPaymentOutcome(payment);
+            const self = isSelfServicePayment(payment);
+            const overdue = outcome === "pending" && payment.expiresAt && new Date(payment.expiresAt).getTime() < now;
+            const label = overdue ? "срок оплаты истёк" : (CLIENT_PAYMENT_STATUS_LABELS[outcome] ?? outcome);
+            const place = [payment.branchName, self ? payment.checkoutPointName : null].filter(Boolean).join(" · ");
+            const title = self
+              ? "Самостоятельная оплата"
+              : payment.customerName || (payment.clientPhone ? formatPhone(payment.clientPhone) : "Счёт от сотрудника");
+            return (
+              <li
+                key={payment.id}
+                className="flex flex-col gap-1 border-t border-border py-3 first:border-t-0 first:pt-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+              >
+                <div className="flex min-w-0 flex-col gap-1">
+                  <p className="flex flex-wrap items-center gap-2 text-lg">
+                    {title}
+                    {self && <Badge tone="neutral">NFC/QR</Badge>}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {[
+                      payment.createdAt ? dateTime.format(new Date(payment.createdAt)) : null,
+                      // У самостоятельной оплаты нет сотрудника — не подставляем кассира
+                      self ? null : payment.cashierName,
+                      place || null,
+                      payment.providerInvoiceId ? `№ ${payment.providerInvoiceId}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                  <Breakdown payment={payment} outcome={outcome} />
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <Badge tone={outcome === "paid" ? "good" : "quiet"}>{label}</Badge>
+                  <span className="text-lg font-bold tabular-nums">{money.format(payment.amount ?? 0)} сом</span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }

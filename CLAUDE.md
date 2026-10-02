@@ -136,6 +136,10 @@ app → pages → widgets → features → entities → shared
   после ошибки или таймаута, новый только после успеха (`OCTOPAY_NOT_READY`, `OCTOPAY_INVOICE_LIMIT_REACHED`,
   `IDEMPOTENCY_CONFLICT`, `502` — понятным текстом). Выставляют все три роли; форма и список общие —
   `ClientPaymentForm`/`ClientPaymentList` в `@loal/app-kit`. В UI пишем «OctōPAY»;
+- самостоятельная оплата по NFC/QR (`docs/octopay.md`): экраны покупателя живут в OctōPAY, в Loal — только кассы
+  (`…/checkout-points`, владелец, тариф OctōPAY; название, филиал и проценты фиксируются при создании, только отключить)
+  и список «Счёт клиенту»: `source: self_service`, касса, номер OctōPAY, разбивка `bonusAmount`/`bankAmount` (`null` —
+  «ещё не подтверждена», не ноль), оплачен — `paid` + `fulfilled` (`clientPaymentOutcome`), список перечитывается раз в 5 с;
 - название товара при списании необязательно: пусто или нет поля — «Покупка» (у 1С по-прежнему обязательно);
 - цены — в настройках платформы у агентства (`merchantAccessPriceKgs`, `cardSubscriptionPriceKgs`),
   счёт считает сервер: магазину шлём только `{ months }`, сумму показываем из ответа. Цена 990 на

@@ -9,6 +9,7 @@ import {
   Store01Icon,
   UserGroupIcon,
   Wallet01Icon,
+  NfcIcon,
 } from "@hugeicons/core-free-icons";
 import { WelcomeToast } from "@loal/app-kit";
 import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
@@ -31,6 +32,7 @@ const nav: Item[] = [
   { to: "/", label: "Обзор", icon: Chart01Icon },
   { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
   { to: "/client-payments", label: "Счёт клиенту", icon: Wallet01Icon, tariff: "octopay" },
+  { to: "/checkout-points", label: "NFC-кассы", icon: NfcIcon, access: "owner", tariff: "octopay" },
   { to: "/storefront", label: "Витрина", icon: Store01Icon },
   { to: "/deductions", label: "Списания", icon: CreditCardIcon, access: "branch" },
   { to: "/team", label: "Команда", icon: UserGroupIcon, access: "branch" },

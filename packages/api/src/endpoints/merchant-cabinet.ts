@@ -3,6 +3,8 @@ import type { ApiClient } from "../http";
 import {
   clientPaymentInputSchema,
   clientPaymentSchema,
+  checkoutPointListSchema,
+  type CheckoutPointInput,
   type ClientPaymentInput,
 } from "../schemas/client-payment";
 import {
@@ -215,6 +217,24 @@ export const merchantCabinetApi = (api: ApiClient) => ({
   /** Последние 100: владелец — все, администратор филиала — своего филиала, кассир — свои. */
   clientPayments: (merchantId: string) =>
     api.request(z.array(clientPaymentSchema), `/admin/v1/merchants/${merchantId}/client-payments`),
+
+  /** NFC/QR-кассы самостоятельной оплаты. Владелец и агентство. */
+  checkoutPoints: (merchantId: string) =>
+    api.request(checkoutPointListSchema, `/admin/v1/merchants/${merchantId}/checkout-points`),
+
+  /** Название, филиал и проценты фиксируются при создании. */
+  createCheckoutPoint: (merchantId: string, input: CheckoutPointInput) =>
+    api.request(z.looseObject({ id: z.string() }), `/admin/v1/merchants/${merchantId}/checkout-points`, {
+      method: "POST",
+      body: input,
+    }),
+
+  /** Отключение запрещает новые оплаты, но не отменяет принятые. */
+  setCheckoutPointActive: (merchantId: string, pointId: string, isActive: boolean) =>
+    api.request(z.looseObject({}).or(z.null()), `/admin/v1/merchants/${merchantId}/checkout-points/${pointId}`, {
+      method: "PATCH",
+      body: { isActive },
+    }),
 
   posSettings: (merchantId: string) =>
     api.request(z.array(posSettingsSchema), `/admin/v1/merchants/${merchantId}/pos-settings`),

@@ -1,4 +1,5 @@
 import {
+  type CheckoutPointInput,
   ApiError,
   merchantCabinetApi,
   merchantsApi,
@@ -26,6 +27,7 @@ export const merchantKeys = {
   pos: (id: string) => ["merchant", id, "pos"] as const,
   webhooks: (id: string) => ["merchant", id, "webhooks"] as const,
   deliveries: (id: string, webhookId: string) => ["merchant", id, "webhooks", webhookId] as const,
+  checkoutPoints: (id: string) => ["merchant", id, "checkout-points"] as const,
 };
 
 /** Открытые филиалы; includeArchived — вместе с закрытыми, чтобы журнал назвал прошлую точку. */
@@ -313,3 +315,32 @@ export function useUpdateMember(merchantId: string) {
  * нескольких заведениях: с одним местом работы сервер определяет его сам и
  * лишнее поле отклоняет.
  */
+
+/** NFC/QR-кассы самостоятельной оплаты. Видит и меняет только владелец. */
+export function useCheckoutPoints(merchantId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: merchantKeys.checkoutPoints(merchantId),
+    queryFn: () => merchantCabinetApi(api).checkoutPoints(merchantId),
+    enabled: Boolean(merchantId),
+  });
+}
+
+export function useCreateCheckoutPoint(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CheckoutPointInput) => merchantCabinetApi(api).createCheckoutPoint(merchantId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.checkoutPoints(merchantId) }),
+  });
+}
+
+export function useSetCheckoutPointActive(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ pointId, isActive }: { pointId: string; isActive: boolean }) =>
+      merchantCabinetApi(api).setCheckoutPointActive(merchantId, pointId, isActive),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.checkoutPoints(merchantId) }),
+  });
+}

@@ -50,7 +50,7 @@ export function ClientPaymentsPage() {
         <ClientPaymentForm merchantId={merchantId} setupHref={canManage ? "/" : undefined} branches={workBranches} />
       </Card>
       <Card>
-        <h2 className="mb-4 text-xl font-bold">{canManage ? "Все счета" : "Счета филиала"}</h2>
+        <h2 className="mb-4 text-xl font-bold">{canManage ? "Счета и NFC-оплаты" : "Счета и NFC-оплаты ваших филиалов"}</h2>
         <ClientPaymentList merchantId={merchantId} />
       </Card>
     </section>
