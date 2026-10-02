@@ -2419,8 +2419,15 @@ JavaScript-фронтенду токен не отдаётся в JSON. Он х�
 | POST | `/reserve` | `{sessionToken, paymentId: UUID, operationId, amount: integer}` |
 | GET | `/merchants/{merchantId}/points` | — |
 | GET | `/merchants/{merchantId}/branches` | — |
+| GET | `/merchants/{merchantId}/settings` | — |
 | POST | `/merchants/{merchantId}/points` | `{name, branchId, coveragePercents}` |
 | POST | `/merchants/{merchantId}/points/{pointId}` | `{isActive}` |
+
+`GET /merchants/{merchantId}/settings` → `{ "maxCoveragePercent": 10 }` — потолок
+покрытия бонусами магазина, тот же, которым проверяется создание кассы. `null` значит
+«потолка нет» (то же, что 100). Форма кассы должна предлагать только проценты не выше
+него, иначе создание вернёт `400` «Проценты превышают лимит магазина». Удалённый или
+неизвестный магазин — `404`.
 
 Ответы клиентских операций описаны в [octopay.md](./octopay.md). Создание сессии
 идемпотентно для одинаковых `sessionId`, токена и точки. Срок сессии 30 минут.
@@ -2477,6 +2484,17 @@ core-service/gateway → лендинг. Для core-service нужен `AUTH_SE
 `LOAL_ONBOARDING_BRANCH_ID`. Подпись использует существующую пару
 `OCTOPAY_BONUS_API_SECRET` / `CASHUP_BONUS_API_SECRET`; значения не передаются
 в браузер. Миграция 0027 также устанавливает цену продления LOAL в 8 750 KGS.
+
+
+### Partner onboarding: verification and OctoPay credentials
+
+`POST /v1/public/partner-onboarding` requires `password` for `bundle` and `octopay` (at least 8 characters, at most 72 UTF-8 bytes). Do not persist or log plaintext passwords. LOAL stores a bcrypt hash and sends it through the signed server integration. `loyalty` requires no OctoPay password.
+
+Registration responses also expose `verificationStatus: null | pending | verified` and `requiresOctopayPassword: boolean`. Account creation (`state=ready`) does not approve a LOAL establishment: the owner can log in, but catalog visibility and bonus acceptance require super-admin approval through `POST /admin/v1/merchants/:id/activate`.
+
+For an earlier OctoPay account created without a password, `POST /v1/public/partner-onboarding/password` accepts `{ password: string }` with the same phone-proof Bearer token. It sets the initial password only, and cannot reset an existing password. OctoPay uses its standard phone/password login; LOAL continues to use phone/OTP login.
+
+Deleting a LOAL establishment queues archival of its linked OctoPay account. Archival disables login, existing sessions, employees, API keys, receiving accounts and pending invoices while retaining financial history. Temporary provider failures are retried. Ordinary unlinking remains separate from account archival.
 
 Категории заявки `POST /v1/public/partner-onboarding` (`category`): `cafe`, `beauty`, `shop`, `sport`, `auto`, `home`, `skincare` (Уходовая косметика), `other` (Другое).
 
