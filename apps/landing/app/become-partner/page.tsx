@@ -164,6 +164,14 @@ export default function BecomePartnerPage() {
                       </li>
                     ))}
                   </ul>
+                  <a
+                    href={m.cta.href}
+                    className={`mt-8 rounded-full px-6 py-4 text-center font-bold ${
+                      m.featured ? "bg-paper text-flame-ink" : "bg-graphite text-paper"
+                    }`}
+                  >
+                    {m.cta.label}
+                  </a>
                 </article>
               ))}
             </div>
