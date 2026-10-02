@@ -57,6 +57,7 @@ const resultSchema = z.object({
   id: z.string().uuid(),
   plan: z.enum(["loyalty", "bundle", "octopay"]),
   state: z.enum(["processing", "pending_payment", "ready", "action_required"]),
+  requiresOctopayPassword: z.boolean().optional(),
   verificationStatus: z.enum(["pending", "verified"]).nullable().optional(),
   amount: z.number(),
   currency: z.literal("KGS"),
@@ -116,6 +117,8 @@ const money = new Intl.NumberFormat("ru-RU");
 type Step = "details" | "code";
 
 export function PartnerForm() {
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [plan, setPlan] = useState<PlanId>("bundle");
   const [values, setValues] = useState<Values>(empty);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
@@ -217,6 +220,11 @@ export function PartnerForm() {
     return true;
   };
 
+  const validatePassword = () => {
+    if (password.length < 8 || new TextEncoder().encode(password).length > 72) throw new FormError("Пароль OctoPay: от 8 символов, не более 72 байт.");
+    if (password !== passwordConfirm) throw new FormError("Пароли не совпадают.");
+  };
+  const acceptResult = (result: Registration) => { setSent(result); setPassword(""); setPasswordConfirm(""); };
   const phoneDigits = () => toPhoneDigits(values.phone)!;
 
   const sendCode = async () => {
@@ -228,11 +236,20 @@ export function PartnerForm() {
   /** Телефон подтверждён — продолжаем существующую заявку или создаём новую. */
   const finish = async (proof: string) => {
     const existing = resultSchema.nullable().parse(await call("/v1/public/partner-onboarding", undefined, proof));
-    if (existing) return setSent(existing);
+    if (existing) {
+      if (existing.requiresOctopayPassword && password) {
+        validatePassword();
+        return acceptResult(resultSchema.parse(await call("/v1/public/partner-onboarding/password", { password }, proof)));
+      }
+      return acceptResult(existing);
+    }
     if (recovering) {
       setRecovering(false);
       setStep("details");
       throw new FormError("Заявки на этот номер нет. Телефон подтверждён — заполните данные, и подключим.");
+    }
+    if (plan !== "loyalty") {
+      try { validatePassword(); } catch (error) { setStep("details"); throw error; }
     }
     requestId.current ??= crypto.randomUUID();
     const result = await call(
@@ -244,10 +261,11 @@ export function PartnerForm() {
         contactName: values.contact.trim(),
         category: values.category,
         comment: values.comment.trim(),
+        ...(plan !== "loyalty" ? { password } : {}),
       },
       proof,
     );
-    setSent(resultSchema.parse(result));
+    acceptResult(resultSchema.parse(result));
   };
 
   const run = async (action: () => Promise<unknown>) => {
@@ -276,6 +294,7 @@ export function PartnerForm() {
     setErrors(found);
     if (focusFirst(found)) return;
     void run(async () => {
+      if (!recovering && plan !== "loyalty") validatePassword();
       // Номер уже подтверждён в этой сессии — второй код не нужен
       if (token) return finish(token);
       await sendCode();
@@ -335,7 +354,18 @@ export function PartnerForm() {
       <Progress current={sent ? (sent.state === "ready" ? 4 : 3) : step === "code" ? 2 : 1} />
 
       {sent ? (
-        <Status sent={sent} failed={failed} phone={values.phone} />
+        <>
+          <Status sent={sent} failed={failed} phone={values.phone} />
+          {sent.requiresOctopayPassword && <form className="mt-6 flex flex-col gap-4" onSubmit={e => { e.preventDefault(); void run(async () => {
+            validatePassword();
+            if (!token) throw new PhoneExpired("Подтвердите телефон ещё раз.");
+            acceptResult(resultSchema.parse(await call("/v1/public/partner-onboarding/password", { password }, token)));
+          }); }}>
+            <p>Для входа в OctoPay задайте пароль.</p>
+            <PasswordFields password={password} confirm={passwordConfirm} setPassword={setPassword} setConfirm={setPasswordConfirm} disabled={sending} />
+            <Button type="submit" disabled={sending}>Сохранить пароль OctoPay</Button>
+          </form>}
+        </>
       ) : step === "code" ? (
         <div data-panel className="mt-8 flex flex-col gap-6">
           <div>
@@ -477,6 +507,8 @@ export function PartnerForm() {
               </div>
             )}
 
+            {!recovering && plan !== "loyalty" && <PasswordFields password={password} confirm={passwordConfirm} setPassword={setPassword} setConfirm={setPasswordConfirm} disabled={sending} />}
+
             {recovering && (
               <div data-field="phone">
                 <Field label="Телефон из заявки" error={errors.phone}>
@@ -517,8 +549,8 @@ export function PartnerForm() {
               {!recovering && (
                 <p className="max-w-[52ch] text-sm leading-relaxed opacity-75">
                   {plan === "loyalty"
-                    ? "После кода — оплата первого месяца через OctōPAY. Кабинет откроется, как только оплата пройдёт."
-                    : "После кода подключим сразу: оплата не нужна."}
+                    ? "После кода — оплата первого месяца. Заведение в LOAL начнёт работу после проверки супер-админа."
+                    : "После кода создадим аккаунты без оплаты. Для работы в LOAL нужна проверка супер-админа."}
                 </p>
               )}
               <button
@@ -608,9 +640,9 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
   const text =
     sent.verificationStatus === "pending" ? "Кабинет создан. До проверки супер-админа заведение не показывается в каталоге LOAL и не принимает бонусы. Вы уже можете войти и заполнить данные." : sent.state === "ready"
       ? sent.plan === "octopay"
-        ? "Аккаунт OctōPAY создан. Войдите по этому телефону и коду из WhatsApp."
+        ? "Аккаунт OctōPAY создан. Войдите по этому телефону и паролю, заданному в форме."
         : sent.plan === "bundle"
-          ? "Кабинеты Loal и OctōPAY созданы и связаны. Войдите в каждый по этому телефону и коду из WhatsApp."
+          ? "Кабинеты Loal и OctōPAY созданы и связаны. В LOAL вход по телефону и коду WhatsApp, в OctoPay — по телефону и вашему паролю."
           : "Кабинет Loal готов. Войдите по этому телефону и коду из WhatsApp."
       : sent.state === "pending_payment"
         ? "Оплата откроется в новой вкладке. Эта страница сама узнает, когда платёж пройдёт, — закрывать её не нужно."
@@ -663,9 +695,9 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
             Войти в Loal
           </a>
         )}
-        {sent.state === "ready" && sent.octopayUrl && (
+        {sent.state === "ready" && sent.octopayUrl && !sent.requiresOctopayPassword && (
           <a
-            href="https://octopay.click/auth/loal"
+            href="https://octopay.click/auth/business"
             className="rounded-full bg-graphite px-7 py-4 text-lg font-bold text-white transition-opacity hover:opacity-85"
           >
             Войти в OctōPAY
@@ -708,4 +740,17 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
       </p>
     </div>
   );
+}
+
+function PasswordFields({ password, confirm, setPassword, setConfirm, disabled }: {
+  password: string; confirm: string; setPassword: (value: string) => void; setConfirm: (value: string) => void; disabled: boolean;
+}) {
+  return <div className="grid gap-4 sm:grid-cols-2">
+    <Field label="Пароль для OctoPay" hint="От 8 символов. В LOAL вход останется по WhatsApp-коду.">
+      {parts => <TextInput {...parts} name="octopay_password" type="password" autoComplete="new-password" value={password} disabled={disabled} onChange={e => setPassword(e.target.value)} />}
+    </Field>
+    <Field label="Повторите пароль">
+      {parts => <TextInput {...parts} name="octopay_password_confirmation" type="password" autoComplete="new-password" value={confirm} disabled={disabled} onChange={e => setConfirm(e.target.value)} />}
+    </Field>
+  </div>;
 }
