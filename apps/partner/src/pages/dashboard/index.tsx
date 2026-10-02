@@ -62,21 +62,24 @@ function OwnerDashboard() {
   if (subscription.isPending || merchant.isPending) return <Loading />;
   if (subscription.isError) return <ErrorState error={subscription.error} onRetry={() => subscription.refetch()} />;
 
-  const active = Boolean(subscription.data?.isActive);
+  const pendingVerification = merchant.data?.status === "suspended" && merchant.data?.workflowStatus === "approval";
+  const active = !pendingVerification && Boolean(subscription.data?.isActive);
 
   return (
     <section className="flex flex-col gap-6">
       <PageHeader
         title={merchant.data?.name ?? "Кабинет магазина"}
         description={
-          tariff === "octopay"
+          pendingVerification ? "Заведение ожидает обязательной проверки супер-админа LOAL." : tariff === "octopay"
             ? "Тариф OctōPAY + Loal: бонусы принимаются, абонентской платы за Loal нет."
             : "Пока подписка активна, касса и 1С могут списывать бонусы клиентов."
         }
         action={<Badge tone={active ? "good" : "warn"}>{active ? "Бонусы принимаются" : "Приём остановлен"}</Badge>}
       />
 
-      {!active && (
+      {pendingVerification && <Card className="border-2 border-flame"><h2 className="text-xl font-bold">Ожидает проверки супер-админа</h2><p className="mt-2 text-lg">Кабинет создан. Проверьте данные заведения в настройках. После одобрения заведение появится в каталоге и сможет принимать бонусы.</p></Card>}
+
+      {!active && !pendingVerification && (
         <Card className="border-2 border-flame">
           <h2 className="text-xl font-bold text-destructive">
             {subscription.data ? "Подписка закончилась" : "Loal ещё не оплачен"}

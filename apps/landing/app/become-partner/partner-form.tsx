@@ -56,6 +56,7 @@ const order: FieldName[] = ["name", "category", "contact", "phone", "comment"];
 const resultSchema = z.object({
   id: z.string().uuid(), plan: z.enum(["loyalty", "bundle", "octopay"]),
   state: z.enum(["processing", "pending_payment", "ready", "action_required"]),
+  verificationStatus: z.enum(["pending", "verified"]).nullable().optional(),
   amount: z.number(), currency: z.literal("KGS"), paymentUrl: z.string().url().nullable(),
   partnerUrl: z.string().url().nullable(), octopayUrl: z.string().url().nullable(),
 });
@@ -183,7 +184,7 @@ export function PartnerForm() {
   };
 
   useEffect(() => {
-    if (!token || !sent || sent.state === "ready" || sent.state === "action_required") return;
+    if (!token || !sent || (sent.state === "ready" && sent.verificationStatus !== "pending") || sent.state === "action_required") return;
     let active = true;
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
@@ -203,18 +204,18 @@ export function PartnerForm() {
     };
     timer = setTimeout(poll, 3000);
     return () => { active = false; clearTimeout(timer); };
-  }, [token, sent?.state]);
+  }, [token, sent?.state, sent?.verificationStatus]);
 
   const badCount = order.filter((f) => errors[f]).length;
 
   if (sent) {
-    const title = sent.state === "ready" ? "Подключение завершено" : sent.state === "pending_payment" ? "Оплатите первый месяц" : sent.state === "action_required" ? "Нужна помощь с подключением" : "Подключаем ваш бизнес";
+    const title = sent.verificationStatus === "pending" ? "Заведение ожидает проверки" : sent.state === "ready" ? "Подключение завершено" : sent.state === "pending_payment" ? "Оплатите первый месяц" : sent.state === "action_required" ? "Нужна помощь с подключением" : "Подключаем ваш бизнес";
     return <div ref={root} className="rounded-[32px] border-2 border-graphite bg-paper p-8 sm:p-12">
       <div data-sent aria-live="polite">
         <h2 className="display text-3xl text-flame">{title}</h2>
         <p className="mt-4 text-lg leading-relaxed">
-          {sent.state === "ready" ? (sent.plan === "octopay" ? "Аккаунт OctoPay создан. Войдите по указанному телефону и коду из WhatsApp." : "Кабинет LOAL готов. Войдите по указанному телефону и коду из WhatsApp.") :
-           sent.state === "pending_payment" ? "Только лояльность — 8 750 сом в месяц (100 $ по курсу 87,5 сом). После оплаты кабинет создастся автоматически." :
+          {sent.verificationStatus === "pending" ? "Кабинет LOAL создан. Супер-админ должен проверить заведение. До одобрения оно не появится в каталоге и не сможет принимать бонусы. Вы уже можете войти в кабинет по телефону." : sent.state === "ready" ? (sent.plan === "octopay" ? "Аккаунт OctoPay создан. Войдите по указанному телефону и коду из WhatsApp." : "Кабинет LOAL готов. Войдите по указанному телефону и коду из WhatsApp.") :
+           sent.state === "pending_payment" ? "Только лояльность — 8 750 сом в месяц (100 $ по курсу 87,5 сом). После оплаты кабинет создастся автоматически. Для работы заведения потребуется проверка супер-админа." :
            sent.state === "action_required" ? "Заявка сохранена. Обратитесь в поддержку для завершения подключения." :
            "Заявка сохранена. Эта страница обновится автоматически, когда кабинеты будут готовы."}
         </p>
@@ -343,7 +344,7 @@ export function PartnerForm() {
             {sending ? "Подождите…" : !otpRequested && !token ? "Подтвердить телефон" : recovering ? "Проверить статус" : plan === "loyalty" ? "Перейти к оплате" : "Подключить бесплатно"}
           </Button>
           <p className="max-w-[40ch] text-sm opacity-75">
-            Для лояльности кабинет создаётся после оплаты. Бесплатные тарифы подключаются после подтверждения телефона.
+            Для лояльности кабинет создаётся после оплаты. После подтверждения телефона создаются аккаунты. Заведение в LOAL начинает работу после проверки супер-админа.
           </p>
         </div>
         </fieldset>

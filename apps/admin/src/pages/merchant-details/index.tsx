@@ -327,10 +327,12 @@ export function MerchantDetailsPage() {
 
       <Card>
         <h2 className="text-xl font-bold">
-          {merchant.data.status === "suspended" ? "Заведение приостановлено" : "Приостановить или удалить"}
+          {merchant.data.workflowStatus === "approval" && merchant.data.status === "suspended" ? "Заведение ожидает проверки" : merchant.data.status === "suspended" ? "Заведение приостановлено" : "Приостановить или удалить"}
         </h2>
         <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
-          {merchant.data.status === "suspended"
+          {merchant.data.workflowStatus === "approval" && merchant.data.status === "suspended"
+            ? "Проверьте данные заведения и владельца. До вашего подтверждения заведение не показывается в каталоге и не принимает бонусы. Подтверждение включает его работу в LOAL."
+            : merchant.data.status === "suspended"
             ? "Платформа его сейчас не обслуживает: бонусы здесь не принимаются. Верните в работу — и всё заработает, как раньше, если подписка заведения действует."
             : "Приостановленное заведение перестаёт обслуживаться платформой, вернуть его можно в любой момент. Удаление отправляет его в архив насовсем: сотрудники теряют доступ и могут работать в другом магазине, связь с OctōPAY и 1С отключается. Клиенты, карты, подписки и балансы остаются — они принадлежат платформе."}
         </p>
@@ -339,7 +341,7 @@ export function MerchantDetailsPage() {
         <div className="mt-4 flex flex-wrap gap-3">
           {merchant.data.status === "suspended" ? (
             <Button disabled={activate.isPending} onClick={() => activate.mutate()}>
-              {activate.isPending ? "Возвращаем…" : "Вернуть в работу"}
+              {activate.isPending ? "Подтверждаем…" : merchant.data.workflowStatus === "approval" ? "Подтвердить заведение" : "Вернуть в работу"}
             </Button>
           ) : (
             <ConfirmDialog
