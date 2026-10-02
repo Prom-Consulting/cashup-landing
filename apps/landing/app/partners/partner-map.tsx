@@ -1,41 +1,14 @@
 "use client";
 
 import type { PublicPartner } from "@loal/api";
-import { Map as MapLibreMap, Marker, type MapOptions, type PaddingOptions, type StyleSpecification } from "maplibre-gl";
+import { Map as MapLibreMap, Marker, type MapOptions, type PaddingOptions } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
+import { mapStyle as style } from "../_data/map-style";
 import { CITY_CENTER, coordsOf } from "../_data/partner-coords";
 import { monogram } from "../_data/partners-api";
 import { fitLogo, partnerAvatar } from "./logo-fit";
 
-// OpenStreetMap через MapLibre, приглушённая до тёплого серого: на ней горят только
-// оранжевые точки заведений. Атрибуция OSM остаётся видимой — это условие лицензии.
-const style: StyleSpecification = {
-  version: 8,
-  sources: {
-    osm: {
-      type: "raster",
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-      tileSize: 256,
-      maxzoom: 19,
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    },
-  },
-  layers: [
-    { id: "bg", type: "background", paint: { "background-color": "#f4efed" } },
-    {
-      id: "osm",
-      type: "raster",
-      source: "osm",
-      paint: {
-        "raster-saturation": -0.82,
-        "raster-contrast": -0.08,
-        "raster-brightness-min": 0.1,
-        "raster-opacity": 0.9,
-      },
-    },
-  ],
-};
 
 const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;

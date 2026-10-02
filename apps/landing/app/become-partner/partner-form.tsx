@@ -7,12 +7,20 @@ import { Field } from "@loal/ui/field";
 import { Button, ChoiceCards, OtpInput, PhoneInput, Spinner, Textarea, TextInput, formatPhone } from "@loal/ui/inputs";
 import { Select } from "@loal/ui/select";
 import { z } from "zod";
+import dynamic from "next/dynamic";
 import { StorefrontImages } from "./storefront-images";
+import type { Point } from "./location-picker";
 import { toPhoneDigits, coordsFrom2gis, merchantProfileFormSchema } from "@loal/api";
 import { categories } from "../_data/categories";
 import { API_URL, EMAIL, PARTNER_APP_URL, PHONE, PHONE_HREF } from "../_data/site";
 
 gsap.registerPlugin(useGSAP);
+
+// Карта тяжёлая — грузим её только в браузере и только когда до неё дошли
+const LocationPicker = dynamic(() => import("./location-picker"), {
+  ssr: false,
+  loading: () => <div className="h-[300px] animate-pulse rounded-2xl bg-cream sm:h-[340px]" />,
+});
 
 const plans = [
   { id: "loyalty", label: "Только лояльность", note: "8 750 сом в месяц" },
@@ -105,7 +113,7 @@ async function call(path: string, body?: unknown, token?: string) {
  */
 const DRAFT_KEY = "loal.partner-onboarding";
 const TOKEN_TTL = 29 * 60_000;
-type Draft = { plan: PlanId; values: Values; requestId: string | null; token: string | null; tokenUntil: number };
+type Draft = { plan: PlanId; values: Values; requestId: string | null; token: string | null; tokenUntil: number; point?: Point | null };
 
 function readDraft(): Partial<Draft> {
   try {
@@ -130,6 +138,8 @@ type Step = "details" | "code";
 export function PartnerForm() {
   const [logo, setLogo] = useState<File | null>(null);
   const [photos, setPhotos] = useState<File[]>([]);
+  // Точка на карте: из клика, «Где я» или координат в ссылке 2ГИС
+  const [point, setPoint] = useState<Point | null>(null);
   const uploaded = useRef(new Map<File, string>());
   const [uploadProgress, setUploadProgress] = useState("");
   const [password, setPassword] = useState("");
@@ -155,6 +165,7 @@ export function PartnerForm() {
   useEffect(() => {
     const draft = readDraft();
     if (draft.values) setValues({ ...empty, ...draft.values });
+    if (draft.point && typeof draft.point.lat === "number" && typeof draft.point.lng === "number") setPoint(draft.point);
     if (draft.plan && plans.some((item) => item.id === draft.plan)) setPlan(draft.plan);
     requestId.current = draft.requestId ?? null;
     if (draft.token && (draft.tokenUntil ?? 0) > Date.now()) {
@@ -168,8 +179,28 @@ export function PartnerForm() {
 
   useEffect(() => {
     if (!restored.current) return;
-    writeDraft({ plan, values, requestId: requestId.current, token, tokenUntil });
-  }, [plan, values, token, tokenUntil, sent]);
+    writeDraft({ plan, values, requestId: requestId.current, token, tokenUntil, point });
+  }, [plan, values, token, tokenUntil, sent, point]);
+
+  // Вставили ссылку 2ГИС с координатами — сразу ставим по ним точку на карте
+  // Перешли к проверке статуса — курсор сразу в телефон (поле появляется после отрисовки)
+  useEffect(() => {
+    if (!recovering) return;
+    // Панель появляется анимацией и в начале скрыта — фокус ставим, когда она уже видна
+    const timer = setTimeout(
+      () => root.current?.querySelector<HTMLInputElement>('[data-field="phone"] input')?.focus({ preventScroll: true }),
+      500,
+    );
+    return () => clearTimeout(timer);
+  }, [recovering]);
+
+  const lastLink = useRef("");
+  useEffect(() => {
+    if (values.twogisUrl === lastLink.current) return;
+    lastLink.current = values.twogisUrl;
+    const geo = coordsFrom2gis(values.twogisUrl);
+    if (geo) setPoint({ lat: geo.lat, lng: geo.lng });
+  }, [values.twogisUrl]);
 
   // Подтверждённый телефон после перезагрузки — сразу показываем заявку, если она есть
   useEffect(() => {
@@ -271,7 +302,8 @@ export function PartnerForm() {
         setUploadProgress(`Загружаем фото ${i + 1} из ${photos.length}…`);
         photoUrls.push(await uploadImage(photos[i], "merchantPhoto", proof));
       }
-      const geo = coordsFrom2gis(values.twogisUrl);
+      // Точка, выбранная на карте, важнее координат из ссылки
+      const geo = point ?? coordsFrom2gis(values.twogisUrl);
       return { description: values.description.trim() || null, address: values.address.trim() || null,
         instagramUrl: values.instagramUrl.trim() || null, twogisUrl: values.twogisUrl.trim() || null,
         logoUrl, photos: photoUrls, lat: geo?.lat ?? null, lng: geo?.lng ?? null };
@@ -400,7 +432,7 @@ export function PartnerForm() {
   const badCount = order.filter((f) => errors[f]).length;
 
   return (
-    <div ref={root} className="min-w-0 rounded-[32px] border-2 border-graphite bg-paper p-6 sm:p-10">
+    <div ref={root} className="min-w-0 scroll-mt-24 rounded-[32px] border-2 border-graphite bg-paper p-6 sm:p-10">
       <Progress current={sent ? (sent.state === "ready" ? 4 : 3) : step === "code" ? 2 : 1} />
 
       {sent ? (
@@ -562,8 +594,21 @@ export function PartnerForm() {
               <div><h2 id="storefront-heading" className="text-xl font-semibold">Витрина заведения</h2><p className="mt-2 text-sm opacity-75">Эти данные появятся в карточке заведения после проверки супер-админом. Их можно будет изменить в кабинете.</p></div>
               <div data-field="description"><Field label="Описание заведения" optional error={errors.description}>{parts => <Textarea {...parts} maxLength={2000} value={values.description} onValueChange={set("description")} onBlur={check("description")} placeholder="Расскажите о заведении, товарах или услугах" />}</Field></div>
               <div data-field="address"><Field label="Адрес" optional error={errors.address}>{parts => <TextInput {...parts} value={values.address} onChange={event => set("address")(event.target.value)} onBlur={check("address")} placeholder="Город, улица, дом" />}</Field></div>
+              <div data-field="twogisUrl"><Field label="Ссылка на 2ГИС" optional error={errors.twogisUrl} hint="Вставьте ссылку на заведение — если в ней есть координаты, точка на карте встанет сама.">{parts => <TextInput {...parts} value={values.twogisUrl} onChange={event => set("twogisUrl")(event.target.value)} onBlur={check("twogisUrl")} placeholder="https://2gis.kg/…" />}</Field></div>
+              <div className="space-y-2">
+                <p className="font-medium">
+                  Точка на карте <span className="text-sm font-normal opacity-60">необязательно</span>
+                </p>
+                <LocationPicker
+                  value={point}
+                  disabled={sending}
+                  onChange={(next) => {
+                    setPoint(next);
+                    freshAttempt();
+                  }}
+                />
+              </div>
               <div data-field="instagramUrl"><Field label="Ссылка на Instagram" optional error={errors.instagramUrl}>{parts => <TextInput {...parts} value={values.instagramUrl} onChange={event => set("instagramUrl")(event.target.value)} onBlur={check("instagramUrl")} placeholder="https://www.instagram.com/…" />}</Field></div>
-              <div data-field="twogisUrl"><Field label="Ссылка на 2ГИС" optional error={errors.twogisUrl} hint="Если в ссылке есть координаты, добавим точку на карту.">{parts => <TextInput {...parts} value={values.twogisUrl} onChange={event => set("twogisUrl")(event.target.value)} onBlur={check("twogisUrl")} placeholder="https://2gis.kg/…" />}</Field></div>
               <StorefrontImages logo={logo} photos={photos} disabled={sending} onLogo={file => { setLogo(file); freshAttempt(); }} onPhotos={files => { setPhotos(files); freshAttempt(); }} />
             </section>}
 
@@ -617,9 +662,12 @@ export function PartnerForm() {
               <button
                 type="button"
                 onClick={() => {
-                  setRecovering(!recovering);
+                  const next = !recovering;
+                  setRecovering(next);
                   setErrors({});
                   setFailed(null);
+                  // Форма меняет высоту — поднимаем её к началу, иначе человек остаётся под ней
+                  requestAnimationFrame(() => root.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
                 }}
                 className="w-fit text-base text-flame-ink underline underline-offset-4"
               >
@@ -803,15 +851,73 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
   );
 }
 
+/** Поле пароля с «глазиком»: показать или скрыть набранное. */
+function SecretInput({ parts, value, onChange, disabled, name, label }: {
+  parts: { id: string; describedBy?: string; invalid: boolean };
+  value: string; onChange: (value: string) => void; disabled: boolean; name: string; label: string;
+}) {
+  const [shown, setShown] = useState(false);
+  return (
+    <div className="relative">
+      <TextInput
+        {...parts}
+        name={name}
+        type={shown ? "text" : "password"}
+        autoComplete="new-password"
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        className="pr-14"
+      />
+      <button
+        type="button"
+        onClick={() => setShown(!shown)}
+        aria-label={shown ? `Скрыть ${label}` : `Показать ${label}`}
+        aria-pressed={shown}
+        className="absolute top-1/2 right-2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full opacity-70 transition-opacity hover:opacity-100"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
+          <circle cx="12" cy="12" r="3" />
+          {shown && <path d="M4 4l16 16" />}
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+/** Пароль OctōPAY: глазик, живые подсказки — длина и совпадение видны до отправки. */
 function PasswordFields({ password, confirm, setPassword, setConfirm, disabled }: {
   password: string; confirm: string; setPassword: (value: string) => void; setConfirm: (value: string) => void; disabled: boolean;
 }) {
-  return <div className="grid gap-4 sm:grid-cols-2">
-    <Field label="Пароль для OctoPay" hint="От 8 символов. В LOAL вход останется по WhatsApp-коду.">
-      {parts => <TextInput {...parts} name="octopay_password" type="password" autoComplete="new-password" value={password} disabled={disabled} onChange={e => setPassword(e.target.value)} />}
-    </Field>
-    <Field label="Повторите пароль">
-      {parts => <TextInput {...parts} name="octopay_password_confirmation" type="password" autoComplete="new-password" value={confirm} disabled={disabled} onChange={e => setConfirm(e.target.value)} />}
-    </Field>
-  </div>;
+  const longEnough = password.length >= 8 && new TextEncoder().encode(password).length <= 72;
+  const matches = confirm.length > 0 && password === confirm;
+  const Check = ({ ok, children }: { ok: boolean; children: string }) => (
+    <li className={`flex items-center gap-2 ${ok ? "text-graphite" : "opacity-60"}`}>
+      <span className={`grid h-5 w-5 place-items-center rounded-full text-[11px] font-bold ${ok ? "bg-flame-ink text-paper" : "border-2 border-smoke"}`} aria-hidden="true">
+        {ok ? "✓" : ""}
+      </span>
+      {children}
+    </li>
+  );
+  return (
+    <section className="space-y-4 rounded-2xl border border-current/10 p-5" aria-labelledby="octopay-password-heading">
+      <div>
+        <h2 id="octopay-password-heading" className="text-xl font-semibold">Пароль для OctōPAY</h2>
+        <p className="mt-1 text-sm opacity-75">Для входа в кабинет OctōPAY. В Loal вход останется по коду из WhatsApp.</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Пароль">
+          {(parts) => <SecretInput parts={parts} name="octopay_password" label="пароль" value={password} onChange={setPassword} disabled={disabled} />}
+        </Field>
+        <Field label="Повторите пароль" error={confirm && !matches ? "Пароли не совпадают" : undefined}>
+          {(parts) => <SecretInput parts={parts} name="octopay_password_confirmation" label="повтор пароля" value={confirm} onChange={setConfirm} disabled={disabled} />}
+        </Field>
+      </div>
+      <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm" aria-live="polite">
+        <Check ok={longEnough}>Не короче 8 символов</Check>
+        <Check ok={matches}>Пароли совпадают</Check>
+      </ul>
+    </section>
+  );
 }
