@@ -1,7 +1,13 @@
 import path from "node:path";
 import type { NextConfig } from "next";
+import { CLIENT_APP_URL } from "./app/_data/site";
 
 const nextConfig: NextConfig = {
+  // REF-01: сервер раздаёт ссылки loal.kg/ref/{code}, а переход и регистрация живут в кабинете клиента —
+  // там один и тот же deviceId для visit и register. Временный редирект: ссылки не кэшируются навсегда.
+  redirects() {
+    return [{ source: "/ref/:code", destination: `${CLIENT_APP_URL.replace(/\/$/, "")}/ref/:code`, permanent: false }];
+  },
   // Сборка для Docker: .next/standalone со своим сервером. Трассировку файлов ведём
   // от корня монорепо, иначе не попадут зависимости из packages/ и общий node_modules.
   output: "standalone",

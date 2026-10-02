@@ -9,10 +9,13 @@ import { API_URL } from "./site";
  * Если шлюз недоступен, возвращаем пустой список: страница должна собираться и
  * открываться даже тогда, когда бэкенд лежит.
  */
+export const PARTNERS_TAG = "public-partners";
+
 export async function getPublicPartners(): Promise<PublicPartner[]> {
   try {
     const response = await fetch(`${API_URL.replace(/\/$/, "")}/v1/public/partners`, {
-      next: { revalidate: 300 },
+      // Раз в минуту сами, а после сохранения витрины — сразу (app/api/revalidate-partners)
+      next: { revalidate: 60, tags: [PARTNERS_TAG] },
     });
     if (!response.ok) return [];
     const parsed = z.array(publicPartnerSchema).safeParse(await response.json());

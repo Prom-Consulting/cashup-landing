@@ -4,14 +4,14 @@ import { PhoneInput } from "@loal/ui/inputs";
 import { Button, FormField, FormStatus, Input } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useNavigate } from "react-router";
-import { useEnroll, type EnrollTarget } from "../../entities/enroll/api";
+import { useEnroll } from "../../entities/enroll/api";
 
 /**
  * Карта без регистрации: имя, фамилия и телефон — и она сразу ваша. Баллы на неё
  * приносит подписка; без подписки карта просто ждёт.
  */
-export function EnrollForm({ info, target, via }: { info: EnrollInfo; target?: EnrollTarget; via?: string }) {
-  const enroll = useEnroll(target);
+export function EnrollForm({ info }: { info: EnrollInfo }) {
+  const enroll = useEnroll();
   const navigate = useNavigate();
   const initialValues: EnrollInput = { firstName: "", lastName: "", phone: "", customField1: "", customField2: "" };
 
@@ -26,8 +26,6 @@ export function EnrollForm({ info, target, via }: { info: EnrollInfo; target?: E
             ...values,
             customField1: values.customField1 || undefined,
             customField2: values.customField2 || undefined,
-            // Чужой или неверный id партнёра сервер просто отбросит, выдачу это не ломает
-            enrolledByMemberId: via && /^[0-9a-f-]{36}$/i.test(via) ? via : undefined,
           });
           navigate(`/c/${encodeURIComponent(serialNumber)}`, { replace: true });
         } catch (error) {

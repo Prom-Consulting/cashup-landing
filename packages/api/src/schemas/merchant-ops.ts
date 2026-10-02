@@ -1,49 +1,48 @@
 import { z } from "zod";
+import { phoneSchema } from "./phone";
 
-/** Филиал — физическая точка заведения; к нему привязывают сотрудника. */
+/**
+ * Филиал — физическая точка. У него свой администратор (branch_admin) и кассиры (staff).
+ * Закрытый филиал не стирается: archivedAt, прошлые операции на него ссылаются.
+ */
 export const branchSchema = z.looseObject({
   id: z.string(),
   merchantId: z.string(),
   name: z.string(),
   createdAt: z.string().nullish(),
+  archivedAt: z.string().nullish(),
 });
 export type Branch = z.infer<typeof branchSchema>;
 
 export const createBranchInputSchema = z.object({
-  name: z.string().trim().min(2, "Введите название точки").max(80, "Слишком длинное название"),
+  name: z.string().trim().min(2, "Введите название филиала").max(80, "Слишком длинное название"),
 });
 export type CreateBranchInput = z.infer<typeof createBranchInputSchema>;
 
-/** Сотрудника подключают по уже существующему userId: он сначала регистрируется сам. */
-const userIdSchema = z
-  .string()
-  .trim()
-  .min(1, "Укажите пользователя")
-  .refine(
-    (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value),
-    "Это должен быть идентификатор пользователя, а не имя или телефон",
-  );
-
-export const addMemberInputSchema = z.object({
-  userId: userIdSchema,
-  role: z.enum(["admin", "staff"]),
-  branchId: z.string().trim().optional(),
-});
+/**
+ * Человека заводят заранее по имени и телефону: номер резервируется, и когда он впервые войдёт
+ * по коду из WhatsApp, аккаунт уже будет с ролью и филиалами. Один человек может работать в
+ * нескольких филиалах, но только одного магазина (`409 EMPLOYEE_ALREADY_ASSIGNED`).
+ * Администратору филиалов нужен хотя бы один филиал; сам он добавляет только кассиров и только
+ * в свои филиалы — пустой список сервер заменит всеми его филиалами.
+ */
+export const addMemberInputSchema = z
+  .object({
+    fullName: z.string().trim().min(2, "Введите имя").max(120, "Слишком длинное имя"),
+    phone: phoneSchema,
+    role: z.enum(["admin", "branch_admin", "staff"]),
+    branchIds: z.array(z.string().trim().min(1)).max(100, "Не больше 100 филиалов").default([]),
+  })
+  .refine((input) => input.role !== "branch_admin" || input.branchIds.length > 0, {
+    path: ["branchIds"],
+    message: "Выберите хотя бы один филиал — администратор отвечает за свои филиалы",
+  });
 export type AddMemberInput = z.infer<typeof addMemberInputSchema>;
-
-/** Партнёру выбирают одну операцию на всю жизнь: начислять или списывать. */
-export const addPartnerInputSchema = z.object({
-  userId: userIdSchema,
-  scanOperation: z.enum(["earn", "redeem"]),
-  branchId: z.string().trim().optional(),
-});
-export type AddPartnerInput = z.infer<typeof addPartnerInputSchema>;
 
 export const MEMBER_ROLE_LABELS: Record<string, string> = {
   admin: "Владелец",
-  staff: "Сотрудник",
-  partner: "Партнёр",
-  partner_employee: "Сотрудник партнёра",
+  branch_admin: "Администратор филиала",
+  staff: "Кассир",
 };
 
 /** Что кассир вводит при начислении и списании. Одна строка на программу. */
@@ -117,18 +116,3 @@ export const createWebhookInputSchema = z.object({
   events: z.array(z.string()).min(1, "Выберите хотя бы одно событие"),
 });
 export type CreateWebhookInput = z.infer<typeof createWebhookInputSchema>;
-
-/** Приветственный бонус партнёра. Пустое «сколько раз» — без ограничения. */
-export const partnerBonusInputSchema = z.object({
-  amount: z.union([
-    z.literal(""),
-    z.coerce.number({ error: "Введите число" }).positive("Больше нуля").max(10_000_000, "Слишком много"),
-  ]),
-  maxPerCustomer: z.union([
-    z.literal(""),
-    z.coerce.number({ error: "Введите число" }).int("Целое число").min(1, "Хотя бы один раз"),
-  ]),
-});
-export type PartnerBonusInput = { amount: number | string; maxPerCustomer: number | string };
-
-export const SCAN_OPERATION_LABELS = { earn: "Начисляет", redeem: "Списывает" } as const;

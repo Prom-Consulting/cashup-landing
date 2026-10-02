@@ -9,18 +9,46 @@ export const merchantSubscriptionSchema = z.looseObject({
   plan: z.string().nullish(),
   status: z.string(),
   startedAt: z.string().nullish(),
+  /** null — оплаченной подписки нет: магазин на тарифе OctōPAY + Loal. */
   expiresAt: z.string().nullish(),
+  /** Может ли магазин принимать бонусы: оплаченная подписка или тариф OctōPAY + Loal. */
   isActive: z.boolean(),
+  /** Активна ли именно оплаченная подписка. Старый шлюз поля не присылает — считаем по isActive. */
+  paidActive: z.boolean().nullish(),
+  tariff: z.string().nullish(),
 });
 export type MerchantSubscription = z.infer<typeof merchantSubscriptionSchema>;
 
 /** Связь выбранного магазина Loal с бизнесом в Octopay. */
 export const octopayIntegrationSchema = z.looseObject({
   connected: z.boolean(),
+  /** Связь может быть подтверждена, но приём бонусов приостановлен в Octopay. */
+  isEnabled: z.boolean().optional(),
+  /** В Octopay выбран пригодный активный банковский счёт в KGS. */
+  invoiceReady: z.boolean().optional(),
+  /**
+   * LOAL_LINK_NOT_FOUND, LOAL_LINK_INACTIVE, KGS_BANK_ACCOUNT_REQUIRED, KGS_BANK_ACCOUNT_NOT_PAYABLE,
+   * KGS_BANK_ACCOUNT_AMBIGUOUS. Строкой: новая причина не должна ронять экран — для неё общая подсказка.
+   */
+  invoiceNotReadyReason: z.string().nullable().optional(),
+  activeKgsBankAccountCount: z.number().int().nonnegative().optional(),
+  payableKgsBankAccountCount: z.number().int().nonnegative().optional(),
+  /** Готовность выставлять счета с кнопкой Loal; отсутствие поля трактуется как «не готово». */
+  ready: z.boolean().optional(),
   octopayBusinessName: z.string().nullable(),
   connectedAt: z.string().nullable(),
 });
 export type OctopayIntegration = z.infer<typeof octopayIntegrationSchema>;
+
+/** Старый ответ без полей готовности всегда трактуем безопасно: счета не выставляем. */
+export function isOctopayIntegrationReady(
+  integration: Pick<OctopayIntegration, "connected" | "isEnabled" | "invoiceReady" | "ready">,
+) {
+  return Boolean(
+    integration.ready ??
+      (integration.connected && integration.isEnabled === true && integration.invoiceReady === true),
+  );
+}
 
 /** Одноразовый код создаётся в Octopay и нигде не сохраняется на стороне клиента. */
 export const connectOctopayInputSchema = z.object({
@@ -29,18 +57,31 @@ export const connectOctopayInputSchema = z.object({
 export type ConnectOctopayInput = z.infer<typeof connectOctopayInputSchema>;
 
 /**
+ * Цикл подписки v2 (30 дней): ISO-даты UTC или null. cycleEndsAt — исключительная граница:
+ * с этого момента подписка frozen, а баланс сгорит в bonusBurnAt (frozenAt + 30 суток).
+ */
+export const cycleFields = {
+  cycleStartedAt: z.string().nullish(),
+  cycleEndsAt: z.string().nullish(),
+  frozenAt: z.string().nullish(),
+  bonusBurnAt: z.string().nullish(),
+};
+
+/**
  * Подписка клиента: пачка баллов на период, остаток в конце месяца сгорает.
  * Принадлежит человеку, а не карте: перевыпуск карты её не трогает.
  */
 export const cardSubscriptionSchema = z.looseObject({
   id: z.string(),
   customerId: z.string().nullish(),
-  status: z.enum(["active", "canceled", "expired"]),
-  pointsPerPeriod: z.number(),
-  periodsTotal: z.number(),
-  periodsGranted: z.number(),
+  status: z.enum(["active", "frozen", "canceled", "expired"]),
+  // Старая помесячная модель — у подписок по циклу этих полей может не быть
+  pointsPerPeriod: z.number().nullish(),
+  periodsTotal: z.number().nullish(),
+  periodsGranted: z.number().nullish(),
   currentPeriodStart: z.string().nullish(),
   currentPeriodEnd: z.string().nullish(),
+  ...cycleFields,
   createdAt: z.string().nullish(),
 });
 export type CardSubscription = z.infer<typeof cardSubscriptionSchema>;
@@ -111,11 +152,11 @@ export const buyMonthsInputSchema = z.object({
 });
 export type BuyMonthsInput = z.infer<typeof buyMonthsInputSchema>;
 
+/**
+ * Счёт магазину на продление доступа. Сумму считает сервер: цена месяца доступа из
+ * настроек платформы × месяцы. Лишнее поле в теле (amount и т. п.) — 400.
+ */
 export const createInvoiceInputSchema = z.object({
-  amount: z.coerce
-    .number({ error: "Введите сумму числом" })
-    .positive("Сумма больше нуля")
-    .max(100_000_000, "Слишком большая сумма"),
   months: z.coerce.number().int("Целое число месяцев").min(1, "Минимум месяц").max(24, "Не больше двух лет"),
 });
 export type CreateInvoiceInput = z.infer<typeof createInvoiceInputSchema>;

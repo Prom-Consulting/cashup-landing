@@ -11,7 +11,7 @@ export type FieldParts = {
 };
 
 /**
- * Обёртка поля: подпись, подсказка, ошибка и связи для скринридеров.
+ * Обёртка поля: подпись, поле, под ним подсказка и ошибка, и связи для скринридеров.
  * Сам контрол получает id и aria-* через render-функцию.
  */
 export function Field({
@@ -31,7 +31,8 @@ export function Field({
 }) {
   const base = useId();
   const id = `${base}-control`;
-  const hintId = hint ? `${base}-hint` : undefined;
+  // При ошибке подсказку прячем: под полем — одно сообщение, а не два
+  const hintId = hint && !error ? `${base}-hint` : undefined;
   const errorId = error ? `${base}-error` : undefined;
   const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
 
@@ -41,12 +42,13 @@ export function Field({
         {label}
         {optional && <span className="text-sm opacity-60">необязательно</span>}
       </label>
-      {hint && (
-        <p id={hintId} className="mt-1 text-sm opacity-70">
+      <div className="mt-2">{children({ id, describedBy, invalid: Boolean(error) })}</div>
+      {/* Подсказка — под полем: так поля соседних колонок стоят на одной линии */}
+      {hintId && (
+        <p id={hintId} className="mt-2 text-sm opacity-70">
           {hint}
         </p>
       )}
-      <div className="mt-2">{children({ id, describedBy, invalid: Boolean(error) })}</div>
       {error && (
         <p id={errorId} className="mt-2 flex items-start gap-2 text-sm font-medium text-flame-ink">
           <svg viewBox="0 0 20 20" className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">

@@ -1,28 +1,37 @@
 import {
+  ApiError,
   merchantCabinetApi,
   merchantsApi,
+  slugify,
   type BuyMonthsInput,
-  type CreateMerchantInput,
+  type CreateMerchantForm,
   type DeductionQuery,
+  type Merchant,
   type UpdateMerchantInput,
 } from "@loal/api";
-import { useApi } from "@loal/app-kit";
+import { refetchWhilePending, refreshPublicCatalog, useApi } from "@loal/app-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { SITE_URL } from "../../shared/config/env";
 
 /** Заведения платформы. Клиенты и карты сюда не входят — они платформенные. */
 export const merchantKeys = {
   all: ["merchants"] as const,
   detail: (id: string) => ["merchants", id] as const,
   members: (id: string) => ["merchants", id, "members"] as const,
+  branches: (id: string) => ["merchants", id, "branches"] as const,
   invites: (id: string) => ["merchants", id, "invites"] as const,
   subscription: (id: string) => ["merchants", id, "subscription"] as const,
   deductions: (id: string, query: DeductionQuery) => ["merchants", id, "deductions", query] as const,
   invoices: (id: string) => ["merchants", id, "invoices"] as const,
 };
 
-export function useMerchants() {
+/** includeDeleted — вместе с архивом удалённых магазинов. */
+export function useMerchants(includeDeleted = false) {
   const api = useApi();
-  return useQuery({ queryKey: merchantKeys.all, queryFn: () => merchantsApi(api).list() });
+  return useQuery({
+    queryKey: [...merchantKeys.all, { includeDeleted }],
+    queryFn: () => merchantsApi(api).list({ includeDeleted }),
+  });
 }
 
 export function useMerchant(merchantId: string) {
@@ -30,12 +39,75 @@ export function useMerchant(merchantId: string) {
   return useQuery({ queryKey: merchantKeys.detail(merchantId), queryFn: () => merchantsApi(api).get(merchantId) });
 }
 
+export type NewMerchant = { values: CreateMerchantForm; logo: File | null; photos: File[] };
+
+/**
+ * Новое заведение одним действием: запись, картинки и витрина. Адрес собирается из
+ * названия; занят — пробуем с номером. Если заведение создалось, а витрина нет, ошибку
+ * не бросаем: заведение уже есть, фото можно дозагрузить в его карточке.
+ */
 export function useCreateMerchant() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateMerchantInput) => merchantsApi(api).create(input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.all }),
+    mutationFn: async ({ values, logo, photos }: NewMerchant) => {
+      const base = slugify(values.name) || "merchant";
+      let merchant: Merchant | null = null;
+      for (let attempt = 1; !merchant; attempt += 1) {
+        const slug =
+          attempt === 1 ? base : attempt <= 5 ? `${base}-${attempt}` : `${base}-${crypto.randomUUID().slice(0, 6)}`;
+        try {
+          merchant = await merchantsApi(api).create({
+            slug,
+            name: values.name,
+            contactEmail: values.contactEmail,
+            contactPhone: values.contactPhone,
+          });
+        } catch (error) {
+          // Занят адрес — пробуем следующий; иной 409 (или код не тот) — настоящая ошибка
+          const slugTaken =
+            error instanceof ApiError && (error.code === "MERCHANT_SLUG_TAKEN" || (error.isConflict && !error.code));
+          if (!slugTaken || attempt >= 8) throw error;
+        }
+      }
+
+      let storefrontError: string | null = null;
+      try {
+        const cabinet = merchantCabinetApi(api);
+        const logoUrl = logo ? (await cabinet.uploadAsset(merchant.id, "merchantLogo", logo)).url : null;
+        const photoUrls: string[] = [];
+        for (const photo of photos)
+          photoUrls.push((await cabinet.uploadAsset(merchant.id, "merchantPhoto", photo)).url);
+        await cabinet.saveProfile(merchant.id, {
+          category: values.category.trim() || null,
+          description: values.description.trim() || null,
+          logoUrl,
+          photos: photoUrls,
+          instagramUrl: null,
+          twogisUrl: null,
+        });
+      } catch (error) {
+        storefrontError = error instanceof Error ? error.message : "Витрина не сохранилась";
+      }
+      return { merchant, storefrontError };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: merchantKeys.all });
+      refreshPublicCatalog(SITE_URL);
+    },
+  });
+}
+
+export function useActivateMerchant(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => merchantsApi(api).activate(merchantId),
+    onSuccess: (merchant) => {
+      queryClient.setQueryData(merchantKeys.detail(merchantId), merchant);
+      queryClient.invalidateQueries({ queryKey: merchantKeys.all });
+      refreshPublicCatalog(SITE_URL);
+    },
   });
 }
 
@@ -47,13 +119,28 @@ export function useSuspendMerchant(merchantId: string) {
     onSuccess: (merchant) => {
       queryClient.setQueryData(merchantKeys.detail(merchantId), merchant);
       queryClient.invalidateQueries({ queryKey: merchantKeys.all });
+      refreshPublicCatalog(SITE_URL);
     },
   });
 }
 
 export function useMerchantMembers(merchantId: string) {
   const api = useApi();
-  return useQuery({ queryKey: merchantKeys.members(merchantId), queryFn: () => merchantsApi(api).members(merchantId) });
+  return useQuery({
+    queryKey: merchantKeys.members(merchantId),
+    queryFn: () => merchantsApi(api).members(merchantId),
+    // Кого завели заранее и кто ещё не вошёл — изредка перечитываем, чтобы заметить вход
+    refetchInterval: refetchWhilePending,
+  });
+}
+
+/** Точки заведения — чтобы сразу привязать нового человека к филиалу. */
+export function useMerchantBranches(merchantId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: merchantKeys.branches(merchantId),
+    queryFn: () => merchantCabinetApi(api).branches(merchantId),
+  });
 }
 
 export function useMerchantInvites(merchantId: string) {
@@ -118,6 +205,7 @@ export function useDeleteMerchant() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (merchantId: string) => merchantsApi(api).remove(merchantId),
+    // Карточка остаётся открытой на чтение — перечитываем и её, и список
     onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.all }),
   });
 }

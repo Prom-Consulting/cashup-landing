@@ -8,6 +8,7 @@ import { BonusItemsPage } from "../pages/bonus-items";
 import { CertificatesPage } from "../pages/certificates";
 import { CustomersPage } from "../pages/customers";
 import { ProgramsPage } from "../pages/programs";
+import { PromoCodesPage } from "../pages/promo-codes";
 import { SettingsPage } from "../pages/settings";
 import { MerchantDetailsPage } from "../pages/merchant-details";
 import { MerchantsPage } from "../pages/merchants";
@@ -39,6 +40,7 @@ export function AppRouter() {
         <Route path="certificates" element={<CertificatesPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="bonus-items" element={<BonusItemsPage />} />
+        <Route path="promo-codes" element={<PromoCodesPage />} />
         <Route path="leads" element={<LeadsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="*" element={<NotFoundPage />} />

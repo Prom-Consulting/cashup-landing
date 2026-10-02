@@ -20,40 +20,8 @@ export const TextInput = forwardRef<HTMLInputElement, BaseProps & React.InputHTM
   },
 );
 
-/** Телефон Кыргызстана: ввод превращается в +996 XXX XX XX XX. */
-export function formatPhone(raw: string) {
-  // Поле уже показывает +996, но люди по привычке набирают 0700… — ноль отбрасываем,
-  // иначе номер уезжает на цифру вправо и становится чужим
-  const digits = raw.replace(/\D/g, "").replace(/^996/, "").replace(/^0/, "").slice(0, 9);
-  const parts = [digits.slice(0, 3), digits.slice(3, 5), digits.slice(5, 7), digits.slice(7, 9)].filter(Boolean);
-  return digits ? `+996 ${parts.join(" ")}` : "";
-}
-
-export const PhoneInput = forwardRef<
-  HTMLInputElement,
-  BaseProps & {
-    value: string;
-    onValueChange: (value: string) => void;
-    onBlur?: React.FocusEventHandler<HTMLInputElement>;
-  }
->(function PhoneInput({ id, describedBy, invalid, value, onValueChange, onBlur }, ref) {
-  return (
-    <input
-      ref={ref}
-      id={id}
-      type="tel"
-      inputMode="tel"
-      autoComplete="tel"
-      placeholder="+996 700 00 00 00"
-      value={value}
-      onChange={(e) => onValueChange(formatPhone(e.target.value))}
-      onBlur={onBlur}
-      aria-describedby={describedBy}
-      aria-invalid={invalid || undefined}
-      className={controlClass(invalid, "tabular-nums")}
-    />
-  );
-});
+/** Телефон с выбором страны — в ./phone-input. formatPhone — сохранённый номер для показа. */
+export { PhoneInput, formatPhoneNumber as formatPhone } from "./phone-input";
 
 export function Textarea({
   id,
@@ -87,7 +55,8 @@ export function Textarea({
         onBlur={onBlur}
         aria-describedby={[describedBy, counterId].filter(Boolean).join(" ")}
         aria-invalid={invalid || undefined}
-        className={controlClass(invalid, "resize-y")}
+        // Высота h-12 — для однострочных полей; многострочному нужны свои строки
+        className={controlClass(invalid, "min-h-28 resize-y py-3 leading-snug").replace("h-12 ", "")}
       />
       <p id={counterId} className={`mt-1 text-right text-sm ${left < 40 ? "text-flame-ink" : "opacity-60"}`}>
         Осталось {left} символов

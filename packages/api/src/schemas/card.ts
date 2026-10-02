@@ -58,7 +58,8 @@ export const cardSchema = z.looseObject({
   programId: z.string().nullish(),
   tierId: z.string().nullish(),
   passVersion: z.number().nullish(),
-  status: z.enum(["active", "suspended", "revoked"]),
+  /** frozen — подписка закончилась: QR и списание запрещены до новой оплаты. */
+  status: z.enum(["active", "frozen", "suspended", "revoked"]),
   pointsBalance: z.number(),
   punchCount: z.number().nullish(),
   barcodeValue: z.string().nullish(),

@@ -4,11 +4,13 @@
   "packageManager": "pnpm@10.20.0",
   "scripts": {
     "dev": "pnpm --filter @loal/landing dev",
+    "test:integration-ui": "node --import tsx --test packages/api/test/*.test.mjs",
     "dev:partner": "pnpm --filter @loal/partner dev",
     "dev:client": "pnpm --filter @loal/client dev",
     "build": "pnpm -r --filter './apps/*' build",
     "typecheck": "pnpm -r typecheck",
-    "dev:admin": "pnpm --filter @loal/admin dev"
+    "dev:admin": "pnpm --filter @loal/admin dev",
+    "dev:cashier": "pnpm --filter @loal/cashier dev"
   },
   "devDependencies": {
     "tsx": "^4.23.15"

@@ -1,10 +1,12 @@
-import { cardsApi, meApi, type BuyMonthsInput, type PaySubscriptionByPhoneInput } from "@loal/api";
+import { cardsApi, meApi, promoApi, subscriptionApi, type PaySubscriptionByPhoneInput, type RedeemPromoInput } from "@loal/api";
 import { useApi } from "@loal/app-kit";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const meKeys = {
   card: ["me", "card"] as const,
   history: (page: number) => ["me", "history", page] as const,
+  offer: ["me", "subscription", "offer"] as const,
+  payment: (id: string) => ["me", "subscription", "payment", id] as const,
 };
 
 /** 404 значит «карты ещё нет» — это состояние экрана, а не ошибка. */
@@ -22,10 +24,64 @@ export function useMyHistory(page: number) {
   });
 }
 
-/** Оплата подписки по уже выпущенной карте. */
-export function usePaySubscription(serial: string) {
+/** Предложение подписки v2: цена, срок и баланс цикла — с сервера. Без карты — 404. */
+/**
+ * Цена подписки без входа. Старый шлюз этой ручки не знает — тогда показываем цену из
+ * настроек кабинета (SUBSCRIPTION_PRICE_KGS), и только для показа.
+ */
+export function usePublicOffer() {
   const api = useApi();
-  return useMutation({ mutationFn: (input: BuyMonthsInput) => cardsApi(api).paySubscription(serial, input) });
+  return useQuery({
+    queryKey: ["subscription", "public-offer"],
+    queryFn: () => subscriptionApi(api).publicOffer(),
+    retry: false,
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useSubscriptionOffer(enabled = true) {
+  const api = useApi();
+  return useQuery({ queryKey: meKeys.offer, queryFn: () => meApi(api).subscriptionOffer(), enabled, retry: false });
+}
+
+/**
+ * Запасной путь, пока на сервере нет подписки v2: старая оплата по номеру карты на один
+ * период. Убрать, когда бэкенд с /v1/me/subscription/* будет на проде.
+ */
+export function useLegacyRenewal(serial: string) {
+  const api = useApi();
+  return useMutation({ mutationFn: () => cardsApi(api).paySubscription(serial, { months: 1 }) });
+}
+
+/** Счёт на подписку по planId из offer; повтор до оплаты вернёт тот же счёт. */
+export function usePayForSubscription() {
+  const api = useApi();
+  return useMutation({ mutationFn: (planId: string) => meApi(api).paySubscription(planId) });
+}
+
+/**
+ * Статус платежа после возврата с OctōPAY. Опрашиваем, пока он не оплачен и не применён
+ * (paid + fulfilled) или не отменён; потом перечитываем карту — на ней новый цикл.
+ */
+export function useSubscriptionPayment(paymentId: string | null) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: meKeys.payment(paymentId ?? ""),
+    queryFn: async () => {
+      const payment = await meApi(api).subscriptionPayment(paymentId!);
+      if (payment.status === "paid" && payment.fulfilled)
+        await queryClient.invalidateQueries({ queryKey: meKeys.card });
+      return payment;
+    },
+    enabled: Boolean(paymentId),
+    retry: false,
+    refetchInterval: (query) => {
+      const payment = query.state.data;
+      if (!payment) return query.state.error ? false : 2500;
+      return (payment.status === "paid" && payment.fulfilled) || payment.status === "cancelled" ? false : 2500;
+    },
+  });
 }
 
 /**
@@ -36,5 +92,15 @@ export function usePaySubscriptionByPhone() {
   const api = useApi();
   return useMutation({
     mutationFn: (input: PaySubscriptionByPhoneInput) => cardsApi(api).paySubscriptionByPhone(input),
+  });
+}
+
+/** Промокод на месяцы подписки: после успеха карта перечитывается — подписка на ней уже с ними. */
+export function useRedeemPromo() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RedeemPromoInput) => promoApi(api).redeemForMe(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: meKeys.card }),
   });
 }

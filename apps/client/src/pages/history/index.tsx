@@ -16,8 +16,8 @@ export function HistoryPage() {
   const lastPage = Math.max(1, Math.ceil(total / (history.data?.pageSize ?? 20)));
 
   return (
-    <section className="flex flex-col gap-5">
-      <h1 className="display text-[2rem]">История</h1>
+    <section className="flex flex-col gap-5 lg:max-w-[760px]">
+      <h1 className="display text-[2rem] lg:text-[2.5rem]">История</h1>
 
       {history.isPending && <Loading rows={4} />}
       {history.isError && <ErrorState error={history.error} onRetry={() => history.refetch()} />}

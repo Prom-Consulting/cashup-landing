@@ -1,6 +1,7 @@
-import { CoverageLimitForm, StorefrontForm, useMerchantProfile } from "@loal/app-kit";
+import { CoverageLimitForm, StorefrontForm, refreshPublicCatalog, useMerchantProfile } from "@loal/app-kit";
 import { Card, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { useCurrentMerchant } from "../../entities/session/model";
+import { SITE_URL } from "../../shared/config/env";
 
 /** Витрина: то, что клиент видит о заведении в каталоге до того, как зайдёт. */
 export function StorefrontPage() {
@@ -20,7 +21,11 @@ export function StorefrontPage() {
       {profile.isSuccess && (
         <Card>
           {canManage ? (
-            <StorefrontForm merchantId={merchantId!} profile={profile.data} />
+            <StorefrontForm
+              merchantId={merchantId!}
+              profile={profile.data}
+              onSaved={() => refreshPublicCatalog(SITE_URL)}
+            />
           ) : (
             <>
               <p className="text-lg">

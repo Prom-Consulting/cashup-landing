@@ -46,3 +46,8 @@ next-env.d.ts
 # IDE
 .idea/
 .vscode/
+
+# Ключи Apple и сертификаты — никогда в репозиторий
+*.p8
+*.p12
+*.pem

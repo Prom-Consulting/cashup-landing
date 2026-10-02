@@ -19,7 +19,7 @@ import {
 } from "@loal/ui/shadcn";
 import { useState, type ReactNode } from "react";
 import { useProgramMembers, usePrograms } from "../../entities/platform/api";
-import { MechanicAccess, BonusItemForm } from "../../features/program/partner-access";
+import { BonusItemForm } from "../../features/program/partner-access";
 import { AppleRelevanceForm, GoogleMessageForm } from "../../features/program/program-messages";
 import { CreateProgramForm, EditProgramForm } from "../../features/program/program-form";
 import { TierList } from "../../features/program/tier-list";
@@ -27,7 +27,12 @@ import { TierList } from "../../features/program/tier-list";
 const money = new Intl.NumberFormat("ru-RU");
 const date = new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium" });
 
-const CARD_STATUS: Record<string, string> = { active: "действует", suspended: "приостановлена", revoked: "отозвана" };
+const CARD_STATUS: Record<string, string> = {
+  active: "действует",
+  frozen: "заморожена",
+  suspended: "приостановлена",
+  revoked: "отозвана",
+};
 
 function Members({ programId }: { programId: string }) {
   const members = useProgramMembers(programId);
@@ -77,16 +82,16 @@ function Members({ programId }: { programId: string }) {
           <TableBody>
             {rows.slice(0, 200).map((member) => (
               <TableRow key={member.card_id}>
-                <TableCell>{[member.first_name, member.last_name].filter(Boolean).join(" ") || "—"}</TableCell>
-                <TableCell className="tabular-nums">{member.phone ?? "—"}</TableCell>
-                <TableCell>
+                <TableCell primary>{[member.first_name, member.last_name].filter(Boolean).join(" ") || "—"}</TableCell>
+                <TableCell label="Телефон" className="tabular-nums">{member.phone ?? "—"}</TableCell>
+                <TableCell label="Карта">
                   <span className="tabular-nums">{member.serial_number}</span>{" "}
                   <Badge tone={member.status === "active" ? "good" : "quiet"}>
                     {CARD_STATUS[member.status] ?? member.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right tabular-nums">{money.format(member.points_balance ?? 0)}</TableCell>
-                <TableCell>{member.created_at ? date.format(new Date(member.created_at)) : "—"}</TableCell>
+                <TableCell label="Баланс" className="text-right tabular-nums">{money.format(member.points_balance ?? 0)}</TableCell>
+                <TableCell label="Выдана">{member.created_at ? date.format(new Date(member.created_at)) : "—"}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -140,7 +145,7 @@ function ProgramCard({ program, open, onToggle }: { program: Program; open: bool
             <TabsTrigger value="tiers">Уровни</TabsTrigger>
             <TabsTrigger value="members">Держатели</TabsTrigger>
             <TabsTrigger value="messages">Сообщения</TabsTrigger>
-            <TabsTrigger value="partners">Партнёрам</TabsTrigger>
+            <TabsTrigger value="partners">Бонусный товар</TabsTrigger>
           </TabsList>
           <TabsContent value="settings" className="mt-5">
             <EditProgramForm program={program} />
@@ -166,12 +171,6 @@ function ProgramCard({ program, open, onToggle }: { program: Program; open: bool
             </Block>
           </TabsContent>
           <TabsContent value="partners" className="mt-5 flex flex-col gap-8">
-            <Block
-              title="Что можно партнёрам"
-              description="Закрытая механика недоступна всем партнёрам и их сотрудникам в этой программе."
-            >
-              <MechanicAccess program={program} />
-            </Block>
             <Block title="Бонусный товар">
               <BonusItemForm program={program} />
             </Block>

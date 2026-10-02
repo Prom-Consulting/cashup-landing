@@ -26,6 +26,8 @@ import {
   googleMessageInputSchema,
   issueCardByPhoneInputSchema,
   platformSettingsInputSchema,
+  platformPricesInputSchema,
+  type PlatformPricesInput,
   platformSettingsSchema,
   programMemberSchema,
   programSchema,
@@ -82,7 +84,10 @@ export const platformApi = (api: ApiClient) => ({
   createCustomer: (input: CreateCustomerInput) =>
     api.request(customerSchema, "/admin/v1/customers", {
       method: "POST",
-      body: createCustomerInputSchema.parse(input),
+      // Пустые поля не шлём: пустой телефон сервер не примет (ждёт номер с кодом страны)
+      body: Object.fromEntries(
+        Object.entries(createCustomerInputSchema.parse(input)).filter(([, value]) => value !== "" && value != null),
+      ),
     }),
 
   /** Архивация необратима: карты клиента отзываются тем же запросом. */
@@ -242,7 +247,7 @@ export const platformApi = (api: ApiClient) => ({
   deleteProgram: (programId: string) =>
     api.request(anything, `/admin/v1/loyalty-programs/${programId}`, { method: "DELETE" }),
 
-  /** Бонусный товар шлётся целиком: сервер заменяет все пять полей разом. */
+  /** Бонусный товар шлётся целиком: сервер заменяет все четыре поля разом. */
   updateBonusItem: (programId: string, input: BonusItemInput) => {
     const parsed = bonusItemInputSchema.parse(input);
     return api.request(programSchema, `/admin/v1/loyalty-programs/${programId}/bonus-item`, {
@@ -255,16 +260,9 @@ export const platformApi = (api: ApiClient) => ({
           .split("\n")
           .map((option) => option.trim())
           .filter(Boolean),
-        bonusItemPartnerAccess: parsed.bonusItemPartnerAccess,
       },
     });
   },
-
-  updateMechanicAccess: (programId: string, mechanicPartnerAccess: Record<string, boolean>) =>
-    api.request(programSchema, `/admin/v1/loyalty-programs/${programId}/mechanic-access`, {
-      method: "PATCH",
-      body: { mechanicPartnerAccess },
-    }),
 
   /** Кто держит карту программы. */
   programMembers: (programId: string) =>
@@ -359,6 +357,13 @@ export const platformApi = (api: ApiClient) => ({
     api.request(platformSettingsSchema, "/admin/v1/platform-settings", {
       method: "PATCH",
       body: platformSettingsInputSchema.parse(input),
+    }),
+
+  /** PATCH принимает любое подмножество полей — цены шлём отдельно от текста сноски. */
+  savePlatformPrices: (input: PlatformPricesInput) =>
+    api.request(platformSettingsSchema, "/admin/v1/platform-settings", {
+      method: "PATCH",
+      body: platformPricesInputSchema.parse(input),
     }),
 
   auditLogs: () => api.request(z.array(auditLogSchema), "/admin/v1/audit-logs"),

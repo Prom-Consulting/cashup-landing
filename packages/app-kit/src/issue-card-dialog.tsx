@@ -2,6 +2,7 @@ import { ApiError, createCustomerInputSchema, type CreateCustomerInput } from "@
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Badge, Button, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, Input, Label } from "@loal/ui/shadcn";
 import { CreditCardIcon, UserAdd01Icon } from "@hugeicons/core-free-icons";
+import { PhoneInput } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
 import { useId, useState } from "react";
 import { CardLink } from "./card-link";
@@ -47,7 +48,7 @@ export function IssueCardDialog({ cardUrl }: { cardUrl?: (serial: string) => str
 
       <DialogContent
         title="Выпуск карты"
-        description="Заведите гостя — карта появится у него в Apple Wallet по ссылке."
+        description="Заведите гостя — карта появится у него в Apple Wallet или Google Wallet по ссылке."
       >
         {issued ? (
           <div className="flex flex-col gap-4">
@@ -64,7 +65,7 @@ export function IssueCardDialog({ cardUrl }: { cardUrl?: (serial: string) => str
               </>
             ) : (
               <p className="text-base text-muted-foreground">
-                Отправьте гостю ссылку на карту — по ней он добавит её в Apple Wallet.
+                Отправьте гостю ссылку на карту — по ней он добавит её в Apple Wallet или Google Wallet.
               </p>
             )}
             <div className="flex flex-wrap gap-3">
@@ -103,10 +104,13 @@ export function IssueCardDialog({ cardUrl }: { cardUrl?: (serial: string) => str
                 });
                 helpers.resetForm();
               } catch (error) {
+                // Один телефон — один клиент: занятый номер показываем у поля
+                if (error instanceof ApiError && error.isConflict)
+                  return helpers.setFieldError("phone", error.message || "Клиент с таким телефоном уже есть");
                 applyServerIssues(
                   error,
                   helpers,
-                  error instanceof ApiError && error.status === 400
+                  error instanceof ApiError && error.status === 400 && error.issues.length === 0
                     ? "Карту выпустить не удалось: проверьте, что у платформы есть опубликованный шаблон и программа."
                     : undefined,
                 );
@@ -147,15 +151,19 @@ export function IssueCardDialog({ cardUrl }: { cardUrl?: (serial: string) => str
                   </div>
                   <div>
                     <Label htmlFor="phone">Телефон</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      inputMode="tel"
-                      className="mt-2"
-                      value={form.values.phone ?? ""}
-                      onChange={form.handleChange}
-                      onBlur={form.handleBlur}
-                    />
+                    <div className="mt-2">
+                      <PhoneInput
+                        id="phone"
+                        name="phone"
+                        value={form.values.phone ?? ""}
+                        onValueChange={(value) => form.setFieldValue("phone", value)}
+                        onBlur={() => form.setFieldTouched("phone", true)}
+                        invalid={Boolean(fieldError(form, "phone"))}
+                      />
+                    </div>
+                    {fieldError(form, "phone") && (
+                      <p className="mt-2 text-base text-destructive">{fieldError(form, "phone")}</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="email">Почта</Label>

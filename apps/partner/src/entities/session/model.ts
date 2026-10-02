@@ -1,10 +1,14 @@
+import { isBranchAdmin, isMerchantOwner, membershipBranchIds } from "@loal/api";
 import { useSession } from "@loal/app-kit";
-import { createContext, createElement, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, createElement, use, useCallback, useMemo, useState, type ReactNode } from "react";
 
 const MERCHANT_KEY = "loal.partner.merchant";
 
-/** Роли, которым открыт кабинет заведения. */
-const CABINET_ROLES = ["admin", "staff", "partner", "partner_employee"];
+/**
+ * Роли в кабинете магазина: владелец (admin) и администратор филиала (branch_admin). Кассира
+ * (staff) пускаем только затем, чтобы отправить в его кабинет — cashier.loal.kg.
+ */
+const CABINET_ROLES = ["admin", "branch_admin", "staff"];
 
 /**
  * Кабинет всегда работает в контексте одного заведения. Человек может работать
@@ -45,8 +49,18 @@ function useCurrentMerchantValue() {
       memberships,
       membership,
       merchantId: membership?.merchantId ?? null,
-      /** Витрину и оплату меняет владелец или партнёр, сотрудник только смотрит. */
-      canManage: membership?.role === "admin" || membership?.role === "partner",
+      role: membership?.role ?? null,
+      /**
+       * Управляет магазином только владелец (admin): команда, оплата, 1С, вебхуки, журнал,
+       * правка витрины, потолка и кассы. Остальным сервер ответит 403 — не показываем.
+       */
+      canManage: isMerchantOwner(membership?.role),
+      /** Администратор филиала: свои кассиры, журнал и продажи своего филиала, счета клиентам. */
+      isBranchAdmin: isBranchAdmin(membership?.role),
+      /** Команда и журнал: владелец — весь магазин, администратор филиала — свой филиал. */
+      canRunBranch: isMerchantOwner(membership?.role) || isBranchAdmin(membership?.role),
+      /** Филиалы администратора филиалов (у владельца пусто — ему открыт весь магазин). */
+      branchIds: membership ? membershipBranchIds(membership) : [],
       label: session?.email ?? "",
       selectMerchant,
     }),
@@ -65,7 +79,7 @@ export function CurrentMerchantProvider({ children }: { children: ReactNode }) {
 }
 
 export function useCurrentMerchant() {
-  const value = useContext(CurrentMerchantContext);
+  const value = use(CurrentMerchantContext);
   if (!value) throw new Error("useCurrentMerchant должен использоваться внутри CurrentMerchantProvider");
   return value;
 }

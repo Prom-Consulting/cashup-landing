@@ -8,14 +8,9 @@ export function isSuperAdmin(session: Session | null): boolean {
   return session?.role === "super_admin";
 }
 
-/** Членство партнёра — по нему кабинет знает свой memberId и merchantId. */
-export function partnerMembership(session: Session | null): Membership | null {
-  return session?.merchants.find((m) => m.role === "partner" || m.role === "partner_employee") ?? null;
-}
-
-/** Членства владельца или сотрудника заведения. */
+/** Членства в магазинах с известной ролью: владелец, администратор филиала, кассир. */
 export function staffMemberships(session: Session | null): Membership[] {
-  return session?.merchants.filter((m) => m.role === "admin" || m.role === "staff") ?? [];
+  return session?.merchants.filter((m) => ["admin", "branch_admin", "staff"].includes(m.role)) ?? [];
 }
 
 function Centered({ children }: { children: ReactNode }) {

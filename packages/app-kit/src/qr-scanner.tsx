@@ -1,0 +1,252 @@
+import { CameraRotated01Icon, QrCode01Icon } from "@hugeicons/core-free-icons";
+import { Button, Dialog, DialogContent, Icon } from "@loal/ui/shadcn";
+import jsQR from "jsqr";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+
+type Detector = { detect: (source: CanvasImageSource) => Promise<{ rawValue: string }[]> };
+declare global {
+  interface Window {
+    BarcodeDetector?: new (options: { formats: string[] }) => Detector;
+  }
+}
+
+/** В QR карты — номер карты. Если в коде ссылка на карту, берём номер из её конца. */
+function cardNumberFrom(text: string) {
+  const value = text.trim();
+  if (!/^https?:\/\//i.test(value)) return value;
+  try {
+    const parts = new URL(value).pathname.split("/").filter(Boolean);
+    return decodeURIComponent(parts[parts.length - 1] ?? value);
+  } catch {
+    return value;
+  }
+}
+
+function cameraErrorText(error: unknown) {
+  const name = (error as { name?: string })?.name;
+  if (name === "NotAllowedError" || name === "SecurityError")
+    return "Нет доступа к камере. Разрешите его для этого сайта в настройках браузера и попробуйте снова.";
+  if (name === "NotFoundError" || name === "OverconstrainedError")
+    return "Камера не найдена. Введите номер карты вручную — он написан под QR-кодом.";
+  if (name === "NotReadableError") return "Камера занята другим приложением. Закройте его и попробуйте снова.";
+  return "Не удалось включить камеру. Введите номер карты вручную.";
+}
+
+/** Выбранная камера живёт на устройстве: касса открывает сканер десятки раз за смену. */
+const CAMERA_KEY = "loal.qr.camera";
+function savedCamera() {
+  try {
+    return localStorage.getItem(CAMERA_KEY);
+  } catch {
+    return null;
+  }
+}
+function saveCamera(deviceId: string) {
+  try {
+    localStorage.setItem(CAMERA_KEY, deviceId);
+  } catch {
+    // Без памяти — в следующий раз откроется задняя камера
+  }
+}
+
+/**
+ * Камера читает QR с карты клиента — в Wallet или в его кабинете. Встроенный
+ * распознаватель браузера (Chrome, Android), а где его нет, как в Safari, — jsQR.
+ */
+function Scanner({ onResult }: { onResult: (text: string) => void }) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  // null — пусть браузер возьмёт заднюю камеру; иначе — конкретная, выбранная кнопкой
+  const [deviceId, setDeviceId] = useState<string | null>(savedCamera);
+  // Каждое нажатие «Сменить камеру» перезапускает поток, даже если выбор совпал с прежним
+  const [turn, setTurn] = useState(0);
+  const [cameras, setCameras] = useState<string[]>([]);
+  const [current, setCurrent] = useState<string | null>(null);
+  // Фронтальную камеру показываем зеркально, как в обычной камере телефона; распознаванию это не мешает
+  const [mirrored, setMirrored] = useState(false);
+  const done = useRef(onResult);
+  done.current = onResult;
+
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    let frame = 0;
+    let stopped = false;
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    const detector = window.BarcodeDetector ? new window.BarcodeDetector({ formats: ["qr_code"] }) : null;
+
+    const read = async (): Promise<string | null> => {
+      const element = video.current;
+      if (!element || element.readyState < 2) return null;
+      if (detector) {
+        const [code] = await detector.detect(element);
+        return code?.rawValue ?? null;
+      }
+      if (!context) return null;
+      // Уменьшаем кадр: jsQR быстрее, а QR на экране телефона крупный
+      const scale = Math.min(1, 640 / element.videoWidth);
+      canvas.width = Math.round(element.videoWidth * scale);
+      canvas.height = Math.round(element.videoHeight * scale);
+      context.drawImage(element, 0, 0, canvas.width, canvas.height);
+      const image = context.getImageData(0, 0, canvas.width, canvas.height);
+      return jsQR(image.data, image.width, image.height, { inversionAttempts: "attemptBoth" })?.data ?? null;
+    };
+
+    const loop = async () => {
+      if (stopped) return;
+      try {
+        const text = await read();
+        if (text && !stopped) {
+          stopped = true;
+          navigator.vibrate?.(60);
+          return done.current(text);
+        }
+      } catch {
+        // Кадр не прочитался — пробуем следующий
+      }
+      frame = requestAnimationFrame(loop);
+    };
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("Этот браузер не даёт доступа к камере. Откройте кабинет в Chrome или Safari по https.");
+      return;
+    }
+    const open = (exact: string | null) =>
+      navigator.mediaDevices.getUserMedia({
+        video: exact ? { deviceId: { exact } } : { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+    open(deviceId)
+      // Запомненной камеры больше нет (отключили вебкамеру) — берём заднюю
+      .catch((cause) => {
+        if (!deviceId || (cause as { name?: string })?.name !== "OverconstrainedError") throw cause;
+        return open(null);
+      })
+      .then(async (media) => {
+        if (stopped) return media.getTracks().forEach((track) => track.stop());
+        stream = media;
+        const settings = media.getVideoTracks()[0]?.getSettings();
+        setCurrent(settings?.deviceId ?? null);
+        setMirrored(settings?.facingMode === "user" || (!settings?.facingMode && !/Android|iPhone|iPad/i.test(navigator.userAgent)));
+        // Названия и список камер браузер открывает только после разрешения
+        navigator.mediaDevices
+          .enumerateDevices()
+          .then((devices) => !stopped && setCameras(devices.filter((item) => item.kind === "videoinput" && item.deviceId).map((item) => item.deviceId)))
+          .catch(() => undefined);
+        if (!video.current) return;
+        video.current.srcObject = media;
+        await video.current.play().catch(() => undefined);
+        frame = requestAnimationFrame(loop);
+      })
+      .catch((cause) => setError(cameraErrorText(cause)));
+
+    return () => {
+      stopped = true;
+      cancelAnimationFrame(frame);
+      stream?.getTracks().forEach((track) => track.stop());
+    };
+  }, [deviceId, turn]);
+
+  const switchCamera = () => {
+    const index = current ? cameras.indexOf(current) : -1;
+    const next = cameras[(index + 1) % cameras.length];
+    if (!next) return;
+    saveCamera(next);
+    setDeviceId(next);
+    setTurn((value) => value + 1);
+  };
+
+  if (error)
+    return (
+      <p role="alert" className="rounded-2xl bg-muted p-4 text-base">
+        {error}
+      </p>
+    );
+
+  return (
+    <div className="relative mx-auto aspect-square w-full max-w-[420px] overflow-hidden rounded-[24px] bg-graphite">
+      <video ref={video} playsInline muted className={`h-full w-full object-cover ${mirrored ? "-scale-x-100" : ""}`} />
+      {/* Рамка прицела: куда поднести QR */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-[18%] rounded-[20px] border-4 border-white/90 shadow-[0_0_0_999px_rgb(22_21_21/0.45)]"
+      />
+      <p className="absolute inset-x-0 bottom-4 px-4 text-center text-base font-medium text-white">
+        Наведите на QR-код карты клиента
+      </p>
+      {cameras.length > 1 && (
+        <button
+          type="button"
+          onClick={switchCamera}
+          aria-label="Сменить камеру"
+          title="Сменить камеру"
+          className="absolute top-3 right-3 grid h-12 w-12 place-items-center rounded-full bg-graphite/60 text-xl text-white backdrop-blur-md transition active:scale-90 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          <Icon icon={CameraRotated01Icon} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Кнопка «Сканировать QR»: камера открывается в окне, номер карты уходит в поле. */
+/**
+ * Кнопка «Сканировать» с камерой в окне. className и children — чтобы касса могла сделать
+ * её главной, во всю ширину; по умолчанию — обычная обводная кнопка.
+ */
+export function QrScanButton({
+  onScan,
+  className,
+  children,
+}: {
+  onScan: (cardNumber: string) => void;
+  className?: string;
+  children?: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const scanned = useRef(false);
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        if (value) scanned.current = false;
+        setOpen(value);
+      }}
+    >
+      <Button
+        type="button"
+        variant={className ? "primary" : "outline"}
+        className={className ?? "h-auto shrink-0"}
+        onClick={() => {
+          scanned.current = false;
+          setOpen(true);
+        }}
+      >
+        {children ?? (
+          <>
+            <Icon icon={QrCode01Icon} />
+            Сканировать QR
+          </>
+        )}
+      </Button>
+      <DialogContent
+        title="Сканировать карту"
+        description="Камера закроется сама, как только прочитает код."
+        // После сканирования фокус ставит форма (в «Товар»), а не возвращается на кнопку
+        onCloseAutoFocus={(event) => scanned.current && event.preventDefault()}
+      >
+        {open && (
+          <div className="mt-5">
+            <Scanner
+              onResult={(text) => {
+                scanned.current = true;
+                setOpen(false);
+                onScan(cardNumberFrom(text));
+              }}
+            />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

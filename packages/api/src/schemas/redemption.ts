@@ -5,7 +5,13 @@ import { z } from "zod";
  * баллы; сколько это в баллах, считает сервер: по позиции цена × процент / 100, вниз.
  */
 export const purchasedItemInputSchema = z.object({
-  productName: z.string().trim().min(1, "Что купили").max(200, "Не длиннее 200 символов"),
+  /** Необязательно: пусто или нет поля — «Покупка» (так же нормализует сервер). */
+  productName: z
+    .string()
+    .trim()
+    .max(200, "Не длиннее 200 символов")
+    .optional()
+    .transform((value) => value || "Покупка"),
   price: z.coerce.number({ error: "Введите цену" }).positive("Цена больше нуля"),
   deductionPercent: z.coerce
     .number({ error: "Введите процент" })
@@ -35,6 +41,8 @@ export function redemptionInputSchema(maxPercent: number) {
       .min(1, "Добавьте хотя бы одну позицию")
       .max(50, "Не больше 50 позиций"),
     merchantId: z.string().optional(),
+    /** Филиал операции: обязателен, если у человека их несколько (`400 BRANCH_REQUIRED`). */
+    branchId: z.string().optional(),
   });
 }
 

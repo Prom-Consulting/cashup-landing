@@ -1,7 +1,14 @@
-import { ApiError, merchantProfileFormSchema, type MerchantProfile, type MerchantProfileForm } from "@loal/api";
+import {
+  ApiError,
+  PARTNER_CATEGORIES,
+  coordsFrom2gis,
+  merchantProfileFormSchema,
+  type MerchantProfile,
+  type MerchantProfileForm,
+} from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Delete02Icon, ImageAdd01Icon } from "@hugeicons/core-free-icons";
-import { Button, Icon, Input, Label, Textarea } from "@loal/ui/shadcn";
+import { Button, Icon, Input, Label, NativeSelect, Textarea } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useRef, useState } from "react";
 import { merchantCabinetApi } from "@loal/api";
@@ -40,6 +47,23 @@ function useUploadAsset(merchantId: string) {
 
 const MAX_PHOTOS = 10;
 
+/** Тот же список, что на лендинге. Старую свою категорию заведения не теряем — она остаётся в списке. */
+function categoryOptions(current: string | null) {
+  const options = PARTNER_CATEGORIES.map((category) => ({ value: category.label, label: category.label }));
+  return current && !options.some((option) => option.value === current)
+    ? [{ value: current, label: current }, ...options]
+    : options;
+}
+
+/**
+ * Точка на карте каталога — из ссылки 2ГИС. Ссылку убрали — убираем и точку; в ссылке
+ * координат нет — не шлём их вовсе, и сервер оставит прежние.
+ */
+function geoOf(twogisUrl: string): { lat: number | null; lng: number | null } | Record<string, never> {
+  if (twogisUrl.trim() === "") return { lat: null, lng: null };
+  return coordsFrom2gis(twogisUrl) ?? {};
+}
+
 /** Пустая строка в поле — это «очистить», а бэкенд ждёт для этого null. */
 const orNull = (value: string) => (value.trim() === "" ? null : value.trim());
 
@@ -47,7 +71,25 @@ const orNull = (value: string) => (value.trim() === "" ? null : value.trim());
  * Витрина заведения: то, что клиент видит в каталоге. Картинки грузятся отдельно
  * и до сохранения, а сам профиль уходит целиком — бэкенд заменяет его одним PUT.
  */
-export function StorefrontForm({ merchantId, profile }: { merchantId: string; profile: MerchantProfile }) {
+/**
+ * Каталог на лендинге кэшируется. После сохранения витрины просим его перечитать данные —
+ * новое фото или точка на карте видны сразу. Не получилось — не беда: он обновится сам за минуту.
+ */
+export function refreshPublicCatalog(siteUrl: string) {
+  void fetch(`${siteUrl.replace(/\/$/, "")}/api/revalidate-partners`, { method: "POST", mode: "no-cors" }).catch(
+    () => undefined,
+  );
+}
+
+export function StorefrontForm({
+  merchantId,
+  profile,
+  onSaved,
+}: {
+  merchantId: string;
+  profile: MerchantProfile;
+  onSaved?: () => void;
+}) {
   const save = useSaveProfile(merchantId);
   const upload = useUploadAsset(merchantId);
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl);
@@ -61,6 +103,7 @@ export function StorefrontForm({ merchantId, profile }: { merchantId: string; pr
     description: profile.description ?? "",
     instagramUrl: profile.instagramUrl ?? "",
     twogisUrl: profile.twogisUrl ?? "",
+    address: profile.address ?? "",
   };
 
   const pick = async (slot: "merchantLogo" | "merchantPhoto", file: File | undefined) => {
@@ -91,8 +134,11 @@ export function StorefrontForm({ merchantId, profile }: { merchantId: string; pr
             photos,
             instagramUrl: orNull(values.instagramUrl),
             twogisUrl: orNull(values.twogisUrl),
+            address: orNull(values.address),
+            ...geoOf(values.twogisUrl),
           });
           helpers.setStatus("Витрина сохранена");
+          onSaved?.();
         } catch (error) {
           applyServerIssues(error, helpers);
         } finally {
@@ -106,15 +152,16 @@ export function StorefrontForm({ merchantId, profile }: { merchantId: string; pr
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <Label htmlFor="category">Категория</Label>
-              <Input
+              <NativeSelect
                 id="category"
                 name="category"
-                placeholder="Кофейня"
                 className="mt-2"
+                placeholder="Не выбрана"
                 value={form.values.category}
                 onChange={form.handleChange}
                 onBlur={form.handleBlur}
                 invalid={Boolean(fieldError(form, "category"))}
+                options={categoryOptions(profile.category)}
               />
               {fieldError(form, "category") && (
                 <p className="mt-2 text-base text-destructive">{fieldError(form, "category")}</p>
@@ -156,6 +203,24 @@ export function StorefrontForm({ merchantId, profile }: { merchantId: string; pr
             </div>
 
             <div>
+              <Label htmlFor="address">Адрес</Label>
+              <Input
+                id="address"
+                name="address"
+                placeholder="Бишкек, ул. Киевская, 95"
+                autoComplete="street-address"
+                className="mt-2"
+                value={form.values.address}
+                onChange={form.handleChange}
+                onBlur={form.handleBlur}
+                invalid={Boolean(fieldError(form, "address"))}
+              />
+              {fieldError(form, "address") && (
+                <p className="mt-2 text-base text-destructive">{fieldError(form, "address")}</p>
+              )}
+            </div>
+
+            <div>
               <Label htmlFor="twogisUrl">Карточка в 2ГИС</Label>
               <Input
                 id="twogisUrl"
@@ -167,8 +232,14 @@ export function StorefrontForm({ merchantId, profile }: { merchantId: string; pr
                 onBlur={form.handleBlur}
                 invalid={Boolean(fieldError(form, "twogisUrl"))}
               />
-              {fieldError(form, "twogisUrl") && (
+              {fieldError(form, "twogisUrl") ? (
                 <p className="mt-2 text-base text-destructive">{fieldError(form, "twogisUrl")}</p>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {form.values.twogisUrl.trim() && !coordsFrom2gis(form.values.twogisUrl)
+                    ? "В этой ссылке нет координат — точки на карте не будет. В 2ГИС нажмите «Поделиться» и скопируйте ссылку оттуда."
+                    : "По ней заведение появится точкой на карте каталога."}
+                </p>
               )}
             </div>
           </div>

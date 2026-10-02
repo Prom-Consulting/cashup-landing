@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { phoneSchema } from "./auth";
+import { cycleFields } from "./billing";
 
 /**
  * Кабинет держателя карты. Идентификатора в адресе нет: сервер читает человека
@@ -20,13 +22,50 @@ export const myCardSchema = z.looseObject({
       periodsTotal: z.number().nullish(),
       periodsGranted: z.number().nullish(),
       currentPeriodEnd: z.string().nullish(),
+      ...cycleFields,
     })
     .nullish(),
 });
 export type MyCard = z.infer<typeof myCardSchema>;
 
+/**
+ * Цена подписки для всех, без входа (`GET /v1/public/subscription/offer`): цена в сомах,
+ * длина цикла в сутках, баланс цикла. Берётся из настроек платформы.
+ */
+export const publicSubscriptionOfferSchema = z.looseObject({
+  planId: z.string(),
+  price: z.number(),
+  currency: z.string(),
+  cycleDays: z.number(),
+  cycleBalance: z.number(),
+});
+export type PublicSubscriptionOffer = z.infer<typeof publicSubscriptionOfferSchema>;
+
+/**
+ * Предложение подписки v2 для вошедшего — всё из настроек сервера, ничего не хардкодим.
+ * intent: initial — первая (сервер сам выпустит карту при оплате), renewal — продление.
+ */
+export const subscriptionOfferSchema = publicSubscriptionOfferSchema.extend({
+  intent: z.string(),
+  available: z.boolean(),
+  unavailableReason: z.string().nullish(),
+});
+export type SubscriptionOffer = z.infer<typeof subscriptionOfferSchema>;
+
+/** Платёж подписки. Готово только при status: "paid" и fulfilled: true. */
+export const subscriptionPaymentSchema = z.looseObject({
+  id: z.string(),
+  amount: z.number().nullish(),
+  currency: z.string().nullish(),
+  paymentUrl: z.string().nullish(),
+  status: z.string(),
+  fulfilled: z.boolean().nullish(),
+  createdAt: z.string().nullish(),
+});
+export type SubscriptionPayment = z.infer<typeof subscriptionPaymentSchema>;
+
 /** Что было с баллами: трата, выдача подписки, приветственные при выдаче карты, сгорание. */
-export const historyKindSchema = z.enum(["spend", "grant", "welcome", "burn", "other"]);
+export const historyKindSchema = z.enum(["spend", "grant", "welcome", "burn", "referral", "other"]);
 export type HistoryKind = z.infer<typeof historyKindSchema>;
 
 export const HISTORY_KIND_LABELS: Record<HistoryKind, string> = {
@@ -34,6 +73,7 @@ export const HISTORY_KIND_LABELS: Record<HistoryKind, string> = {
   grant: "Начислено по подписке",
   welcome: "Приветственные баллы",
   burn: "Сгорело",
+  referral: "За приглашение",
   other: "Изменение",
 };
 
@@ -63,12 +103,30 @@ export type HistoryPage = z.infer<typeof historyPageSchema>;
 
 /** Оплата подписки человеком, у которого карты ещё нет: карта заводится по телефону. */
 export const paySubscriptionByPhoneInputSchema = z.object({
-  phone: z
-    .string()
-    .trim()
-    .transform((value) => value.replace(/\D/g, ""))
-    .refine((digits) => digits.length >= 9, "Введите номер телефона"),
+  phone: phoneSchema,
   firstName: z.string().trim().min(1, "Как вас зовут?"),
   months: z.coerce.number().int().min(1).max(24),
 });
 export type PaySubscriptionByPhoneInput = z.infer<typeof paySubscriptionByPhoneInputSchema>;
+
+/**
+ * REF-01, кабинет реферера. Приглашённые обезличены: ни телефонов, ни имён. 404 — программу
+ * ещё не подключали. referralUrl ведёт на loal.kg/ref/{code}, лендинг переводит в кабинет клиента.
+ */
+export const referralDashboardSchema = z.looseObject({
+  code: z.string(),
+  referralUrl: z.string(),
+  stats: z.looseObject({ visits: z.number(), registrations: z.number(), paid: z.number(), pointsEarned: z.number() }),
+  referrals: z
+    .array(
+      z.looseObject({
+        id: z.string(),
+        registeredAt: z.string().nullish(),
+        paid: z.boolean(),
+        rewardedAt: z.string().nullish(),
+        points: z.number().nullish(),
+      }),
+    )
+    .default([]),
+});
+export type ReferralDashboard = z.infer<typeof referralDashboardSchema>;

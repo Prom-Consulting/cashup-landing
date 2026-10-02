@@ -39,11 +39,13 @@ export function RegisterForm({ onDone }: { onDone?: () => void }) {
           if (!codeSent) {
             await requestOtp.mutateAsync({ phone: values.phone });
             setCodeSent(true);
+            // Отправка пометила тронутыми все поля — новые поля ещё не заполняли, красным их не красим
+            helpers.setTouched({ phone: true }, false);
             helpers.setStatus("Код отправлен в WhatsApp");
             return;
           }
           const tokens = await authApi(api).register(values);
-          await signIn(tokens.accessToken);
+          await signIn(tokens);
           onDone?.();
         } catch (error) {
           applyServerIssues(error, helpers, errorText(error));

@@ -1,17 +1,17 @@
 import {
+  ApiError,
   merchantCabinetApi,
   merchantsApi,
-  redemptionsApi,
+  promoApi,
+  tariffOf,
   type ConnectOctopayInput,
-  type RedemptionForm,
-  type AddMemberInput,
-  type AddPartnerInput,
   type CreateBranchInput,
   type CreateInvoiceInput,
   type CreateWebhookInput,
   type DeductionQuery,
+  type RedeemPromoInput,
 } from "@loal/api";
-import { useApi } from "@loal/app-kit";
+import { refetchWhilePending, useApi } from "@loal/app-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const merchantKeys = {
@@ -21,18 +21,19 @@ export const merchantKeys = {
   deductions: (id: string, query: DeductionQuery) => ["merchant", id, "deductions", query] as const,
   invoices: (id: string) => ["merchant", id, "invoices"] as const,
   onec: (id: string) => ["merchant", id, "onec"] as const,
-  branches: (id: string) => ["merchant", id, "branches"] as const,
+  branches: (id: string, archived = false) => ["merchant", id, "branches", archived] as const,
   members: (id: string) => ["merchant", id, "members"] as const,
   pos: (id: string) => ["merchant", id, "pos"] as const,
   webhooks: (id: string) => ["merchant", id, "webhooks"] as const,
   deliveries: (id: string, webhookId: string) => ["merchant", id, "webhooks", webhookId] as const,
 };
 
-export function useBranches(merchantId: string) {
+/** Открытые филиалы; includeArchived — вместе с закрытыми, чтобы журнал назвал прошлую точку. */
+export function useBranches(merchantId: string, includeArchived = false) {
   const api = useApi();
   return useQuery({
-    queryKey: merchantKeys.branches(merchantId),
-    queryFn: () => merchantCabinetApi(api).branches(merchantId),
+    queryKey: merchantKeys.branches(merchantId, includeArchived),
+    queryFn: () => merchantCabinetApi(api).branches(merchantId, includeArchived),
     enabled: Boolean(merchantId),
   });
 }
@@ -42,7 +43,27 @@ export function useCreateBranch(merchantId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateBranchInput) => merchantCabinetApi(api).createBranch(merchantId, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.branches(merchantId) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["merchant", merchantId, "branches"] }),
+  });
+}
+
+export function useRenameBranch(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branchId, name }: { branchId: string; name: string }) =>
+      merchantCabinetApi(api).renameBranch(merchantId, branchId, { name }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["merchant", merchantId, "branches"] }),
+  });
+}
+
+/** Закрыть филиал (archivedAt). Пока в нём люди — 409 BRANCH_HAS_MEMBERS. */
+export function useArchiveBranch(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (branchId: string) => merchantCabinetApi(api).archiveBranch(merchantId, branchId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["merchant", merchantId, "branches"] }),
   });
 }
 
@@ -52,25 +73,7 @@ export function useMembers(merchantId: string) {
     queryKey: merchantKeys.members(merchantId),
     queryFn: () => merchantCabinetApi(api).members(merchantId),
     enabled: Boolean(merchantId),
-  });
-}
-
-export function useAddMember(merchantId: string) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: AddMemberInput) => merchantCabinetApi(api).addMember(merchantId, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
-  });
-}
-
-/** Партнёру выбирают одну операцию навсегда, поэтому ручка отдельная. */
-export function useAddPartner(merchantId: string) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: AddPartnerInput) => merchantCabinetApi(api).addPartner(merchantId, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
+    refetchInterval: refetchWhilePending,
   });
 }
 
@@ -148,14 +151,36 @@ export function useMerchant(merchantId: string) {
   });
 }
 
-/** isActive — главное поле: пока false, заведение не может принимать бонусы. */
+/**
+ * isActive — главное поле: пока false, заведение не может принимать бонусы. null — подписки
+ * нет вовсе (магазин на «Только Loal» ещё ни разу не платил): это состояние, а не ошибка.
+ */
 export function useSubscription(merchantId: string) {
   const api = useApi();
   return useQuery({
     queryKey: merchantKeys.subscription(merchantId),
-    queryFn: () => merchantCabinetApi(api).subscription(merchantId),
+    queryFn: async () => {
+      try {
+        return await merchantCabinetApi(api).subscription(merchantId);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
+      }
+    },
     enabled: Boolean(merchantId),
   });
+}
+
+/** Тариф магазина: OctōPAY + Loal или только Loal — по связи с OctōPAY (tariffOf). */
+export function useTariff(merchantId: string) {
+  const merchant = useMerchant(merchantId);
+  return { tariff: tariffOf(merchant.data?.tariff), isPending: merchant.isPending };
+}
+
+/** Связь с OctōPAY меняет тариф: перечитываем магазин и подписку. */
+function refreshTariff(queryClient: ReturnType<typeof useQueryClient>, merchantId: string) {
+  void queryClient.invalidateQueries({ queryKey: merchantKeys.detail(merchantId), exact: true });
+  void queryClient.invalidateQueries({ queryKey: merchantKeys.subscription(merchantId), exact: true });
 }
 
 export function useOctopayIntegration(merchantId: string) {
@@ -173,7 +198,10 @@ export function useConnectOctopay(merchantId: string) {
   return useMutation({
     gcTime: 0,
     mutationFn: (input: ConnectOctopayInput) => merchantCabinetApi(api).connectOctopay(merchantId, input),
-    onSuccess: (data) => queryClient.setQueryData(merchantKeys.octopay(merchantId), data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(merchantKeys.octopay(merchantId), data);
+      refreshTariff(queryClient, merchantId);
+    },
   });
 }
 
@@ -182,12 +210,30 @@ export function useDisconnectOctopay(merchantId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => merchantCabinetApi(api).disconnectOctopay(merchantId),
-    onSuccess: () =>
+    onSuccess: () => {
+      refreshTariff(queryClient, merchantId);
       queryClient.setQueryData(merchantKeys.octopay(merchantId), {
         connected: false,
+        isEnabled: false,
+        invoiceReady: false,
+        invoiceNotReadyReason: "LOAL_LINK_NOT_FOUND",
+        activeKgsBankAccountCount: 0,
+        payableKgsBankAccountCount: 0,
+        ready: false,
         octopayBusinessName: null,
         connectedAt: null,
-      }),
+      });
+    },
+  });
+}
+
+/** Промокод на месяцы подписки магазина: после успеха перечитываем подписку — у неё новый срок. */
+export function useRedeemMerchantPromo(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RedeemPromoInput) => promoApi(api).redeemForMerchant(merchantId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.subscription(merchantId) }),
   });
 }
 
@@ -248,31 +294,16 @@ export function useAcceptMember(merchantId: string) {
   });
 }
 
-/** Точка, с которой человек сканирует: по ней в «Продажах» видно, где прошла операция. */
+/**
+ * Филиалы человека — весь список целиком. Операции на кассе записываются на выбранный из них,
+ * поэтому в «Продажах» видно, где прошла каждая. Права меняются со следующего входа человека.
+ */
 export function useUpdateMember(merchantId: string) {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ memberId, branchId }: { memberId: string; branchId: string | null }) =>
-      merchantCabinetApi(api).updateMember(merchantId, memberId, { branchId }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
-  });
-}
-
-/** Приветственный бонус партнёра: обе величины вместе, null очищает. */
-export function useUpdatePartnerBonus(merchantId: string) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      memberId,
-      amount,
-      maxPerCustomer,
-    }: {
-      memberId: string;
-      amount: number | null;
-      maxPerCustomer: number | null;
-    }) => merchantCabinetApi(api).updatePartnerBonus(merchantId, memberId, { amount, maxPerCustomer }),
+    mutationFn: ({ memberId, branchIds }: { memberId: string; branchIds: string[] }) =>
+      merchantCabinetApi(api).updateMember(merchantId, memberId, { branchIds }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) }),
   });
 }
@@ -282,10 +313,3 @@ export function useUpdatePartnerBonus(merchantId: string) {
  * нескольких заведениях: с одним местом работы сервер определяет его сам и
  * лишнее поле отклоняет.
  */
-export function useRedeem() {
-  const api = useApi();
-  return useMutation({
-    mutationFn: ({ input, maxPercent }: { input: RedemptionForm & { merchantId?: string }; maxPercent: number }) =>
-      redemptionsApi(api).redeem(input, maxPercent),
-  });
-}

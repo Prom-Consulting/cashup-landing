@@ -1,30 +1,29 @@
-const STORAGE_KEY = "loal.pending-subscription-payment";
+/**
+ * Платёж подписки, с которым человек ушёл на OctōPAY. На возврате по нему опрашиваем
+ * статус — адрес возврата номера платежа не несёт.
+ */
+const KEY = "loal.client.pending-payment";
 
-type PendingPayment = {
-  serial: string;
-  createdAt: number;
-};
-
-const MAX_AGE_MS = 30 * 60 * 1000;
-
-export function savePendingPayment(serial: string) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ serial, createdAt: Date.now() } satisfies PendingPayment));
+export function rememberPayment(paymentId: string) {
+  try {
+    localStorage.setItem(KEY, paymentId);
+  } catch {
+    // Без хранилища статус просто не опросим — карта обновится сама
+  }
 }
 
-export function readPendingPayment(): PendingPayment | null {
+export function recallPayment(): string | null {
   try {
-    const value = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as PendingPayment | null;
-    if (!value?.serial || !value.createdAt || Date.now() - value.createdAt > MAX_AGE_MS) {
-      localStorage.removeItem(STORAGE_KEY);
-      return null;
-    }
-    return value;
+    return localStorage.getItem(KEY);
   } catch {
-    localStorage.removeItem(STORAGE_KEY);
     return null;
   }
 }
 
-export function clearPendingPayment() {
-  localStorage.removeItem(STORAGE_KEY);
+export function forgetPayment() {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    // Нечего стирать
+  }
 }

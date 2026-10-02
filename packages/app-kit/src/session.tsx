@@ -7,6 +7,7 @@ import {
   type ApiClient,
   type Session,
 } from "@loal/api";
+import { rememberWelcome } from "./welcome";
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, use, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -23,8 +24,12 @@ type SessionState = {
   error: unknown;
   /** Почему сессия закончилась: например, вход с другого устройства. */
   endedReason: string | null;
-  /** Сохранить токен после входа и сразу перечитать профиль. */
-  signIn: (accessToken: string) => Promise<void>;
+  /** Сохранить пару токенов после входа (или смены профиля) и сразу перечитать профиль. */
+  signIn: (tokens: {
+    accessToken: string;
+    refreshToken?: string | null;
+    registrationCompleted?: boolean | null;
+  }) => Promise<void>;
   logout: () => void;
 };
 
@@ -63,14 +68,24 @@ function SessionProvider({
   });
 
   const value = useMemo<SessionState>(() => {
-    const signIn = async (accessToken: string) => {
+    const signIn = async (tokens: {
+      accessToken: string;
+      refreshToken?: string | null;
+      registrationCompleted?: boolean | null;
+    }) => {
       clearEndedReason();
-      api.tokens.write(accessToken);
+      // Первый вход человека, которого завёл администратор: поприветствуем уже в кабинете
+      if (tokens.registrationCompleted) rememberWelcome();
+      api.tokens.writeSession(tokens);
       setHasToken(true);
       await queryClient.refetchQueries({ queryKey: ["session"] });
     };
     const logout = () => {
       clearEndedReason();
+      // Гасим сессию и на сервере, чтобы украденный refresh не жил свои 30 дней. Токен в
+      // заголовок попадает синхронно, поэтому локально стираем сразу и ответа не ждём:
+      // выход не должен зависеть от сети (и от старого шлюза, где этой ручки нет)
+      if (api.tokens.read()) authApi(api).logout().catch(() => undefined);
       api.tokens.write(null);
       setHasToken(false);
       queryClient.clear();
@@ -124,7 +139,7 @@ export function AppProviders({
   queryClient.current ??= new QueryClient({
     defaultOptions: {
       queries: {
-        // Повторять бессмысленно: 401 без refresh-токена требует входа заново,
+        // 401 уже обработал клиент (refresh и один повтор), 4xx повторять незачем,
         // а разошедшийся контракт сам собой не сойдётся
         retry: (count, error) =>
           !(error instanceof ApiError && error.status < 500) && !(error instanceof ApiShapeError) && count < 2,
@@ -161,22 +176,37 @@ export function useLogin() {
   const { api, signIn } = useSession();
   return useMutation({
     mutationFn: (input: { email: string; password: string }) => authApi(api).login(input),
-    onSuccess: (tokens) => signIn(tokens.accessToken),
+    onSuccess: (tokens) => signIn(tokens),
   });
 }
 
 /** Запрос кода в WhatsApp. Повтор раньше минуты — 429 с текстом, сколько ждать. */
+/**
+ * Есть ли у номера аккаунт — подсказка интерфейсу до кода (docs/API.md, «Проверка номера до
+ * регистрации»). Ошибки (429, 503, сеть) не ломают вход: тогда просто null — «не знаем».
+ */
+export function useCheckPhone() {
+  const { api } = useSession();
+  return async (phone: string): Promise<boolean | null> => {
+    try {
+      return (await authApi(api).checkPhone(phone)).exists;
+    } catch {
+      return null;
+    }
+  };
+}
+
 export function useRequestOtp() {
   const { api } = useSession();
   return useMutation({ mutationFn: (input: { phone: string }) => authApi(api).requestOtp(input) });
 }
 
-/** Регистрация клиента по телефону и коду: сразу выдаёт токен. */
+/** Регистрация клиента по телефону и коду (и по приглашению — с referralCode): сразу выдаёт токен. */
 export function useRegisterByPhone() {
   const { api, signIn } = useSession();
   return useMutation({
-    mutationFn: (input: { phone: string; otp: string }) => authApi(api).registerByPhone(input),
-    onSuccess: (tokens) => signIn(tokens.accessToken),
+    mutationFn: (input: { phone: string; otp: string; referralCode?: string }) => authApi(api).registerByPhone(input),
+    onSuccess: (tokens) => signIn(tokens),
   });
 }
 
@@ -184,6 +214,21 @@ export function useLoginByOtp() {
   const { api, signIn } = useSession();
   return useMutation({
     mutationFn: (input: { phone: string; otp: string }) => authApi(api).loginByOtp(input),
-    onSuccess: (tokens) => signIn(tokens.accessToken),
+    onSuccess: (tokens) => signIn(tokens),
+  });
+}
+
+/** Имя и почта того, кто вошёл, — для формы профиля. */
+export function useProfile() {
+  const { api } = useSession();
+  return useQuery({ queryKey: ["session", "profile"], queryFn: () => authApi(api).profile() });
+}
+
+/** Смена имени и почты. Сервер выдаёт новый токен — с ним и перечитываем сессию. */
+export function useUpdateProfile() {
+  const { api, signIn } = useSession();
+  return useMutation({
+    mutationFn: (input: { fullName: string; email: string }) => authApi(api).updateProfile(input),
+    onSuccess: (tokens) => signIn(tokens),
   });
 }

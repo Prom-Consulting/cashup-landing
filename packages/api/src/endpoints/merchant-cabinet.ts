@@ -1,6 +1,11 @@
 import { z } from "zod";
 import type { ApiClient } from "../http";
 import {
+  clientPaymentInputSchema,
+  clientPaymentSchema,
+  type ClientPaymentInput,
+} from "../schemas/client-payment";
+import {
   buyMonthsInputSchema,
   connectOctopayInputSchema,
   createInvoiceInputSchema,
@@ -15,7 +20,6 @@ import {
 import { deductionPageSchema } from "../schemas/deduction";
 import {
   addMemberInputSchema,
-  addPartnerInputSchema,
   branchSchema,
   createBranchInputSchema,
   createWebhookInputSchema,
@@ -23,7 +27,6 @@ import {
   webhookDeliverySchema,
   webhookSchema,
   type AddMemberInput,
-  type AddPartnerInput,
   type CreateBranchInput,
   type CreateWebhookInput,
 } from "../schemas/merchant-ops";
@@ -37,12 +40,31 @@ import {
   type MerchantProfile,
 } from "../schemas/merchant";
 
-export type DeductionQuery = { page?: number; pageSize?: number; search?: string; from?: string; to?: string };
+/** branchId — только этот филиал; администратору филиала сервер подставляет его филиал сам. */
+export type DeductionQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  from?: string;
+  to?: string;
+  branchId?: string;
+};
 
 /**
  * Кабинет заведения: журнал списаний, подписка, счета, витрина и обмен с 1С.
  * Всё привязано к merchantId — платформенные клиенты и карты сюда не входят.
  */
+/**
+ * Филиалы в теле запроса так, чтобы его понял и прежний шлюз (одно поле branchId, строгая схема),
+ * и новый (branchIds, а branchId — для совместимости; оба сразу — 400). Один филиал — branchId,
+ * несколько — branchIds; ни одного — при замене branchId: null, при добавлении поле не шлём.
+ */
+function branchesBody(branchIds: string[], replace: boolean) {
+  if (branchIds.length > 1) return { branchIds };
+  if (branchIds.length === 1) return { branchId: branchIds[0] };
+  return replace ? { branchId: null } : {};
+}
+
 export const merchantCabinetApi = (api: ApiClient) => ({
   deductions: (merchantId: string, query: DeductionQuery = {}) =>
     api.request(deductionPageSchema, `/admin/v1/merchants/${merchantId}/deductions`, { query }),
@@ -60,7 +82,7 @@ export const merchantCabinetApi = (api: ApiClient) => ({
   octopayIntegration: (merchantId: string) =>
     api.request(octopayIntegrationSchema, `/admin/v1/merchants/${merchantId}/octopay-integration`),
 
-  /** Код краткоживущий: передаём только в теле этого запроса и не кладём в кэш. */
+  /** Код краткоживущий: передаём только в теле этого запроса и не кладём в query cache. */
   connectOctopay: (merchantId: string, input: ConnectOctopayInput) =>
     api.request(octopayIntegrationSchema, `/admin/v1/merchants/${merchantId}/octopay-integration`, {
       method: "POST",
@@ -113,7 +135,23 @@ export const merchantCabinetApi = (api: ApiClient) => ({
     });
   },
 
-  branches: (merchantId: string) => api.request(z.array(branchSchema), `/admin/v1/merchants/${merchantId}/branches`),
+  /** includeArchived — вместе с закрытыми: чтобы отчёт за прошлое назвал точку. */
+  branches: (merchantId: string, includeArchived = false) =>
+    api.request(z.array(branchSchema), `/admin/v1/merchants/${merchantId}/branches`, {
+      query: includeArchived ? { includeArchived: true } : undefined,
+    }),
+
+  renameBranch: (merchantId: string, branchId: string, input: CreateBranchInput) =>
+    api.request(branchSchema, `/admin/v1/merchants/${merchantId}/branches/${branchId}`, {
+      method: "PATCH",
+      body: createBranchInputSchema.parse(input),
+    }),
+
+  /** Закрыть, а не стереть: archivedAt. Пока в филиале люди — 409 BRANCH_HAS_MEMBERS. */
+  archiveBranch: (merchantId: string, branchId: string) =>
+    api.request(z.looseObject({}).or(z.null()).or(z.undefined()), `/admin/v1/merchants/${merchantId}/branches/${branchId}`, {
+      method: "DELETE",
+    }),
 
   createBranch: (merchantId: string, input: CreateBranchInput) =>
     api.request(branchSchema, `/admin/v1/merchants/${merchantId}/branches`, {
@@ -124,39 +162,28 @@ export const merchantCabinetApi = (api: ApiClient) => ({
   members: (merchantId: string) =>
     api.request(z.array(merchantMemberSchema), `/admin/v1/merchants/${merchantId}/members`),
 
-  /** Сотрудника подключают по userId: он сначала регистрируется сам. */
+  /** По имени и телефону; администратор филиала добавляет только кассиров своего филиала. */
   addMember: (merchantId: string, input: AddMemberInput) =>
     api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members`, {
       method: "POST",
-      body: addMemberInputSchema.parse(input),
+      body: (() => {
+        const { branchIds, ...rest } = addMemberInputSchema.parse(input);
+        return { ...rest, ...branchesBody(branchIds, false) };
+      })(),
     }),
 
-  /** Партнёру выбирают одну операцию навсегда — отсюда отдельный адрес. */
-  addPartner: (merchantId: string, input: AddPartnerInput) =>
-    api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members/partners`, {
-      method: "POST",
-      body: addPartnerInputSchema.parse(input),
-    }),
-
+  /**
+   * Заменить филиалы человека целиком. Администратор филиалов меняет только свои назначения —
+   * остальные сервер сохраняет. Права меняются со следующего входа: сессия человека гаснет.
+   */
   updateMember: (
     merchantId: string,
     memberId: string,
-    input: { branchId?: string | null; defaultTemplateId?: string | null; defaultProgramId?: string | null },
+    input: { branchIds: string[] },
   ) =>
     api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members/${memberId}`, {
       method: "PATCH",
-      body: input,
-    }),
-
-  /** Приветственный бонус партнёра: обе величины шлём вместе, null очищает. */
-  updatePartnerBonus: (
-    merchantId: string,
-    memberId: string,
-    input: { amount: number | null; maxPerCustomer: number | null },
-  ) =>
-    api.request(merchantMemberSchema, `/admin/v1/merchants/${merchantId}/members/${memberId}/bonus`, {
-      method: "PATCH",
-      body: input,
+      body: branchesBody(input.branchIds, true),
     }),
 
   /** Подтвердить приглашённого: до этого он в списке, но доступа не имеет. */
@@ -166,10 +193,28 @@ export const merchantCabinetApi = (api: ApiClient) => ({
       body: {},
     }),
 
-  removeMember: (merchantId: string, memberId: string) =>
-    api.request(z.looseObject({}).or(z.null()), `/admin/v1/merchants/${merchantId}/members/${memberId}`, {
-      method: "DELETE",
+  /**
+   * Без branchId владелец закрывает членство целиком (человек сможет работать в другом
+   * магазине), администратор филиалов снимает только свои назначения. С branchId — снять один
+   * филиал; последний филиал администратора филиалов так не снять (400).
+   */
+  removeMember: (merchantId: string, memberId: string, options: { branchId?: string } = {}) =>
+    api.request(
+      z.looseObject({}).or(z.null()),
+      `/admin/v1/merchants/${merchantId}/members/${memberId}${options.branchId ? `?branchId=${encodeURIComponent(options.branchId)}` : ""}`,
+      { method: "DELETE" },
+    ),
+
+  /** Счёт клиенту: на странице Octopay клиент сам выбирает, сколько бонусов Loal использовать. */
+  createClientPayment: (merchantId: string, input: ClientPaymentInput) =>
+    api.request(clientPaymentSchema, `/admin/v1/merchants/${merchantId}/client-payments`, {
+      method: "POST",
+      body: clientPaymentInputSchema.parse(input),
     }),
+
+  /** Последние 100: владелец — все, администратор филиала — своего филиала, кассир — свои. */
+  clientPayments: (merchantId: string) =>
+    api.request(z.array(clientPaymentSchema), `/admin/v1/merchants/${merchantId}/client-payments`),
 
   posSettings: (merchantId: string) =>
     api.request(z.array(posSettingsSchema), `/admin/v1/merchants/${merchantId}/pos-settings`),

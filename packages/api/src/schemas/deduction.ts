@@ -5,6 +5,8 @@ export const deductionSchema = z.looseObject({
   id: z.string(),
   operationId: z.string().nullish(),
   customerName: z.string().nullish(),
+  /** Кто списал; у 1С и старых операций — null, показываем «—». */
+  cashierName: z.string().nullish(),
   productName: z.string().nullish(),
   price: z.number().nullish(),
   coveragePercent: z.number().nullish(),

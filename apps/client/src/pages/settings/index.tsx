@@ -1,23 +1,25 @@
 import { Logout01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
-import { useSession } from "@loal/app-kit";
+import { PromoCodeForm, useSession } from "@loal/app-kit";
 import { formatPhone } from "@loal/ui/inputs";
 import { Button, Card, ConfirmDialog, Icon, cn } from "@loal/ui/shadcn";
-import { useNavigate } from "react-router";
-import { useMyCard } from "../../entities/me/api";
+import { Link, useNavigate } from "react-router";
+import { useMyCard, useRedeemPromo } from "../../entities/me/api";
 import { BACKGROUNDS, useBackground } from "../../shared/lib/background";
+import { forgetPhone } from "../../shared/lib/remembered-phone";
 
-/** Настройки держателя карты: кто вошёл, фон кабинета и выход. */
+/** Настройки держателя карты: кто вошёл, промокод, фон кабинета и выход. */
 export function SettingsPage() {
   const { logout } = useSession();
   const navigate = useNavigate();
   const card = useMyCard();
+  const redeemPromo = useRedeemPromo();
   const [background, setBackground] = useBackground();
   const customer = card.data?.customer;
   const name = [customer?.firstName, customer?.lastName].filter(Boolean).join(" ");
 
   return (
-    <section className="flex flex-col gap-5">
-      <h1 className="display text-[2rem] leading-tight">Настройки</h1>
+    <section className="flex flex-col gap-5 lg:grid lg:max-w-[960px] lg:grid-cols-2 lg:items-start lg:gap-6">
+      <h1 className="display text-[2rem] leading-tight lg:col-span-2 lg:text-[2.5rem]">Настройки</h1>
 
       <Card className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">Вы вошли как</p>
@@ -25,6 +27,23 @@ export function SettingsPage() {
         {customer?.phone && (
           <p className="text-base text-muted-foreground tabular-nums">{formatPhone(customer.phone)}</p>
         )}
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-lg font-bold">Промокод</h2>
+          <p className="text-sm text-muted-foreground">Бесплатные месяцы подписки добавятся к вашей карте.</p>
+        </div>
+        <PromoCodeForm
+          redeem={(input) => redeemPromo.mutateAsync(input)}
+          renderHint={(error) =>
+            error === "Сначала получите карту" && (
+              <Button asChild variant="outline" size="sm" className="self-start">
+                <Link to="/">Купить подписку</Link>
+              </Button>
+            )
+          }
+        />
       </Card>
 
       <Card className="flex flex-col gap-4">
@@ -66,7 +85,7 @@ export function SettingsPage() {
 
       <ConfirmDialog
         trigger={
-          <Button variant="outline" size="lg" className="w-full">
+          <Button variant="outline" size="lg" className="w-full lg:col-span-2 lg:w-fit lg:px-8">
             <Icon icon={Logout01Icon} />
             Выйти
           </Button>
@@ -75,6 +94,7 @@ export function SettingsPage() {
         description="Карта в Wallet останется и продолжит работать. Войти снова можно по номеру телефона."
         confirmLabel="Выйти"
         onConfirm={() => {
+          forgetPhone();
           logout();
           navigate("/login", { replace: true });
         }}

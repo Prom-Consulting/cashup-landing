@@ -14,6 +14,7 @@ import {
   type GoogleMessageInput,
   type ImageSlot,
   type PassDesign,
+  type PlatformPricesInput,
   type PlatformSettingsInput,
   type Template,
   type TierInput,
@@ -79,15 +80,6 @@ export function useUpdateBonusItem(programId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: BonusItemInput) => platformApi(api).updateBonusItem(programId, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: platformKeys.programs }),
-  });
-}
-
-export function useUpdateMechanicAccess(programId: string) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (access: Record<string, boolean>) => platformApi(api).updateMechanicAccess(programId, access),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: platformKeys.programs }),
   });
 }
@@ -371,6 +363,19 @@ export function useSavePlatformSettings() {
   return useMutation({
     mutationFn: (input: PlatformSettingsInput) => platformApi(api).savePlatformSettings(input),
     onSuccess: (saved) => queryClient.setQueryData(platformKeys.settings, saved),
+  });
+}
+
+export function useSavePlatformPrices() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PlatformPricesInput) => platformApi(api).savePlatformPrices(input),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(platformKeys.settings, saved);
+      // Смена цены пишется в журнал — перечитаем его
+      queryClient.invalidateQueries({ queryKey: platformKeys.audit });
+    },
   });
 }
 

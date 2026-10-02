@@ -1,6 +1,6 @@
 import { ApiError, ApiShapeError } from "@loal/api";
 import type { FormikErrors, FormikHelpers, FormikProps } from "formik";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { ZodType } from "zod";
 
 /** Раскладываем ошибки zod по путям полей: a.b[0].c -> { a: { b: [{ c: "..." }] } } */
@@ -96,16 +96,34 @@ export function applyServerIssues<Values>(
  * на длинной форме человек не видит, где именно проблема.
  */
 export function FocusFirstError<Values>({ form }: { form: FormikProps<Values> }) {
-  const { submitCount, isValid, errors } = form;
+  const { submitCount, isSubmitting, errors, setErrors } = form;
+  // Одна отправка — один перенос фокуса. Раньше эффект срабатывал на каждое изменение
+  // ошибок, и после неудачной отправки каждая набранная буква в любом поле
+  // перебрасывала курсор на первое поле с ошибкой.
+  const handled = useRef(0);
 
   useEffect(() => {
-    if (submitCount === 0 || isValid) return;
-    const first = Object.keys(errors)[0];
-    if (!first) return;
-    const field = document.querySelector<HTMLElement>(`[name="${first}"], #${CSS.escape(first)}`);
-    field?.focus();
-    field?.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, [submitCount, isValid, errors]);
+    // Ждём конца отправки: ошибки сервера (409, issues) приходят уже после проверки схемой
+    if (submitCount === 0 || isSubmitting || handled.current === submitCount) return;
+    handled.current = submitCount;
+    const names = Object.keys(errors);
+    if (names.length === 0) return;
+    // Первое поле с ошибкой по порядку на экране, а не по порядку ключей в объекте ошибок
+    const candidates = names.flatMap((name) => [
+      ...document.querySelectorAll<HTMLElement>(`[name="${CSS.escape(name)}"], #${CSS.escape(name)}`),
+    ]);
+    const field = candidates.sort((a, b) =>
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
+    )[0];
+    if (!field || field === document.activeElement) return;
+    const left = document.activeElement;
+    field.focus();
+    field.scrollIntoView({ block: "center", behavior: "smooth" });
+    // Фокус ушёл с другого поля (Enter в нём) — Formik перепроверил форму схемой на blur
+    // и стёр ошибки сервера (409 «код уже есть»). Значения те же — возвращаем их.
+    if (left instanceof HTMLInputElement || left instanceof HTMLTextAreaElement || left instanceof HTMLSelectElement)
+      setTimeout(() => setErrors(errors), 0);
+  }, [submitCount, isSubmitting, errors, setErrors]);
 
   return null;
 }
