@@ -277,6 +277,7 @@ export function PartnerForm() {
       if (error instanceof PhoneExpired) {
         setToken(null);
         setOtp("");
+        if (sent) { setSent(null); setRecovering(true); setStep("details"); }
       }
       setFailed(error instanceof FormError ? error.message : "Не удалось связаться с сервером. Попробуйте ещё раз.");
     } finally {
