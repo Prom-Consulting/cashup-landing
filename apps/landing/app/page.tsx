@@ -25,6 +25,8 @@ const categories = [
   { label: "Фитнес и спорт", icon: "sport" },
   { label: "Автосервисы", icon: "car" },
   { label: "Услуги для дома", icon: "home" },
+  { label: "Уходовая косметика", icon: "beauty" },
+  { label: "Другое", icon: "bag" },
 ];
 
 /**

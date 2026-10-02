@@ -8,6 +8,8 @@ import { PARTNER_CATEGORIES, type PublicPartner } from "@loal/api";
 
 /** Слова, по которым человек ищет категорию. Русские, кыргызские и английские. */
 const CATEGORY_WORDS: Record<string, string[]> = {
+  skincare: ["уходовая косметика", "косметика", "уход за кожей", "крем", "сыворотка", "skincare"],
+  other: ["другое", "прочее", "other"],
   cafe: [
     "кофе",
     "кофейня",

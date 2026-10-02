@@ -2477,3 +2477,5 @@ core-service/gateway → лендинг. Для core-service нужен `AUTH_SE
 `LOAL_ONBOARDING_BRANCH_ID`. Подпись использует существующую пару
 `OCTOPAY_BONUS_API_SECRET` / `CASHUP_BONUS_API_SECRET`; значения не передаются
 в браузер. Миграция 0027 также устанавливает цену продления LOAL в 8 750 KGS.
+
+Категории заявки `POST /v1/public/partner-onboarding` (`category`): `cafe`, `beauty`, `shop`, `sport`, `auto`, `home`, `skincare` (Уходовая косметика), `other` (Другое).

@@ -10,6 +10,8 @@ export const PARTNER_CATEGORIES = [
   { id: "sport", label: "Фитнес и спорт", one: "Фитнес" },
   { id: "auto", label: "Автосервисы", one: "Автосервис" },
   { id: "home", label: "Услуги для дома", one: "Услуги" },
+  { id: "skincare", label: "Уходовая косметика", one: "Уходовая косметика" },
+  { id: "other", label: "Другое", one: "Другое" },
 ] as const;
 
 export type PartnerCategoryId = (typeof PARTNER_CATEGORIES)[number]["id"];
