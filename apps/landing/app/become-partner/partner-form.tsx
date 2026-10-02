@@ -1,19 +1,19 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Field } from "@loal/ui/field";
 import { Button, ChoiceCards, PhoneInput, Spinner, Textarea, TextInput } from "@loal/ui/inputs";
 import { Select } from "@loal/ui/select";
-import { createApiClient, createTokenStore, leadsApi } from "@loal/api";
+import { z } from "zod";
 import { categories } from "../_data/categories";
 import { API_URL, EMAIL, PARTNER_APP_URL } from "../_data/site";
 
 gsap.registerPlugin(useGSAP);
 
 const plans = [
-  { id: "loyalty", label: "Только лояльность", note: "40 $ в месяц" },
+  { id: "loyalty", label: "Только лояльность", note: "8 750 сом / месяц · 100 $ × 87,5" },
   { id: "bundle", label: "OctōPAY + лояльность", note: "без абонентской платы" },
   { id: "octopay", label: "Только OctōPAY", note: "комиссия с оборота" },
 ] as const;
@@ -53,17 +53,39 @@ const rules: Record<FieldName, (v: Values) => string> = {
 
 const order: FieldName[] = ["name", "category", "contact", "phone", "comment"];
 
-// Заявка уходит в публичную ручку шлюза и появляется в админке платформы.
-// Токен здесь не нужен: ручка открытая, поэтому и хранилище токенов пустышка.
-const api = createApiClient({ baseUrl: API_URL, tokens: createTokenStore("loal.landing.unused") });
+const resultSchema = z.object({
+  id: z.string().uuid(), plan: z.enum(["loyalty", "bundle", "octopay"]),
+  state: z.enum(["processing", "pending_payment", "ready", "action_required"]),
+  amount: z.number(), currency: z.literal("KGS"), paymentUrl: z.string().url().nullable(),
+  partnerUrl: z.string().url().nullable(), octopayUrl: z.string().url().nullable(),
+});
+type Registration = z.infer<typeof resultSchema>;
+class PhoneExpired extends Error {}
+async function call(path: string, body?: unknown, token?: string) {
+  const response = await fetch(`${API_URL.replace(/\/$/, "")}${path}`, {
+    method: body === undefined ? "GET" : "POST", cache: "no-store",
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  if (response.status === 401) throw new PhoneExpired("Подтвердите номер ещё раз или проверьте код.");
+  if (response.status === 409) throw new Error("Заявка или аккаунт уже существует. Обратитесь в поддержку.");
+  if (response.status === 429) throw new Error("Слишком много попыток. Подождите минуту.");
+  if (!response.ok) throw new Error("Сервис временно недоступен. Попробуйте ещё раз.");
+  return response.json();
+}
 
 export function PartnerForm() {
   const [plan, setPlan] = useState<PlanId>("bundle");
   const [values, setValues] = useState<Values>(empty);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState<{ name: string } | null>(null);
+  const [sent, setSent] = useState<Registration | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [token, setToken] = useState<string | null>(null);
+  const [resendAt, setResendAt] = useState(0);
+  const requestId = useRef<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -76,6 +98,7 @@ export function PartnerForm() {
 
   const set = (field: FieldName) => (value: string) => {
     setValues((v) => ({ ...v, [field]: value }));
+    if (field === "phone") { setOtpRequested(false); setOtp(""); setToken(null); }
     // Ошибку убираем сразу, как только человек начал править поле.
     setErrors((e) => (e[field] ? { ...e, [field]: undefined } : e));
   };
@@ -108,66 +131,83 @@ export function PartnerForm() {
     setSending(true);
     setFailed(null);
     try {
-      await leadsApi(api).create({
-        name: values.contact.trim(),
-        phone: values.phone.trim(),
-        company: values.name.trim(),
-        cardType: plans.find((p) => p.id === plan)?.label,
-        comment: values.comment.trim() || undefined,
-      });
-      setSent({ name: values.name.trim() });
-    } catch {
-      // Сеть или сервер недоступны — не теряем заполненное, предлагаем написать почтой
-      setFailed("Не удалось отправить заявку. Попробуйте ещё раз или напишите нам на почту.");
+      const phone = values.phone.replace(/\D/g, "");
+      if (!otpRequested && !token) {
+        await call("/auth/otp/request", { phone });
+        setOtpRequested(true);
+        setResendAt(Date.now() + 60_000);
+        return;
+      }
+      let proof = token;
+      if (!proof) {
+        if (!/^\d{6}$/.test(otp)) throw new Error("Введите 6 цифр из WhatsApp.");
+        const verified = z.object({ token: z.string().min(1) }).parse(await call("/auth/partner-onboarding/verify", { phone, otp }));
+        proof = verified.token;
+        setToken(proof);
+      }
+      // A new OTP can resume an existing request after reload or a lost response.
+      const existing = resultSchema.nullable().parse(await call("/v1/public/partner-onboarding", undefined, proof));
+      if (existing) { setSent(existing); return; }
+      requestId.current ??= crypto.randomUUID();
+      const result = await call("/v1/public/partner-onboarding", {
+        requestId: requestId.current, plan, name: values.name.trim(),
+        contactName: values.contact.trim(), category: values.category, comment: values.comment.trim(),
+      }, proof);
+      setSent(resultSchema.parse(result));
+    } catch (error) {
+      if (error instanceof PhoneExpired) { setToken(null); }
+      setFailed(error instanceof Error ? error.message : "Не удалось подключиться. Попробуйте ещё раз.");
     } finally {
       setSending(false);
     }
   };
 
+  useEffect(() => {
+    if (!token || !sent || sent.state === "ready" || sent.state === "action_required") return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      try {
+        const next = resultSchema.nullable().parse(await call("/v1/public/partner-onboarding", undefined, token));
+        if (active && next) { setSent(next); setFailed(null); }
+      } catch (error) {
+        if (active) {
+          setFailed("Не удалось обновить статус. Подключение продолжится автоматически.");
+          if (error instanceof PhoneExpired) {
+            setToken(null); setSent(null); setOtpRequested(false); setOtp("");
+            setFailed("Подтвердите телефон ещё раз, чтобы увидеть статус заявки.");
+          }
+        }
+      }
+      if (active) timer = setTimeout(poll, 5000);
+    };
+    timer = setTimeout(poll, 3000);
+    return () => { active = false; clearTimeout(timer); };
+  }, [token, sent?.state]);
+
   const badCount = order.filter((f) => errors[f]).length;
 
   if (sent) {
-    return (
-      <div ref={root} className="rounded-[32px] border-2 border-graphite bg-paper p-8 sm:p-12">
-        <div data-sent>
-          <p className="display text-[clamp(1.74rem,3.47vw,2.76rem)] text-flame">Заявка принята</p>
-          <p className="mt-4 max-w-[48ch] text-lg leading-relaxed">
-            Мы свяжемся с вами в рабочее время, поможем выбрать модель и настроим кабинет. Заведение «{sent.name}»
-            появится в каталоге после первой оплаты.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center gap-4">
-            <a
-              href={PARTNER_APP_URL}
-              className="inline-flex items-center justify-center rounded-full bg-flame px-7 py-4 font-bold text-[1.1875rem] text-white transition-colors hover:bg-graphite"
-            >
-              Перейти в кабинет заведения
-            </a>
-            <p className="max-w-[34ch] text-sm opacity-75">
-              Войти можно будет, когда мы выдадим код приглашения — он придёт вместе со звонком.
-            </p>
-          </div>
-
-          <p className="mt-6 text-sm opacity-70">
-            Срочные вопросы —{" "}
-            <a href={`mailto:${EMAIL}`} className="text-flame-ink underline-offset-4 hover:underline">
-              {EMAIL}
-            </a>
-            .
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-6"
-            onClick={() => {
-              setValues(empty);
-              setSent(null);
-            }}
-          >
-            Отправить ещё одну
-          </Button>
+    const title = sent.state === "ready" ? "Подключение завершено" : sent.state === "pending_payment" ? "Оплатите первый месяц" : sent.state === "action_required" ? "Нужна помощь с подключением" : "Подключаем ваш бизнес";
+    return <div ref={root} className="rounded-[32px] border-2 border-graphite bg-paper p-8 sm:p-12">
+      <div data-sent aria-live="polite">
+        <h2 className="display text-3xl text-flame">{title}</h2>
+        <p className="mt-4 text-lg leading-relaxed">
+          {sent.state === "ready" ? (sent.plan === "octopay" ? "Аккаунт OctoPay создан. Войдите по указанному телефону и коду из WhatsApp." : "Кабинет LOAL готов. Войдите по указанному телефону и коду из WhatsApp.") :
+           sent.state === "pending_payment" ? "Только лояльность — 8 750 сом в месяц (100 $ по курсу 87,5 сом). После оплаты кабинет создастся автоматически." :
+           sent.state === "action_required" ? "Заявка сохранена. Обратитесь в поддержку для завершения подключения." :
+           "Заявка сохранена. Эта страница обновится автоматически, когда кабинеты будут готовы."}
+        </p>
+        <div className="mt-8 flex flex-wrap gap-4">
+          {sent.state === "pending_payment" && sent.paymentUrl && new URL(sent.paymentUrl).origin === "https://payment.octopay.click" && <a href={sent.paymentUrl} target="_blank" rel="noopener noreferrer" className="rounded-full bg-flame px-7 py-4 font-bold text-white">Оплатить 8 750 сом</a>}
+          {sent.partnerUrl && <a href={PARTNER_APP_URL} className="rounded-full bg-flame px-7 py-4 font-bold text-white">Войти в LOAL</a>}
+          {sent.octopayUrl && <a href="https://octopay.click/auth/loal" className="rounded-full bg-graphite px-7 py-4 font-bold text-white">Войти в OctoPay</a>}
         </div>
+        {sent.state === "ready" && sent.plan !== "loyalty" && <p className="mt-5 text-sm">Абонентской платы нет. Комиссия взимается с платежей. Подключите банковский счёт в OctoPay, чтобы принимать оплату.</p>}
+        {failed && <p role="alert" className="mt-4">{failed}</p>}
+        <p className="mt-6 text-sm">Поддержка: <a href={`mailto:${EMAIL}`} className="underline">{EMAIL}</a></p>
       </div>
-    );
+    </div>;
   }
 
   return (
@@ -224,7 +264,7 @@ export function PartnerForm() {
           </div>
 
           <div data-field="phone">
-            <Field label="Телефон" hint="Позвоним в рабочее время" error={errors.phone}>
+            <Field label="Телефон" hint="Подтвердите номер кодом из WhatsApp — он будет вашим логином" error={errors.phone}>
               {(parts) => (
                 <PhoneInput {...parts} value={values.phone} onValueChange={set("phone")} onBlur={check("phone")} />
               )}
@@ -246,6 +286,17 @@ export function PartnerForm() {
           </Field>
         </div>
 
+        {otpRequested && !token && <Field label="Код из WhatsApp" hint="6 цифр. Код действует 5 минут.">
+          {(parts) => <TextInput {...parts} inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, ""))} />}
+        </Field>}
+        {otpRequested && !token && <Button type="button" variant="outline" disabled={sending} onClick={async () => {
+          if (Date.now() < resendAt) { setFailed("Повторная отправка доступна через минуту."); return; }
+          setSending(true);
+          try { await call("/auth/otp/request", { phone: values.phone.replace(/\D/g, "") }); setResendAt(Date.now() + 60_000); setFailed(null); }
+          catch { setFailed("Не удалось отправить код. Попробуйте позже."); }
+          finally { setSending(false); }
+        }}>Отправить код повторно</Button>}
+
         <p aria-live="polite" className="sr-only">
           {badCount > 0 ? `Не заполнено полей: ${badCount}` : ""}
         </p>
@@ -262,10 +313,10 @@ export function PartnerForm() {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <Button type="submit" disabled={sending} className="gap-3">
             {sending && <Spinner />}
-            {sending ? "Отправляем" : "Отправить заявку"}
+            {sending ? "Подождите…" : !otpRequested && !token ? "Подтвердить телефон" : plan === "loyalty" ? "Перейти к оплате" : "Подключить бесплатно"}
           </Button>
           <p className="max-w-[40ch] text-sm opacity-75">
-            Перезвоним в рабочее время, поможем выбрать модель и настроить процент.
+            Для лояльности кабинет создаётся после оплаты. Бесплатные тарифы подключаются после подтверждения телефона.
           </p>
         </div>
       </form>

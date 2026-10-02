@@ -30,11 +30,11 @@ export const metadata: Metadata = {
 const steps = [
   {
     title: "Оставляете заявку",
-    text: "Рассказываете о заведении и выбираете модель подключения. Перезваниваем и отвечаем на вопросы.",
+    text: "Рассказываете о заведении и выбираете модель подключения. Подтверждаете номер телефона кодом из WhatsApp.",
   },
   {
     title: "Оплачиваете доступ",
-    text: "Для модели «Только лояльность» — 40 $ в месяц через OctōPAY. В пакете с OctōPAY абонентской платы нет.",
+    text: "Для модели «Только лояльность» — 8 750 сом (100 $ × 87,5) в месяц через OctōPAY. В пакете с OctōPAY абонентской платы нет.",
   },
   {
     title: "Настраиваете процент",
@@ -68,7 +68,7 @@ const gains = [
 const faq = [
   {
     q: "Когда заведение появится в каталоге?",
-    a: "После первой оплаты доступа. Если подписка «Только лояльность» не продлена, заведение скрывается из каталога до оплаты.",
+    a: "На тарифе «Только лояльность» — после оплаты, в пакете с OctōPAY — после автоматического подключения. Если подписка «Только лояльность» не продлена, заведение скрывается из каталога до оплаты.",
   },
   {
     q: "Кто платит за бонусы клиента?",
@@ -168,7 +168,7 @@ export default function BecomePartnerPage() {
           <div className="mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-24">
             <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)]">Выберите модель</h2>
             <div className="mt-12 grid gap-5 xl:grid-cols-3 xl:items-stretch">
-              {models(PARTNER_MAIL).map((m) => (
+              {models("#form").map((m) => (
                 <article
                   key={m.key}
                   className={`relative flex min-w-0 flex-col rounded-[32px] p-6 sm:p-10 ${
@@ -231,7 +231,7 @@ export default function BecomePartnerPage() {
             <div>
               <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)] brand-gradient-text">Заявка</h2>
               <p className="mt-6 max-w-[42ch] text-lg leading-relaxed">
-                Заполните форму — перезвоним, поможем выбрать модель и настроить процент. Или напишите нам напрямую.
+                Выберите тариф и подтвердите телефон. Платная лояльность подключится после оплаты, бесплатные тарифы — сразу. Если нужна помощь, напишите нам.
               </p>
               <ul className="mt-8 flex flex-col gap-3 text-lg">
                 <li>

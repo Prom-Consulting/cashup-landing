@@ -1,6 +1,6 @@
 // Три способа подключения из ТЗ (раздел 2.3). Используются на главной и на странице «Стать партнёром».
 
-import { OCTOPAY_URL } from "./site";
+
 
 export type Model = {
   key: string;
@@ -17,8 +17,8 @@ export function models(partnerUrl: string): Model[] {
     {
       key: "loyalty",
       title: "Только лояльность",
-      price: "40 $",
-      priceNote: "в месяц, оплата через OctōPAY",
+      price: "8 750 сом",
+      priceNote: "100 $ в месяц · курс 87,5 сом за доллар",
       points: [
         "Место в каталоге Loal и кабинет партнёра",
         "Сами задаёте максимальный % оплаты бонусами на месяц",
@@ -47,7 +47,7 @@ export function models(partnerUrl: string): Model[] {
       price: "%",
       priceNote: "комиссия с оборота",
       points: ["Приём QR-платежей в Кыргызстане", "Деньги зачисляются на ваш счёт", "Без участия в программе Loal"],
-      cta: { label: "Узнать об OctōPAY", href: OCTOPAY_URL },
+      cta: { label: "Подключить OctōPAY", href: partnerUrl },
     },
   ];
 }
