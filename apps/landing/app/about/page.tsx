@@ -99,8 +99,8 @@ export default function AboutPage() {
       <main className="flex-1 overflow-x-clip">
         <section className="mx-auto max-w-[1440px] px-5 pt-10 pb-16 sm:px-10 sm:pt-16 sm:pb-20 xl:pb-24">
           <p className="text-lg font-bold text-flame-ink">О компании</p>
-          <h1 className="display mt-4 max-w-[18ch] text-[clamp(2.4rem,5.6vw,5rem)]">
-            Бонусы по подписке у&nbsp;заведений Бишкека
+          <h1 className="display mt-4 max-w-[24ch] text-[clamp(2.4rem,5.6vw,5rem)]">
+            Бонусы по подписке у&nbsp;заведений Кыргызстана
           </h1>
           <p className="mt-8 max-w-[62ch] text-lg leading-relaxed sm:text-xl">
             Loal соединяет покупателей и местный бизнес. Покупатель оформляет подписку и тратит бонусы у партнёров
