@@ -8,6 +8,11 @@ export const PHONE_HREF = "tel:+996776822226";
 export const PARTNER_MAIL = `mailto:${EMAIL}?subject=Подключение%20к%20Loal`;
 export const CITY = "Бишкек, Кыргызстан";
 
+// Реквизиты юрлица. Название пишем как в документах — «LOAL», а не бренд «Loal».
+export const LEGAL_NAME = "ОсОО «LOAL»";
+export const LEGAL_INN = "01409202610283";
+export const LEGAL_ADDRESS = "Кыргызская Республика, г. Бишкек, Свердловский район, ул. Ибраимова, 115";
+
 // Домены: лендинг отдаётся статикой (SSG) для SEO, кабинеты — отдельные SPA на поддоменах.
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://loal.promconsult.pro";
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://loal.kg";

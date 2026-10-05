@@ -3,7 +3,18 @@ import Link from "next/link";
 import { Logo } from "@loal/ui/logo";
 import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
-import { CITY, CLIENT_APP_URL, EMAIL, OCTOPAY_URL, PHONE, PHONE_HREF, PROM_URL } from "../_data/site";
+import {
+  CITY,
+  CLIENT_APP_URL,
+  EMAIL,
+  LEGAL_ADDRESS,
+  LEGAL_INN,
+  LEGAL_NAME,
+  OCTOPAY_URL,
+  PHONE,
+  PHONE_HREF,
+  PROM_URL,
+} from "../_data/site";
 
 const description =
   "Loal — бонусная сеть по подписке в Бишкеке. Покупатели получают 15 000 бонусов на каждые 30 дней, заведения сами решают, какую часть чека они закрывают. Оператор — Prom.Consulting, платежи — через OctōPAY.";
@@ -70,6 +81,12 @@ const team = [
     href: OCTOPAY_URL,
     label: "octopay.click",
   },
+];
+
+const requisites = [
+  { label: "Наименование", value: LEGAL_NAME },
+  { label: "ИНН", value: LEGAL_INN },
+  { label: "Юридический адрес", value: LEGAL_ADDRESS },
 ];
 
 const sectionTitle = "display text-[clamp(2.08rem,4.86vw,4.14rem)] brand-gradient-text";
@@ -187,6 +204,20 @@ export default function AboutPage() {
                 </a>
               </li>
             </ul>
+          </div>
+        </section>
+
+        <section id="requisites" className="scroll-mt-6 mx-auto max-w-[1440px] px-5 pb-16 sm:px-10 sm:pb-20 xl:pb-24">
+          <div className="grid gap-10 rounded-[28px] bg-cream/60 p-8 sm:p-10 lg:grid-cols-[1fr_1.4fr]">
+            <h2 className="display text-[clamp(1.57rem,2.36vw,2.07rem)]">Реквизиты</h2>
+            <dl className="flex flex-col gap-5">
+              {requisites.map((r) => (
+                <div key={r.label}>
+                  <dt className="text-base text-slate">{r.label}</dt>
+                  <dd className="mt-1 text-lg font-medium sm:text-xl">{r.value}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </section>
       </main>
