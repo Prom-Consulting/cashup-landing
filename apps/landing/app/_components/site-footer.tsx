@@ -7,6 +7,7 @@ const product = [
   { label: "Тарифы", href: "/#price" },
   { label: "Партнёры", href: "/partners" },
   { label: "Loal Corporate", href: "/become-partner" },
+  { label: "О компании", href: "/about" },
 ];
 
 const link = "font-medium underline-offset-4 hover:underline";
