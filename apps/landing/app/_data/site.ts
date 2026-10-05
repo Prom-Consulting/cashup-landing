@@ -8,8 +8,8 @@ export const PHONE_HREF = "tel:+996776822226";
 export const PARTNER_MAIL = `mailto:${EMAIL}?subject=Подключение%20к%20Loal`;
 export const CITY = "Бишкек, Кыргызстан";
 
-// Реквизиты юрлица. Название пишем как в документах — «LOAL», а не бренд «Loal».
-export const LEGAL_NAME = "ОсОО «LOAL»";
+// Реквизиты юрлица. Название юрлица пишем по-русски, как в документах, — не брендом «Loal».
+export const LEGAL_NAME = "ОсОО «Лоал»";
 export const LEGAL_INN = "01409202610283";
 export const LEGAL_ADDRESS = "Кыргызская Республика, г. Бишкек, Свердловский район, ул. Ибраимова, 115";
 
