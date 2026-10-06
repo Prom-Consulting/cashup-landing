@@ -1,6 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
+import { useState, type ComponentProps } from "react";
+import { PasswordToggle } from "../password-toggle";
 import { cn } from "./lib";
 
 const base =
@@ -21,6 +22,17 @@ export function Input({ className, describedBy, invalid, "aria-invalid": ariaInv
       className={cn(base, broken ? "border-destructive" : "border-border", className)}
       {...props}
     />
+  );
+}
+
+/** Пароль с глазиком: показать и снова спрятать введённое. */
+export function PasswordInput({ className, disabled, ...props }: Omit<InputProps, "type">) {
+  const [shown, setShown] = useState(false);
+  return (
+    <div className="relative">
+      <Input {...props} disabled={disabled} type={shown ? "text" : "password"} className={cn("pr-12", className)} />
+      <PasswordToggle shown={shown} onToggle={() => setShown((value) => !value)} disabled={disabled} />
+    </div>
   );
 }
 

@@ -2,6 +2,7 @@
 
 import { forwardRef, useId, useState } from "react";
 import { controlClass } from "./field";
+import { PasswordToggle } from "./password-toggle";
 
 type BaseProps = { id: string; describedBy?: string; invalid: boolean };
 
@@ -19,6 +20,20 @@ export const TextInput = forwardRef<HTMLInputElement, BaseProps & React.InputHTM
     );
   },
 );
+
+/** Пароль с глазиком: те же свойства, что у TextInput, тип выбирает само поле. */
+export const PasswordInput = forwardRef<
+  HTMLInputElement,
+  BaseProps & Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">
+>(function PasswordInput({ className = "", disabled, ...rest }, ref) {
+  const [shown, setShown] = useState(false);
+  return (
+    <div className="relative">
+      <TextInput ref={ref} {...rest} disabled={disabled} type={shown ? "text" : "password"} className={`pr-12 ${className}`} />
+      <PasswordToggle shown={shown} onToggle={() => setShown((value) => !value)} disabled={disabled} />
+    </div>
+  );
+});
 
 /** Телефон с выбором страны — в ./phone-input. formatPhone — сохранённый номер для показа. */
 export { PhoneInput, formatPhoneNumber as formatPhone } from "./phone-input";

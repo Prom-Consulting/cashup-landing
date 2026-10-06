@@ -10,6 +10,7 @@ import {
   FormField,
   FormStatus,
   Input,
+  PasswordInput,
 } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useState } from "react";
@@ -152,9 +153,8 @@ function UploadKeyDialog({ certificate }: { certificate: Certificate }) {
           {apple && (
             <FormField label="Пароль от .p12">
               {(parts) => (
-                <Input
+                <PasswordInput
                   {...parts}
-                  type="password"
                   autoComplete="off"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}

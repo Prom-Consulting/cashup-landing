@@ -2,7 +2,7 @@ import { ApiError, changePasswordInputSchema, type ChangePasswordInput, authApi 
 import { ProfileForm, useApi } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
-import { Button, Input, PageHeader } from "@loal/ui/shadcn";
+import { Button, Input, PageHeader, PasswordInput } from "@loal/ui/shadcn";
 import { Card } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useCurrentUser } from "../../entities/session/model";
@@ -57,9 +57,8 @@ export function ProfilePage() {
               <FocusFirstError form={form} />
               <Field label="Текущий пароль" error={fieldError(form, "currentPassword")}>
                 {(parts) => (
-                  <Input
+                  <PasswordInput
                     {...parts}
-                    type="password"
                     name="currentPassword"
                     autoComplete="current-password"
                     value={form.values.currentPassword}
@@ -70,9 +69,8 @@ export function ProfilePage() {
               </Field>
               <Field label="Новый пароль" hint="Не короче 8 символов" error={fieldError(form, "newPassword")}>
                 {(parts) => (
-                  <Input
+                  <PasswordInput
                     {...parts}
-                    type="password"
                     name="newPassword"
                     autoComplete="new-password"
                     value={form.values.newPassword}
@@ -83,9 +81,8 @@ export function ProfilePage() {
               </Field>
               <Field label="Повторите новый пароль" error={fieldError(form, "repeatPassword")}>
                 {(parts) => (
-                  <Input
+                  <PasswordInput
                     {...parts}
-                    type="password"
                     name="repeatPassword"
                     autoComplete="new-password"
                     value={form.values.repeatPassword}

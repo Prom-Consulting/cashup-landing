@@ -6,7 +6,7 @@ import {
 } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { LinkSquare02Icon } from "@hugeicons/core-free-icons";
-import { Badge, Button, ConfirmDialog, FormField, FormStatus, Icon, Input, Skeleton } from "@loal/ui/shadcn";
+import { Badge, Button, ConfirmDialog, FormField, FormStatus, Icon, Input, Skeleton, PasswordInput } from "@loal/ui/shadcn";
 import { OCTOPAY_BUSINESS_URL, OCTOPAY_INTEGRATIONS_URL } from "../../shared/config/env";
 import { Form, Formik } from "formik";
 import { useRef } from "react";
@@ -200,10 +200,9 @@ export function OctopayIntegration({ merchantId }: { merchantId: string }) {
                   error={fieldError(form, "token")}
                 >
                   {(parts) => (
-                    <Input
+                    <PasswordInput
                       {...parts}
                       name="token"
-                      type="password"
                       autoComplete="off"
                       spellCheck={false}
                       placeholder="loal_link_…"

@@ -1,7 +1,7 @@
 import { ApiError, authApi, registerInputSchema, type RegisterInput } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
-import { Button, PhoneInput, Spinner, TextInput, OtpInput } from "@loal/ui/inputs";
+import { Button, PhoneInput, Spinner, TextInput, OtpInput, PasswordInput } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
 import { useState } from "react";
 import { useRequestOtp, useSession } from "./session";
@@ -128,9 +128,8 @@ export function RegisterForm({ onDone }: { onDone?: () => void }) {
 
               <Field label="Пароль" hint="Не короче 8 символов" error={fieldError(form, "password")}>
                 {(parts) => (
-                  <TextInput
+                  <PasswordInput
                     {...parts}
-                    type="password"
                     name="password"
                     autoComplete="new-password"
                     value={form.values.password}

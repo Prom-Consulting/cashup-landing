@@ -8,7 +8,7 @@ import {
 } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
-import { Button, PhoneInput, Spinner, TextInput, OtpInput } from "@loal/ui/inputs";
+import { Button, PhoneInput, Spinner, TextInput, OtpInput, PasswordInput } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
 import { useEffect, useState } from "react";
 import { useLogin, useLoginByOtp, useRequestOtp, useSession } from "./session";
@@ -73,9 +73,8 @@ function ByPassword({ onDone }: { onDone?: () => void }) {
 
           <Field label="Пароль" error={fieldError(form, "password")}>
             {(parts) => (
-              <TextInput
+              <PasswordInput
                 {...parts}
-                type="password"
                 name="password"
                 autoComplete="current-password"
                 value={form.values.password}
