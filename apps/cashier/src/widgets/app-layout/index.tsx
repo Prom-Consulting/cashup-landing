@@ -4,7 +4,7 @@ import {
   Clock01Icon,
   CoinsSwapIcon,
   Store01Icon,
-  UserCircleIcon,
+  UserSettings01Icon,
   Wallet01Icon,
 } from "@hugeicons/core-free-icons";
 import { WelcomeToast } from "@loal/app-kit";
@@ -30,7 +30,7 @@ const NAV: Record<CashierKind, Item[]> = {
     { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
     { to: "/storefront", label: "Витрина", icon: Store01Icon },
     { to: "/pos", label: "Касса", icon: CashierIcon },
-    { to: "/profile", label: "Профиль", icon: UserCircleIcon },
+    { to: "/profile", label: "Настройки", icon: UserSettings01Icon },
   ],
   branch: [
     { to: "/", label: "Обзор", icon: Chart01Icon },
@@ -39,7 +39,7 @@ const NAV: Record<CashierKind, Item[]> = {
     { to: "/history", label: "История", icon: Clock01Icon },
     { to: "/storefront", label: "Витрина", icon: Store01Icon },
     { to: "/pos", label: "Касса", icon: CashierIcon },
-    { to: "/profile", label: "Профиль", icon: UserCircleIcon },
+    { to: "/profile", label: "Настройки", icon: UserSettings01Icon },
   ],
 };
 

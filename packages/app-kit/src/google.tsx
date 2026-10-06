@@ -50,9 +50,30 @@ function loadGoogle(): Promise<GoogleId> {
 }
 
 /**
- * Официальная кнопка Google. Колбэк один на страницу (так устроен GIS), поэтому держим
- * последний в ref: перерисовка страницы не теряет обработчик.
+ * GIS держит на странице один обработчик — тот, что передали в initialize. Кабинет — одностраничное
+ * приложение: со входа человек переходит в профиль, и если каждая кнопка вызывает initialize,
+ * токен из профиля мог уйти в обработчик входа (привязка превращалась во вход и 404).
+ * Поэтому initialize — один раз на clientId, а токен получает кнопка, которая сейчас на экране.
  */
+let initializedFor: string | null = null;
+let activeHandler: ((idToken: string) => void) | null = null;
+
+function ensureInitialized(google: GoogleId, clientId: string) {
+  if (initializedFor === clientId) return;
+  initializedFor = clientId;
+  google.initialize({
+    client_id: clientId,
+    callback: (response) => {
+      if (response.credential) activeHandler?.(response.credential);
+    },
+    ux_mode: "popup",
+    auto_select: false,
+    cancel_on_tap_outside: true,
+    use_fedcm_for_button: true,
+  });
+}
+
+/** Официальная кнопка Google. Пока она на экране, токен из Google получает она. */
 function GoogleButton({
   clientId,
   text,
@@ -69,17 +90,13 @@ function GoogleButton({
 
   useEffect(() => {
     let alive = true;
+    // Эта кнопка на экране — токен идёт ей
+    const own = (idToken: string) => handler.current(idToken);
+    activeHandler = own;
     loadGoogle()
       .then((google) => {
         if (!alive || !box.current) return;
-        google.initialize({
-          client_id: clientId,
-          callback: (response) => response.credential && handler.current(response.credential),
-          ux_mode: "popup",
-          auto_select: false,
-          cancel_on_tap_outside: true,
-          use_fedcm_for_button: true,
-        });
+        ensureInitialized(google, clientId);
         google.renderButton(box.current, {
           type: "standard",
           theme: "outline",
@@ -95,6 +112,7 @@ function GoogleButton({
       .catch(() => alive && setFailed(true));
     return () => {
       alive = false;
+      if (activeHandler === own) activeHandler = null;
     };
   }, [clientId, text]);
 
@@ -104,13 +122,16 @@ function GoogleButton({
         Кнопка Google не загрузилась — проверьте интернет или блокировщик рекламы и обновите страницу.
       </p>
     );
-  return <div ref={box} className="flex min-h-11 w-full justify-center" />;
+  return (
+<div ref={box} className="flex min-h-11 w-full justify-center" />
+  );
 }
 
 function googleSignInError(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === "GOOGLE_NOT_LINKED")
-      return error.message || "Этот Google ещё не привязан. Войдите по номеру и привяжите Google в профиле.";
+      // Свой текст, а не message сервера: в кабинете раздел называется «Настройки»
+      return "Этот Google ещё не привязан. Войдите по номеру и привяжите Google в «Настройках».";
     if (error.code === "NOT_BUSINESS_ACCOUNT")
       return error.message || "Вход через Google — только для сотрудников магазинов.";
     if (error.code === "INVALID_GOOGLE_TOKEN") return "Не удалось войти через Google. Попробуйте ещё раз.";
@@ -160,7 +181,7 @@ export function GoogleSignIn({ clientId, onDone }: { clientId?: string; onDone?:
       {login.isPending && <p className="text-center text-base text-muted-foreground">Входим…</p>}
       <FormStatus message={error} />
       <p className="text-center text-sm text-muted-foreground">
-        Google работает после привязки в профиле. Первый вход — по номеру.
+        Google работает после привязки в «Настройках». Первый вход — по номеру.
       </p>
     </div>
   );
@@ -180,7 +201,7 @@ function googleLinkError(error: unknown): string {
 }
 
 /**
- * Карточка профиля «Вход через Google»: привязать свой Google, увидеть, какой привязан, отвязать.
+ * Карточка «Вход через Google» в настройках: привязать свой Google, увидеть, какой привязан, отвязать.
  * Состояние — поле `google` в `GET /auth/me/profile`.
  */
 export function GoogleLink({ clientId }: { clientId?: string }) {

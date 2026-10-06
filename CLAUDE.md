@@ -130,7 +130,7 @@ app → pages → widgets → features → entities → shared
 - `POST /auth/check-phone { phone }` → `{ exists }` — подсказка до кода, не право входа; `429`/`503` — «не знаем», вход
   не блокируем (`useCheckPhone`);
 - вход через Google — только сотрудникам магазинов (владелец, администратор филиала, кассир), регистрации через Google
-  нет: сначала вход по номеру, потом «Привязать Google» в профиле (`POST/DELETE /auth/me/google`, состояние — `google`
+  нет: сначала вход по номеру, потом «Привязать Google» в «Настройках» (`/profile`) (`POST/DELETE /auth/me/google`, состояние — `google`
   в `/auth/me/profile`), дальше `POST /auth/google { idToken, deviceId }`. Клиенты и агентство — без Google.
   Кнопку рисует Google Identity Services (`GoogleSignIn`, `GoogleLink` в `@loal/app-kit`), Web client ID —
   `VITE_GOOGLE_CLIENT_ID` при сборке (`GOOGLE_CLIENT_ID` в compose); пусто или `503 GOOGLE_SIGN_IN_DISABLED` — кнопки нет;

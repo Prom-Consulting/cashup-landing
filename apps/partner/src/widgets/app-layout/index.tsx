@@ -7,6 +7,7 @@ import {
   CashierIcon,
   Settings02Icon,
   Store01Icon,
+  UserSettings01Icon,
   UserGroupIcon,
   Wallet01Icon,
   NfcIcon,
@@ -40,6 +41,8 @@ const nav: Item[] = [
   { to: "/pos", label: "Касса", icon: CashierIcon },
   { to: "/webhooks", label: "Вебхуки", icon: LinkSquare02Icon, access: "owner" },
   { to: "/onec", label: "Обмен с 1С", icon: Settings02Icon, access: "owner" },
+  // Вход через Google, имя и почта, выход из программы — раньше сюда можно было попасть только по адресу
+  { to: "/profile", label: "Настройки", icon: UserSettings01Icon },
 ];
 
 export function AppLayout() {

@@ -17,14 +17,20 @@ import { GOOGLE_CLIENT_ID } from "../../shared/config/env";
 
 const initialValues: ChangePasswordInput = { currentPassword: "", newPassword: "", repeatPassword: "" };
 
-/** Профиль: кто вошёл, вход через Google, имя и почта, смена пароля. */
+/** Настройки: вход через Google, кто вошёл, имя и почта, смена пароля, выход из программы. */
 export function ProfilePage() {
   const api = useApi();
   const { label, membership, merchantId, canManage } = useCurrentMerchant();
 
   return (
     <section className="flex max-w-[560px] flex-col gap-6">
-      <PageHeader title="Профиль" description={label} />
+      <PageHeader title="Настройки" description={label} />
+
+      {/* Первым — привязка Google: ради неё сюда чаще всего и заходят */}
+      <Card>
+        <h2 className="text-xl font-bold">Вход через Google</h2>
+        <GoogleLink clientId={GOOGLE_CLIENT_ID} />
+      </Card>
 
       <Card>
         <h2 className="text-xl font-bold">Доступ</h2>
@@ -33,11 +39,6 @@ export function ProfilePage() {
             ? `${MERCHANT_ROLE_LABELS[membership.role]!.title}. ${MERCHANT_ROLE_LABELS[membership.role]!.can}`
             : "Сотрудник магазина"}
         </p>
-      </Card>
-
-      <Card>
-        <h2 className="text-xl font-bold">Вход через Google</h2>
-        <GoogleLink clientId={GOOGLE_CLIENT_ID} />
       </Card>
 
       <Card>
