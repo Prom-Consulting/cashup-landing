@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CorporateHero } from "../_components/business-section";
 import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
+import { PriceCountdown } from "../_components/price-countdown";
 import { models } from "../_data/models";
 import { PAGE_SEO, openGraph } from "../_data/seo";
 import { CITY, EMAIL, OCTOPAY_URL, PARTNER_MAIL, PHONE, PHONE_HREF } from "../_data/site";
@@ -129,8 +130,17 @@ export default function BecomePartnerPage() {
                     }`}
                   >
                     {m.price}
+                    {m.oldPrice && (
+                      <s className="ml-3 align-middle text-[0.5em] font-extrabold text-graphite/60 decoration-flame decoration-[3px]">
+                        <span className="sr-only">вместо </span>
+                        {m.oldPrice}
+                      </s>
+                    )}
                   </p>
                   <p className="mt-2 font-medium">{m.priceNote}</p>
+                  {m.priceUntil && (
+                    <PriceCountdown until={m.priceUntil} label="Бесплатно ещё" className="mt-3 text-base" />
+                  )}
                   <ul className="mt-8 flex flex-1 flex-col gap-3">
                     {m.points.map((pt) => (
                       <li key={pt} className="flex gap-3">

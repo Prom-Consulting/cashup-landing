@@ -6,6 +6,10 @@ export type Model = {
   key: string;
   title: string;
   price: string;
+  /** Обычная цена — перечёркнута рядом с акционной. */
+  oldPrice?: string;
+  /** До какого момента действует акционная цена: таймер на карточке. */
+  priceUntil?: string;
   priceNote: string;
   points: string[];
   featured?: boolean;
@@ -18,7 +22,10 @@ export function models(partnerUrl: string): Model[] {
       key: "loyalty",
       title: "Только лояльность",
       price: "0 сом",
-      priceNote: "бесплатно на старте, пока набирается аудитория",
+      oldPrice: "8 750 сом",
+      // Конец 30 ноября по Бишкеку
+      priceUntil: "2026-11-30T23:59:59+06:00",
+      priceNote: "бесплатно до 30 ноября 2026, пока набирается аудитория",
       points: [
         "Место в каталоге Loal и кабинет партнёра",
         "Сами задаёте максимальный % оплаты бонусами на месяц",

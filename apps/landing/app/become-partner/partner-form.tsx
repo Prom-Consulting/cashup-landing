@@ -23,7 +23,7 @@ const LocationPicker = dynamic(() => import("./location-picker"), {
 });
 
 const plans = [
-  { id: "loyalty", label: "Только лояльность", note: "бесплатно на старте" },
+  { id: "loyalty", label: "Только лояльность", note: "0 сом вместо 8 750 — до 30 ноября" },
   { id: "bundle", label: "OctōPAY + лояльность", note: "без абонентской платы" },
   { id: "octopay", label: "Только OctōPAY", note: "комиссия с оборота" },
 ] as const;
@@ -98,8 +98,17 @@ async function call(path: string, body?: unknown, token?: string) {
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   if (response.status === 401) throw new PhoneExpired("Код не подошёл или подтверждение устарело. Запросите новый код.");
-  if (response.status === 409)
+  if (response.status === 409) {
+    // Один номер — одно живое заведение; заявка на номер — одна, пока её не отклонили
+    const code = ((await response.json().catch(() => ({}))) as { error?: string }).error;
+    if (code === "PHONE_HAS_ACTIVE_MERCHANT")
+      throw new FormError("Этот номер уже работает в заведении Loal — владельцем или сотрудником. Подайте заявку с другого номера или напишите нам.");
+    if (code === "APPLICATION_IN_PROGRESS")
+      throw new FormError("По этому номеру уже обрабатывается заявка с другими данными. Дождитесь решения — статус заявки ниже.");
+    if (code === "APPLICATION_EXISTS")
+      throw new FormError("На этот номер уже есть заявка на OctōPAY. Проверьте её статус или напишите нам.");
     throw new FormError("На этот номер уже есть заявка или аккаунт. Проверьте статус заявки или напишите нам.");
+  }
   if (response.status === 429) throw new FormError("Слишком много попыток. Подождите минуту и попробуйте снова.");
   if (response.status === 400) throw new FormError("Проверьте поля заявки: сервер не принял данные.");
   if (!response.ok) throw new FormError("Сервис временно недоступен. Попробуйте через минуту.");
