@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type DragEvent, type ReactNode } from "react";
 
-const TYPES = ["image/png", "image/jpeg"];
+import { STOREFRONT_IMAGE_ACCEPT, STOREFRONT_IMAGE_FORMATS, isStorefrontImage } from "@loal/api";
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_PHOTOS = 10;
 
@@ -18,9 +18,12 @@ function usePreview(file: File) {
 
 function Thumb({ file, className }: { file: File; className: string }) {
   const url = usePreview(file);
+  const [failedUrl, setFailedUrl] = useState("");
   // Локальное превью до загрузки; на сервере картинки нормализуются
   // eslint-disable-next-line @next/next/no-img-element
-  return url ? <img src={url} alt="" className={className} /> : <span className={`${className} bg-smoke`} />;
+  return url && failedUrl !== url
+    ? <img src={url} alt="" className={className} onError={() => setFailedUrl(url)} />
+    : <span title={file.name} className={`${className} grid place-items-center overflow-hidden bg-smoke p-2 text-center text-xs break-all`}>{file.name}</span>;
 }
 
 function RemoveButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
@@ -85,7 +88,7 @@ function DropZone({
         ref={input}
         id={id}
         type="file"
-        accept={TYPES.join(",")}
+        accept={STOREFRONT_IMAGE_ACCEPT}
         multiple={multiple}
         disabled={disabled}
         className="sr-only"
@@ -108,7 +111,7 @@ const PlusIcon = () => (
 
 /**
  * Логотип и фотографии витрины: крупные зоны загрузки с превью. Логотип — круг, как в каталоге;
- * первое фото — обложка карточки. PNG или JPG до 5 МБ, загрузка после подтверждения телефона.
+ * первое фото — обложка карточки. Изображения до 5 МБ, загрузка после подтверждения телефона.
  */
 export function StorefrontImages({
   logo,
@@ -127,17 +130,17 @@ export function StorefrontImages({
   const logoId = useId();
   const photosId = useId();
   const invalid = (files: File[]) =>
-    files.find((file) => !TYPES.includes(file.type) || file.size === 0 || file.size > MAX_BYTES);
+    files.find((file) => !isStorefrontImage(file) || file.size === 0 || file.size > MAX_BYTES);
 
   const addLogo = (files: File[]) => {
     const bad = invalid(files);
-    if (bad) return setError(`«${bad.name}»: нужен PNG или JPG до 5 МБ.`);
+    if (bad) return setError(`«${bad.name}»: нужно изображение до 5 МБ. Подойдут ${STOREFRONT_IMAGE_FORMATS}.`);
     setError("");
     onLogo(files[0]!);
   };
   const addPhotos = (files: File[]) => {
     const bad = invalid(files);
-    if (bad) return setError(`«${bad.name}»: нужен PNG или JPG до 5 МБ.`);
+    if (bad) return setError(`«${bad.name}»: нужно изображение до 5 МБ. Подойдут ${STOREFRONT_IMAGE_FORMATS}.`);
     const room = MAX_PHOTOS - photos.length;
     if (files.length > room) setError(`Можно не больше ${MAX_PHOTOS} фотографий — добавили первые ${room}.`);
     else setError("");
@@ -208,7 +211,7 @@ export function StorefrontImages({
       </div>
 
       <p className="rounded-2xl bg-cream px-4 py-3 text-sm">
-        PNG или JPG, до 5 МБ каждый. Картинки загрузятся после подтверждения телефона.
+        {STOREFRONT_IMAGE_FORMATS}, до 5 МБ каждый. Картинки загрузятся после подтверждения телефона.
       </p>
       {error && (
         <p role="alert" className="text-sm font-medium text-flame-ink">

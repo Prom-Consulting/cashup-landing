@@ -1,5 +1,7 @@
 import {
   ApiError,
+  STOREFRONT_IMAGE_ACCEPT,
+  STOREFRONT_IMAGE_FORMATS,
   PARTNER_CATEGORIES,
   coordsFrom2gis,
   merchantProfileFormSchema,
@@ -115,7 +117,7 @@ export function StorefrontForm({
       else setPhotos((current) => [...current, asset.url].slice(0, MAX_PHOTOS));
     } catch (error) {
       setUploadError(
-        error instanceof ApiError ? error.message : "Не удалось загрузить картинку. Подойдут PNG, JPG и SVG до 25 МБ.",
+        error instanceof ApiError ? error.message : `Не удалось загрузить картинку. Подойдут ${STOREFRONT_IMAGE_FORMATS} до 25 МБ.`,
       );
     }
   };
@@ -257,7 +259,7 @@ export function StorefrontForm({
               <input
                 ref={logoInput}
                 type="file"
-                accept="image/png,image/jpeg,image/svg+xml"
+                accept={STOREFRONT_IMAGE_ACCEPT}
                 hidden
                 onChange={(event) => pick("merchantLogo", event.target.files?.[0])}
               />
@@ -293,7 +295,7 @@ export function StorefrontForm({
               <input
                 ref={photoInput}
                 type="file"
-                accept="image/png,image/jpeg,image/svg+xml"
+                accept={STOREFRONT_IMAGE_ACCEPT}
                 hidden
                 onChange={(event) => pick("merchantPhoto", event.target.files?.[0])}
               />

@@ -1,5 +1,5 @@
 import { Delete02Icon, ImageAdd01Icon } from "@hugeicons/core-free-icons";
-import { ApiError, PARTNER_CATEGORIES, createMerchantFormSchema, slugify, type CreateMerchantForm } from "@loal/api";
+import { STOREFRONT_IMAGE_ACCEPT, ApiError, PARTNER_CATEGORIES, createMerchantFormSchema, slugify, type CreateMerchantForm } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { PhoneInput } from "@loal/ui/inputs";
 import { Button, FileButton, FormField, FormStatus, Icon, Input, Label, Textarea, cn } from "@loal/ui/shadcn";
@@ -15,7 +15,7 @@ const initialValues: CreateMerchantForm = {
   description: "",
 };
 const MAX_PHOTOS = 10;
-const IMAGE_TYPES = "image/png,image/jpeg,image/webp,image/svg+xml";
+const IMAGE_TYPES = STOREFRONT_IMAGE_ACCEPT;
 
 /** Превью выбранного файла до загрузки: адрес живёт, пока картинка на экране. */
 function usePreview(file: File | null) {

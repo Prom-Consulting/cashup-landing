@@ -289,7 +289,7 @@ export function PartnerForm() {
     if (response.status === 401) throw new PhoneExpired("Подтвердите телефон ещё раз, чтобы загрузить фотографии.");
     if (response.status === 413) throw new FormError("Размер изображения не должен превышать 5 МБ.");
     if (response.status === 429) throw new FormError("Загрузка временно занята. Подождите минуту и повторите.");
-    if (!response.ok) throw new FormError("Не удалось загрузить изображение. Повторите отправку или выберите другой PNG/JPG.");
+    if (!response.ok) throw new FormError("Не удалось загрузить изображение. Повторите отправку или выберите другое изображение.");
     const { url } = z.object({ url: z.string().url() }).parse(await response.json());
     uploaded.current.set(file, url); return url;
   };
