@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Nunito, Nunito_Sans } from "next/font/google";
 import "./globals.css";
 import { JsonLd } from "./_components/json-ld";
-import { EMAIL, PHONE, SITE_URL } from "./_data/site";
+import { EMAIL, PHONE, SITE_URL, SOCIAL_LINKS } from "./_data/site";
 
 // Шрифты брендбука Loal 2026: Nunito Sans — заголовки, Nunito — основной текст.
 // cyrillic-ext нужен кыргызскому: Ң, Ө, Ү.
@@ -52,6 +52,7 @@ const organizationLd = {
       email: EMAIL,
       telephone: PHONE,
       areaServed: { "@type": "City", name: "Бишкек" },
+      ...(SOCIAL_LINKS.length ? { sameAs: SOCIAL_LINKS.map((item) => item.url) } : {}),
     },
     {
       "@type": "WebSite",

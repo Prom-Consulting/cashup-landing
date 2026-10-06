@@ -5,6 +5,7 @@ import {
   merchantExitApi,
   type ExitRequestInput,
   merchantsApi,
+  partnersApi,
   promoApi,
   tariffOf,
   type ConnectOctopayInput,
@@ -367,4 +368,12 @@ export function useRequestExit(merchantId: string) {
     mutationFn: (input: ExitRequestInput) => merchantExitApi(api).request(merchantId, input),
     onSuccess: (saved) => queryClient.setQueryData(merchantKeys.exitRequest(merchantId), saved),
   });
+}
+
+// ── Страница заведения на loal.kg ────────────────────────────────────────────
+
+/** Каталог сайта: по нему видно, опубликован ли магазин, и строится его адрес на loal.kg. */
+export function usePublicPartners() {
+  const api = useApi();
+  return useQuery({ queryKey: ["public-partners"], queryFn: () => partnersApi(api).publicList(), staleTime: 60_000 });
 }

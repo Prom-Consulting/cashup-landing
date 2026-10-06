@@ -11,6 +11,7 @@ import {
   PHONE,
   PHONE_HREF,
   PROM_URL,
+  SOCIAL_LINKS,
 } from "../_data/site";
 
 const product = [
@@ -97,6 +98,17 @@ export function SiteFooter() {
                   </a>
                 </li>
               </ul>
+              {SOCIAL_LINKS.length > 0 && (
+                <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-base">
+                  {SOCIAL_LINKS.map((item) => (
+                    <li key={item.url}>
+                      <a href={item.url} target="_blank" rel="me noopener" className={`${link} hover:text-flame`}>
+                        {item.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </address>
           </div>
 

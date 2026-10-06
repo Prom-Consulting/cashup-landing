@@ -69,3 +69,19 @@ export function slugify(name: string): string {
     .slice(0, 48)
     .replace(/-+$/g, "");
 }
+
+/** Категория заведения по названию из витрины; своё название магазина — «Другое». */
+export function partnerCategoryId(category: string | null | undefined): PartnerCategoryId {
+  return PARTNER_CATEGORIES.find((item) => item.label === category)?.id ?? "other";
+}
+
+/** Короткий код заведения в адресе — первые 8 знаков id: адрес короткий, но однозначный. */
+export const partnerCode = (id: string) => id.replace(/-/g, "").slice(0, 8).toLowerCase();
+
+/**
+ * Страница заведения на loal.kg: `/partners/shop/askarova-fc7761e1` — категория, название
+ * латиницей и код. Одна формула для лендинга и кабинета партнёра («Ссылка на вас в Loal»).
+ */
+export function partnerPublicPath(partner: { id: string; name: string; category?: string | null }) {
+  return `/partners/${partnerCategoryId(partner.category)}/${slugify(partner.name) || "zavedenie"}-${partnerCode(partner.id)}`;
+}

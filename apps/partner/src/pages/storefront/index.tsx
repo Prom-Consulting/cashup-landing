@@ -1,6 +1,7 @@
 import { CoverageLimitForm, StorefrontForm, refreshPublicCatalog, useMerchantProfile } from "@loal/app-kit";
 import { Card, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { useCurrentMerchant } from "../../entities/session/model";
+import { LoalPageCard } from "../../features/loal-page/loal-page-card";
 import { SITE_URL } from "../../shared/config/env";
 
 /** Витрина: то, что клиент видит о заведении в каталоге до того, как зайдёт. */
@@ -38,6 +39,8 @@ export function StorefrontPage() {
           )}
         </Card>
       )}
+
+      {merchantId && <LoalPageCard merchantId={merchantId} />}
 
       {merchantId && (
         <Card>

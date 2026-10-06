@@ -18,3 +18,9 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://loal.promcons
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://loal.kg";
 export const PARTNER_APP_URL = process.env.NEXT_PUBLIC_PARTNER_APP_URL ?? "https://partner.loal.kg";
 export const CLIENT_APP_URL = process.env.NEXT_PUBLIC_CLIENT_APP_URL ?? "https://client.loal.kg";
+
+/**
+ * Официальные профили Loal (Instagram, Telegram, 2ГИС…). Попадают в подвал и в sameAs
+ * организации — поисковики связывают их с сайтом. Пусто — блока нет.
+ */
+export const SOCIAL_LINKS: { label: string; url: string }[] = [];

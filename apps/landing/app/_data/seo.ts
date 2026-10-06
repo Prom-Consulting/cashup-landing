@@ -1,4 +1,11 @@
-import { PARTNER_CATEGORIES, slugify, type PartnerCategoryId, type PublicPartner } from "@loal/api";
+import {
+  PARTNER_CATEGORIES,
+  partnerCategoryId,
+  partnerCode,
+  partnerPublicPath,
+  type PartnerCategoryId,
+  type PublicPartner,
+} from "@loal/api";
 
 /**
  * SEO лендинга в одном месте: адреса страниц заведений и категорий, шаблоны title и
@@ -22,9 +29,7 @@ export const CATEGORY_SEO: Record<PartnerCategoryId, { title: string; about: str
 };
 
 /** Категория заведения по названию из витрины; своё название магазина — «Другое». */
-export function categoryIdOf(partner: Pick<PublicPartner, "category">): PartnerCategoryId {
-  return PARTNER_CATEGORIES.find((item) => item.label === partner.category)?.id ?? "other";
-}
+export const categoryIdOf = (partner: Pick<PublicPartner, "category">): PartnerCategoryId => partnerCategoryId(partner.category);
 
 export function categoryLabel(id: PartnerCategoryId) {
   return PARTNER_CATEGORIES.find((item) => item.id === id)!.label;
@@ -32,13 +37,10 @@ export function categoryLabel(id: PartnerCategoryId) {
 
 export const categoryPath = (id: PartnerCategoryId) => `/partners/${id}`;
 
-/** Короткий код заведения в адресе — первые 8 знаков id: адрес короткий, но однозначный. */
-export const partnerCode = (id: string) => id.replace(/-/g, "").slice(0, 8).toLowerCase();
+export { partnerCode };
 
-/** `/partners/shop/askarova-fc7761e1`: категория, название латиницей и код. */
-export function partnerPath(partner: Pick<PublicPartner, "id" | "name" | "category">) {
-  return `${categoryPath(categoryIdOf(partner))}/${slugify(partner.name) || "zavedenie"}-${partnerCode(partner.id)}`;
-}
+/** `/partners/shop/askarova-fc7761e1` — формула общая с кабинетом партнёра (@loal/api). */
+export const partnerPath = (partner: Pick<PublicPartner, "id" | "name" | "category">) => partnerPublicPath(partner);
 
 /** Код из последнего сегмента адреса; название и категория могли смениться — ищем по коду. */
 export function findByPathSegment(partners: PublicPartner[], segment: string) {
