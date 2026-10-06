@@ -71,7 +71,7 @@ const faq = [
 export default function BecomePartnerPage() {
   return (
     <>
-      <SiteHeader audience="business" cta={{ label: "Оставить заявку", href: "#form" }} />
+      <SiteHeader audience="business" />
 
       <main className="flex-1 overflow-x-clip">
         <CorporateHero formHref="#form" />
