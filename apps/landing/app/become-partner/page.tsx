@@ -3,24 +3,15 @@ import { CorporateHero } from "../_components/business-section";
 import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
 import { models } from "../_data/models";
+import { PAGE_SEO, openGraph } from "../_data/seo";
 import { CITY, EMAIL, OCTOPAY_URL, PARTNER_MAIL, PHONE, PHONE_HREF } from "../_data/site";
 import { PartnerForm } from "./partner-form";
 
 export const metadata: Metadata = {
-  title: "Loal Corporate — для бизнеса",
-  description:
-    "Loal Corporate — программы лояльности для бизнеса. Подключите компанию к бонусной сети Loal: сами задаёте долю покупки, которую закрывают бонусы, даёте доступ сотрудникам и видите все операции.", // Своё превью в мессенджерах; картинка берётся из app/opengraph-image.png.
+  title: { absolute: PAGE_SEO.business.title },
+  description: PAGE_SEO.business.description,
   alternates: { canonical: "/become-partner" },
-  openGraph: {
-    url: "/become-partner",
-    type: "website",
-    locale: "ru_RU",
-    siteName: "Loal",
-    images: { url: "/opengraph-image.png", width: 1200, height: 630, alt: "Loal — бонусы по подписке" },
-    title: "Loal Corporate — программы лояльности для бизнеса",
-    description:
-      "Loal Corporate — программы лояльности для бизнеса. Подключите компанию к бонусной сети Loal: сами задаёте долю покупки, которую закрывают бонусы, даёте доступ сотрудникам и видите все операции.",
-  },
+  openGraph: openGraph("/become-partner", PAGE_SEO.business.title, PAGE_SEO.business.description),
 };
 
 const steps = [
@@ -29,8 +20,8 @@ const steps = [
     text: "Рассказываете о заведении и выбираете модель подключения. Подтверждаете номер телефона кодом из WhatsApp.",
   },
   {
-    title: "Оплачиваете доступ",
-    text: "Для модели «Только лояльность» — 8 750 сом (100 $ × 87,5) в месяц через OctōPAY. В пакете с OctōPAY абонентской платы нет.",
+    title: "Получаете кабинет",
+    text: "Регистрация бесплатная на всех трёх моделях. Абонентской платы за «Только лояльность» пока нет — пока набирается аудитория, в пакете с OctōPAY её нет вовсе.",
   },
   {
     title: "Настраиваете процент",
@@ -79,7 +70,7 @@ const faq = [
 export default function BecomePartnerPage() {
   return (
     <>
-      <SiteHeader cta={{ label: "Оставить заявку", href: "#form" }} />
+      <SiteHeader audience="business" cta={{ label: "Оставить заявку", href: "#form" }} />
 
       <main className="flex-1 overflow-x-clip">
         <CorporateHero formHref="#form" />

@@ -23,7 +23,7 @@ const LocationPicker = dynamic(() => import("./location-picker"), {
 });
 
 const plans = [
-  { id: "loyalty", label: "Только лояльность", note: "8 750 сом в месяц" },
+  { id: "loyalty", label: "Только лояльность", note: "бесплатно на старте" },
   { id: "bundle", label: "OctōPAY + лояльность", note: "без абонентской платы" },
   { id: "octopay", label: "Только OctōPAY", note: "комиссия с оборота" },
 ] as const;

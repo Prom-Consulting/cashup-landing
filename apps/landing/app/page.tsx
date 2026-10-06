@@ -13,6 +13,7 @@ import { MonthSteps } from "./_components/month-steps";
 import { PageMotion } from "./_components/page-motion";
 import { SiteFooter } from "./_components/site-footer";
 import { SiteHeader } from "./_components/site-header";
+import { PAGE_SEO, openGraph } from "./_data/seo";
 import { CLIENT_APP_URL, OCTOPAY_URL } from "./_data/site";
 
 // Подписку оформляют в кабинете клиента: там же выпускается карта
@@ -94,7 +95,12 @@ const faq = [
   },
 ];
 
-export const metadata: Metadata = { alternates: { canonical: "/" } };
+export const metadata: Metadata = {
+  title: { absolute: PAGE_SEO.home.title },
+  description: PAGE_SEO.home.description,
+  alternates: { canonical: "/" },
+  openGraph: openGraph("/", PAGE_SEO.home.title, PAGE_SEO.home.description),
+};
 
 // Для поисковиков: вопросы-ответы и сама подписка с ценой.
 const faqLd = {
@@ -119,7 +125,7 @@ const subscriptionLd = {
       "@type": "UnitPriceSpecification",
       price: "990",
       priceCurrency: "KGS",
-      billingDuration: "P90D",
+      billingDuration: "P30D",
     },
   },
 };

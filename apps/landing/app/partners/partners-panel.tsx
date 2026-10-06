@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type Keyboard
 import { coordsOf } from "../_data/partner-coords";
 import { highlight, searchPartners } from "../_data/partner-search";
 import { monogram } from "../_data/partners-api";
+import { CategoryChips } from "./category-chips";
 import { SearchField, Suggestions, type SearchOption } from "./smart-search";
 import { fitLogo, partnerAvatar } from "./logo-fit";
 
@@ -83,12 +84,15 @@ export function PartnersPanel({
   onHover,
   onPick,
   onLayout,
+  onOpen,
 }: {
   partners: PublicPartner[];
   selectedId: string | null;
   onHover: (id: string | null) => void;
   onPick: (partner: PublicPartner) => void;
   onLayout: (layout: PanelLayout) => void;
+  /** Карточка заведения целиком — фото, описание, действия. */
+  onOpen: (partner: PublicPartner) => void;
 }) {
   const desktop = useDesktop();
   const panel = useRef<HTMLDivElement>(null);
@@ -375,28 +379,14 @@ export function PartnersPanel({
               onKeyDown={onSearchKey}
             />
             {(categories.length > 0 || category) && !searching && (
-              <div className="-mx-5 flex gap-2 overflow-x-auto px-5 md:-mx-6 md:px-6">
-                {[null, ...new Set([...categories.map(([name]) => name), ...(category ? [category] : [])])].map(
-                  (name) => {
-                    const active = category === name;
-                    return (
-                      <button
-                        key={name ?? "all"}
-                        type="button"
-                        onClick={() => setCategory(active ? null : name)}
-                        aria-pressed={active}
-                        className={`shrink-0 rounded-full border-2 px-4 py-2 text-sm font-medium transition-colors ${
-                          active
-                            ? "border-graphite bg-graphite text-paper"
-                            : "border-smoke bg-white/70 hover:border-graphite"
-                        }`}
-                      >
-                        {name ?? "Все"}
-                      </button>
-                    );
-                  },
+              <CategoryChips
+                categories={[...new Set([...categories.map(([name]) => name), ...(category ? [category] : [])])].map(
+                  (name) => ({ name }),
                 )}
-              </div>
+                value={category}
+                onChange={setCategory}
+                className="-mx-5 px-5 md:-mx-6 md:px-6"
+              />
             )}
           </div>
         )}
@@ -411,7 +401,7 @@ export function PartnersPanel({
             onPick={choose}
           />
         ) : (
-          <ul ref={list} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3 md:px-4">
+          <ul ref={list} className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-3 pb-3 md:px-4">
             {result.readAs && query.trim() && (
               <li className="px-3 pb-2 text-sm text-slate">
                 Показаны результаты для «<span className="font-bold text-graphite">{result.readAs}</span>»
@@ -472,7 +462,14 @@ export function PartnersPanel({
                           <p className="line-clamp-3 text-base leading-snug text-graphite/85">{partner.description}</p>
                         )}
                         {partner.address && <p className="text-base leading-snug text-slate">{partner.address}</p>}
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-base">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-base">
+                          <button
+                            type="button"
+                            onClick={() => onOpen(partner)}
+                            className="rounded-full bg-graphite px-4 py-1.5 text-sm font-bold text-paper transition-colors hover:bg-flame"
+                          >
+                            Подробнее
+                          </button>
                           {partner.contactPhone && (
                             <a
                               href={phoneHref(partner.contactPhone)}

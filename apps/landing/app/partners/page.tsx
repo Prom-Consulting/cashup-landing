@@ -3,23 +3,15 @@ import { JsonLd } from "../_components/json-ld";
 import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
 import { getPublicPartners } from "../_data/partners-api";
+import { PAGE_SEO, openGraph, partnerPath } from "../_data/seo";
 import { SITE_URL } from "../_data/site";
 import { PartnersExplorer } from "./partners-explorer";
 
 export const metadata: Metadata = {
-  title: "Где тратить бонусы в Бишкеке",
-  description:
-    "Заведения, которые принимают бонусы Loal: кофейни, салоны красоты, магазины, фитнес и сервисы Бишкека. Список пополняется.",
+  title: { absolute: PAGE_SEO.partners.title },
+  description: PAGE_SEO.partners.description,
   alternates: { canonical: "/partners" },
-  openGraph: {
-    url: "/partners",
-    type: "website",
-    locale: "ru_RU",
-    siteName: "Loal",
-    images: { url: "/opengraph-image.png", width: 1200, height: 630, alt: "Loal — бонусы по подписке" },
-    title: "Где тратить бонусы Loal — Loal",
-    description: "Заведения Бишкека, которые принимают бонусы Loal.",
-  },
+  openGraph: openGraph("/partners", PAGE_SEO.partners.title, PAGE_SEO.partners.description),
 };
 
 /** Страница статическая, данные живые: раз в минуту и сразу после сохранения витрины. */
@@ -53,7 +45,7 @@ export default async function PartnersPage() {
             ? { geo: { "@type": "GeoCoordinates", latitude: partner.lat, longitude: partner.lng } }
             : {}),
           areaServed: "Бишкек",
-          url: `${SITE_URL}/partners`,
+          url: `${SITE_URL}${partnerPath(partner)}`,
         },
       })),
   };
@@ -67,8 +59,8 @@ export default async function PartnersPage() {
         <PartnersExplorer partners={partners} />
       </main>
 
-      {/* Телефон: каталог — карта на весь экран со шторкой; подвал под ней сливался со шторкой */}
-      <div className="hidden md:block">
+      {/* В виде «Карта» на телефоне подвал прячет globals.css — он сливался со шторкой */}
+      <div className="partners-footer">
         <SiteFooter />
       </div>
     </>

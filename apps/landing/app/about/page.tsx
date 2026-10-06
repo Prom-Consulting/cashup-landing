@@ -15,23 +15,13 @@ import {
   PHONE_HREF,
   PROM_URL,
 } from "../_data/site";
-
-const description =
-  "Loal — бонусная сеть по подписке в Бишкеке. Покупатели получают 15 000 бонусов на каждые 30 дней, заведения сами решают, какую часть чека они закрывают. Оператор — Prom.Consulting, платежи — через OctōPAY.";
+import { PAGE_SEO, openGraph } from "../_data/seo";
 
 export const metadata: Metadata = {
-  title: "О компании",
-  description,
+  title: { absolute: PAGE_SEO.about.title },
+  description: PAGE_SEO.about.description,
   alternates: { canonical: "/about" },
-  openGraph: {
-    url: "/about",
-    type: "website",
-    locale: "ru_RU",
-    siteName: "Loal",
-    images: { url: "/opengraph-image.png", width: 1200, height: 630, alt: "Loal — бонусы по подписке" },
-    title: "О компании Loal",
-    description,
-  },
+  openGraph: openGraph("/about", PAGE_SEO.about.title, PAGE_SEO.about.description),
 };
 
 /** Два направления из брендбука: покупатели и бизнес. */

@@ -1,7 +1,12 @@
 "use client";
 
 import type { PublicPartner } from "@loal/api";
-import { Map as MapLibreMap, Marker, type MapOptions, type PaddingOptions } from "maplibre-gl";
+import {
+  Map as MapLibreMap,
+  Marker,
+  type MapOptions,
+  type PaddingOptions,
+} from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { mapStyle as style } from "../_data/map-style";
@@ -9,12 +14,16 @@ import { CITY_CENTER, coordsOf } from "../_data/partner-coords";
 import { monogram } from "../_data/partners-api";
 import { fitLogo, partnerAvatar } from "./logo-fit";
 
-
 const reducedMotion = () =>
-  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** Точку собираем из элементов, а не строкой HTML: название и фото приходят от заведения. */
-function pinElement(partner: PublicPartner, index: number, onClick: () => void) {
+function pinElement(
+  partner: PublicPartner,
+  index: number,
+  onClick: () => void,
+) {
   const make = (tag: string, className: string) => {
     const element = document.createElement(tag);
     element.className = className;
@@ -49,7 +58,11 @@ function pinElement(partner: PublicPartner, index: number, onClick: () => void) 
     letters.textContent = monogram(partner.name);
     face.append(letters);
   }
-  lift.append(make("span", "loal-pin__halo"), make("span", "loal-pin__tail"), face);
+  lift.append(
+    make("span", "loal-pin__halo"),
+    make("span", "loal-pin__tail"),
+    face,
+  );
   if (partner.maxCoveragePercent) {
     const badge = make("span", "loal-pin__badge");
     badge.textContent = `${partner.maxCoveragePercent}%`;
@@ -57,6 +70,41 @@ function pinElement(partner: PublicPartner, index: number, onClick: () => void) 
   }
   drop.append(make("span", "loal-pin__ripple"), lift);
   root.append(drop);
+  return root;
+}
+
+// Точка — 64×80 px: ближе этого по любой оси карточки налезают друг на друга
+const CLUSTER_PX = 78;
+/** С этого приближения близкие точки больше не собираем — раскладываем веером. */
+const SPREAD_ZOOM = 17;
+
+/** Кружок «несколько заведений здесь»: число и лучший процент; клик приближает к ним. */
+function clusterElement(group: PublicPartner[], onClick: () => void) {
+  const root = document.createElement("button");
+  root.type = "button";
+  root.className = "loal-cluster";
+  const best = Math.max(
+    0,
+    ...group.map((partner) => partner.maxCoveragePercent ?? 0),
+  );
+  root.setAttribute(
+    "aria-label",
+    `${group.length} заведений рядом — приблизить`,
+  );
+  const count = document.createElement("span");
+  count.className = "loal-cluster__count";
+  count.textContent = String(group.length);
+  root.append(count);
+  if (best) {
+    const badge = document.createElement("span");
+    badge.className = "loal-cluster__badge";
+    badge.textContent = `до ${best}%`;
+    root.append(badge);
+  }
+  root.addEventListener("click", (event) => {
+    event.stopPropagation();
+    onClick();
+  });
   return root;
 }
 
@@ -87,6 +135,106 @@ export function PartnerMap({
   select.current = onSelect;
   const paddingRef = useRef(padding);
   paddingRef.current = padding;
+  const activeRef = useRef(activeId);
+  activeRef.current = activeId;
+  const placedRef = useRef<
+    { partner: PublicPartner; coords: [number, number] }[]
+  >([]);
+  const clusters = useRef<Marker[]>([]);
+
+  /**
+   * Точки, которые на экране ближе CLUSTER_PX, собираем в один кружок с числом — карточки
+   * больше не лезут друг на друга. Группу с выбранной точкой не прячем. Совсем вблизи
+   * (или если адрес один на всех) раскладываем точки веером вокруг общего места.
+   */
+  const recluster = () => {
+    const instance = map.current;
+    if (!instance || markers.current.size === 0) return;
+    clusters.current.forEach((marker) => marker.remove());
+    clusters.current = [];
+    const zoom = instance.getZoom();
+    const items = placedRef.current
+      .filter(({ partner }) => markers.current.has(partner.id))
+      .map((item) => ({ ...item, point: instance.project(item.coords) }));
+    const used = new Set<string>();
+    for (const item of items) {
+      if (used.has(item.partner.id)) continue;
+      used.add(item.partner.id);
+      const group = [item];
+      for (const other of items) {
+        if (used.has(other.partner.id)) continue;
+        if (
+          Math.hypot(
+            other.point.x - item.point.x,
+            other.point.y - item.point.y,
+          ) < CLUSTER_PX
+        ) {
+          group.push(other);
+          used.add(other.partner.id);
+        }
+      }
+
+      // Выбранное заведение не прячем в кружок: его группа раскрывается веером
+      const spread =
+        group.length > 1 &&
+        (zoom >= SPREAD_ZOOM ||
+          group.some((member) => member.partner.id === activeRef.current));
+      group.forEach((member, index) => {
+        const marker = markers.current.get(member.partner.id)!;
+        marker
+          .getElement()
+          .classList.toggle("is-clustered", group.length > 1 && !spread);
+        if (spread) {
+          const angle = (index / group.length) * Math.PI * 2 - Math.PI / 2;
+          const radius = 30 + group.length * 6;
+          marker.setOffset([
+            Math.cos(angle) * radius,
+            Math.sin(angle) * radius,
+          ]);
+        } else marker.setOffset([0, 0]);
+      });
+      if (group.length < 2 || spread) continue;
+
+      const lng =
+        group.reduce((sum, member) => sum + member.coords[0], 0) / group.length;
+      const lat =
+        group.reduce((sum, member) => sum + member.coords[1], 0) / group.length;
+      const element = clusterElement(
+        group.map((member) => member.partner),
+        () => {
+          const lngs = group.map((member) => member.coords[0]);
+          const lats = group.map((member) => member.coords[1]);
+          const same =
+            Math.max(...lngs) - Math.min(...lngs) < 1e-5 &&
+            Math.max(...lats) - Math.min(...lats) < 1e-5;
+          if (same)
+            instance.easeTo({
+              center: [lng, lat],
+              zoom: SPREAD_ZOOM,
+              padding: paddingRef.current,
+              duration: 600,
+            });
+          else
+            instance.fitBounds(
+              [
+                [Math.min(...lngs), Math.min(...lats)],
+                [Math.max(...lngs), Math.max(...lats)],
+              ],
+              {
+                padding: paddingRef.current,
+                maxZoom: SPREAD_ZOOM + 0.5,
+                duration: reducedMotion() ? 0 : 700,
+              },
+            );
+        },
+      );
+      clusters.current.push(
+        new Marker({ element }).setLngLat([lng, lat]).addTo(instance),
+      );
+    }
+  };
+  const reclusterRef = useRef(recluster);
+  reclusterRef.current = recluster;
 
   useEffect(() => {
     if (!container.current) return;
@@ -99,12 +247,16 @@ export function PartnerMap({
       attributionControl: { compact: true },
       dragRotate: false,
       pitchWithRotate: false,
-      // Колесо над картой на весь экран не должно воровать прокрутку страницы
-      scrollZoom: false,
+      // Карта на весь экран: колесо и щипок тачпада масштабируют карту, а не страницу
+      scrollZoom: true,
     } as MapOptions);
     instance.touchZoomRotate.disableRotation();
+    instance.scrollZoom.setWheelZoomRate(1 / 300);
+    instance.scrollZoom.setZoomRate(1 / 80);
     map.current = instance;
     instance.once("load", () => setReady(true));
+    const onZoomEnd = () => reclusterRef.current();
+    instance.on("zoomend", onZoomEnd);
     const observer = new ResizeObserver(() => instance.resize());
     observer.observe(container.current);
     return () => {
@@ -120,18 +272,25 @@ export function PartnerMap({
     if (!ready || !instance) return;
     const placed = partners.flatMap((partner) => {
       const coords = coordsOf(partner);
-      return coords ? [{ partner, coords }] : [];
+      return coords ? [{ partner, coords: coords as [number, number] }] : [];
     });
+    placedRef.current = placed;
     const still = reducedMotion();
     let cancelled = false;
 
     const drop = () => {
       if (cancelled) return;
       placed.forEach(({ partner, coords }, index) => {
-        const element = pinElement(partner, index, () => select.current(partner));
-        const marker = new Marker({ element, anchor: "bottom" }).setLngLat(coords).addTo(instance);
+        const element = pinElement(partner, index, () =>
+          select.current(partner),
+        );
+        const marker = new Marker({ element, anchor: "bottom" })
+          .setLngLat(coords)
+          .addTo(instance);
         markers.current.set(partner.id, marker);
       });
+      reclusterRef.current();
+      flyRef.current();
     };
 
     if (placed.length === 0) {
@@ -159,46 +318,81 @@ export function PartnerMap({
       instance.off("moveend", drop);
       markers.current.forEach((marker) => marker.remove());
       markers.current.clear();
+      clusters.current.forEach((marker) => marker.remove());
+      clusters.current = [];
     };
   }, [partners, ready]);
 
   useEffect(() => {
-    markers.current.forEach((marker, id) => marker.getElement().classList.toggle("is-active", id === activeId));
+    markers.current.forEach((marker, id) =>
+      marker.getElement().classList.toggle("is-active", id === activeId),
+    );
+    // Выбранное заведение вынимаем из кружка — его должно быть видно
+    reclusterRef.current();
   }, [activeId, partners, ready]);
 
-  useEffect(() => {
-    const marker = focusId ? markers.current.get(focusId) : null;
+  const focusRef = useRef(focusId);
+  focusRef.current = focusId;
+  // Подлёт к выбранному. Если точки ещё не упали (карту только открыли из каталога) —
+  // подлетим сразу, как они появятся
+  const flyToFocus = () => {
+    const marker = focusRef.current
+      ? markers.current.get(focusRef.current)
+      : null;
     if (!marker || !map.current) return;
     map.current.flyTo({
       center: marker.getLngLat(),
-      zoom: Math.max(map.current.getZoom(), 15),
+      zoom: Math.max(map.current.getZoom(), 15.5),
       padding: paddingRef.current,
       duration: reducedMotion() ? 0 : 1100,
       essential: true,
     });
-  }, [focusId, focusKey]);
+  };
+  const flyRef = useRef(flyToFocus);
+  flyRef.current = flyToFocus;
 
-  const zoomBy = (delta: number) => map.current?.easeTo({ zoom: map.current.getZoom() + delta, duration: 250 });
+  useEffect(() => flyRef.current(), [focusId, focusKey]);
+
+  // Кнопки масштабируют плавно и от центра; колесо и щипок — от точки под пальцем
+  const zoomBy = (delta: number) => {
+    const instance = map.current;
+    if (!instance) return;
+    const options = { duration: reducedMotion() ? 0 : 300 };
+    if (delta > 0) instance.zoomIn(options);
+    else instance.zoomOut(options);
+  };
 
   return (
     <>
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 touch-none">
         <div ref={container} className="map-osm h-full w-full" />
       </div>
-      <div className="absolute right-5 bottom-[calc(var(--sheet,0px)+2rem)] z-10 flex flex-col gap-2 md:bottom-8 md:right-8">
+      <div
+        role="group"
+        aria-label="Масштаб карты"
+        className="absolute right-4 bottom-[calc(var(--sheet,0px)+1.5rem)] z-10 flex flex-col overflow-hidden rounded-full bg-paper shadow-[0_8px_24px_rgb(22_21_21/0.18)] md:right-6 md:bottom-8"
+      >
         {[
           { label: "Приблизить", path: "M12 5v14M5 12h14", delta: 1 },
           { label: "Отдалить", path: "M5 12h14", delta: -1 },
-        ].map((button) => (
+        ].map((button, index) => (
           <button
             key={button.label}
             type="button"
             onClick={() => zoomBy(button.delta)}
             aria-label={button.label}
-            className="grid h-12 w-12 place-items-center rounded-full bg-paper shadow-[0_8px_24px_rgb(22_21_21/0.18)] transition-colors hover:bg-graphite hover:text-paper"
+            className={`grid h-12 w-12 touch-manipulation place-items-center transition-colors outline-none hover:bg-cream focus-visible:bg-cream active:bg-smoke ${
+              index === 0 ? "border-b border-smoke" : ""
+            }`}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
-              <path d={button.path} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+              <path
+                d={button.path}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         ))}

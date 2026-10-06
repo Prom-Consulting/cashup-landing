@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { CLIENT_APP_URL, EMAIL, PHONE, PHONE_HREF } from "../_data/site";
+import { EMAIL, PHONE, PHONE_HREF } from "../_data/site";
 
 gsap.registerPlugin(useGSAP);
 
@@ -14,7 +14,7 @@ type NavItem = { label: string; href: string };
  * Бургер для телефонов и планшетов (до 1024px): кнопка в шапке и меню на весь экран.
  * Закрывается по Esc, по ссылке и при расширении окна до десктопной шапки.
  */
-export function MobileMenu({ nav, cta }: { nav: NavItem[]; cta: NavItem }) {
+export function MobileMenu({ nav, cta, account }: { nav: NavItem[]; cta: NavItem; account: NavItem }) {
   const panelId = useId();
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
@@ -134,11 +134,11 @@ export function MobileMenu({ nav, cta }: { nav: NavItem[]; cta: NavItem }) {
               {cta.label}
             </Link>
             <a
-              href={CLIENT_APP_URL}
+              href={account.href}
               onClick={close}
               className="mt-4 block text-center text-lg font-medium underline-offset-4 hover:underline"
             >
-              Моя карта
+              {account.label}
             </a>
           </div>
 
