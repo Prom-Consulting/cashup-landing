@@ -59,7 +59,7 @@ function Avatar({ partner }: { partner: PublicPartner }) {
         <img
           ref={fitLogo}
           src={image}
-          alt=""
+          alt={`Логотип ${partner.name}`}
           crossOrigin="anonymous"
           className="h-full w-full rounded-full border-2 border-paper bg-paper object-cover"
           loading="lazy"

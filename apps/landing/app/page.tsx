@@ -147,7 +147,7 @@ export default function Home() {
           {/* Стекло из брендбука — блики поверх градиента; сам цвет даёт градиент, поэтому картинка не мылит */}
           <Image
             src={bannerGlass}
-            alt=""
+            alt="Карта Loal в Apple Wallet на фоне оранжевого стекла"
             priority
             placeholder="blur"
             sizes="100vw"
@@ -166,7 +166,8 @@ export default function Home() {
                 className="block text-[clamp(3.4rem,10vw,9rem)] leading-[1] font-black whitespace-nowrap"
               >
                 15 000
-              </span>
+              </span>{" "}
+              {/* Пробел между строками: без него в тексте страницы «15 000бонусов» */}
               <span
                 data-hero-sub
                 className="mt-2 block text-[clamp(1.6rem,4.2vw,3.6rem)] leading-[1.08] font-extrabold"
@@ -351,7 +352,13 @@ export default function Home() {
                 >
                   <span className="brand-gradient grid h-14 w-14 place-items-center rounded-2xl transition-transform duration-300 group-hover:-rotate-6">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/images/landing/icon-${icon}.svg`} alt="" className="h-7 w-7 brightness-0 invert" />
+                    {/* alt — для поисковиков; экранный диктор прочтёт подпись рядом, иконку пропустит */}
+                    <img
+                      src={`/images/landing/icon-${icon}.svg`}
+                      alt={label}
+                      aria-hidden="true"
+                      className="h-7 w-7 brightness-0 invert"
+                    />
                   </span>
                   <span className="text-lg leading-tight font-bold">{label}</span>
                 </li>

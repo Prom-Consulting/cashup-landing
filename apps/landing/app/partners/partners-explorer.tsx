@@ -17,11 +17,11 @@ const PartnerMap = dynamic(() => import("./partner-map").then((module) => module
 
 type View = "catalog" | "map";
 
-/** Вид помним в адресе (?view=map): ссылку на карту можно отправить, «назад» возвращает в каталог. */
+/** Открываемся картой; каталог — ?view=catalog: ссылку можно отправить, «назад» возвращает на карту. */
 function useView(): [View, (next: View) => void] {
-  const [view, setViewState] = useState<View>("catalog");
+  const [view, setViewState] = useState<View>("map");
   useEffect(() => {
-    const read = () => setViewState(new URLSearchParams(window.location.search).get("view") === "map" ? "map" : "catalog");
+    const read = () => setViewState(new URLSearchParams(window.location.search).get("view") === "catalog" ? "catalog" : "map");
     read();
     window.addEventListener("popstate", read);
     return () => window.removeEventListener("popstate", read);
@@ -29,7 +29,7 @@ function useView(): [View, (next: View) => void] {
   const setView = (next: View) => {
     if (next === view) return;
     const url = new URL(window.location.href);
-    if (next === "map") url.searchParams.set("view", "map");
+    if (next === "catalog") url.searchParams.set("view", "catalog");
     else url.searchParams.delete("view");
     window.history.pushState(null, "", url);
     setViewState(next);
@@ -47,8 +47,8 @@ function ViewSwitch({ view, onChange, floating = false }: { view: View; onChange
     >
       {(
         [
-          { value: "catalog", label: "Каталог", path: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
           { value: "map", label: "Карта", path: "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14" },
+          { value: "catalog", label: "Каталог", path: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
         ] as const
       ).map((item) => {
         const active = view === item.value;
@@ -116,7 +116,7 @@ export function PartnersExplorer({ partners }: { partners: PublicPartner[] }) {
     };
   }, [view]);
 
-  // Со страницы заведения «Показать на карте» — ?view=map&focus=<id>: карта сразу подлетает к нему
+  // Со страницы заведения «Показать на карте» — ?focus=<id>: карта сразу подлетает к нему
   useEffect(() => {
     if (view !== "map") return;
     const id = new URLSearchParams(window.location.search).get("focus");
@@ -143,6 +143,7 @@ export function PartnersExplorer({ partners }: { partners: PublicPartner[] }) {
       <PartnerMap
         partners={partners}
         activeId={hoveredId ?? selectedId}
+        selectedId={selectedId}
         focusId={focus ? `${focus.id}` : null}
         focusKey={focus?.at ?? 0}
         padding={padding}

@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
   // Сборка для Docker: .next/standalone со своим сервером. Трассировку файлов ведём
   // от корня монорепо, иначе не попадут зависимости из packages/ и общий node_modules.
   output: "standalone",
+  // Без заголовка X-Powered-By: он ничего не даёт посетителю и снижает оценку в SEO-аудитах
+  poweredByHeader: false,
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
   // Общий бренд и UI-кит лежат исходниками в packages/ui — Next их компилирует сам.
   transpilePackages: ["@loal/ui", "@loal/api"],

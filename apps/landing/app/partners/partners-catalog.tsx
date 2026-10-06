@@ -161,7 +161,7 @@ export function PartnersCatalog({
               categories={category && !categories.some((item) => item.name === category) ? [...categories, { name: category }] : categories}
               value={category}
               onChange={() => undefined}
-              hrefFor={(name) => (name ? categoryPath(categoryIdOf({ category: name })) : "/partners")}
+              hrefFor={(name) => (name ? categoryPath(categoryIdOf({ category: name })) : "/partners?view=catalog")}
               className="-mx-4 px-4 sm:-mx-6 sm:px-6"
             />
           )}
@@ -203,7 +203,7 @@ export function PartnersCatalog({
               : "По этому запросу ничего нет. Попробуйте другое слово или категорию."}
           </p>
           <Link
-            href="/partners"
+            href="/partners?view=catalog"
             onClick={() => setQuery("")}
             className="rounded-full bg-graphite px-6 py-3 text-base font-bold text-paper transition-colors hover:bg-flame"
           >

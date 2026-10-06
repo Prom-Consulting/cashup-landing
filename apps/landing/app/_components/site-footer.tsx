@@ -38,9 +38,10 @@ export function SiteFooter() {
             </div>
 
             <nav aria-labelledby="footer-product">
-              <h2 id="footer-product" className="text-base text-slate">
+              {/* Подписи колонок — не заголовки: разделы страницы для поисковиков тут не начинаются */}
+              <p id="footer-product" className="text-base text-slate">
                 Продукт
-              </h2>
+              </p>
               <ul className="mt-4 flex flex-col gap-4 text-lg sm:text-xl">
                 {product.map((item) => (
                   <li key={item.href}>
@@ -53,7 +54,7 @@ export function SiteFooter() {
             </nav>
 
             <div>
-              <h2 className="text-base text-slate">Кабинеты</h2>
+              <p className="text-base text-slate">Кабинеты</p>
               <ul className="mt-4 flex flex-col gap-4 text-lg sm:text-xl">
                 <li>
                   <a href={CLIENT_APP_URL} className={`${link} hover:text-flame`}>
@@ -69,7 +70,7 @@ export function SiteFooter() {
             </div>
 
             <div>
-              <h2 className="text-base text-slate">Экосистема</h2>
+              <p className="text-base text-slate">Экосистема</p>
               <a href={OCTOPAY_URL} className={`mt-4 block text-lg hover:text-flame sm:text-xl ${link}`}>
                 OctōPAY
               </a>
@@ -77,7 +78,7 @@ export function SiteFooter() {
             </div>
 
             <address className="not-italic">
-              <h2 className="text-base text-slate">Контакты</h2>
+              <p className="text-base text-slate">Контакты</p>
               <ul className="mt-4 flex flex-col gap-4 text-lg sm:text-xl">
                 <li className="font-medium">{CITY}</li>
                 <li>

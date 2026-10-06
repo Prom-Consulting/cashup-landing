@@ -82,7 +82,7 @@ export async function PartnerWall() {
                 <span className={tile}>
                   {/* Иконки лежат рядом со страницей и не нуждаются в оптимизации */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`/images/landing/icon-${category.icon}.svg`} alt="" className="h-9 w-9" />
+                  <img src={`/images/landing/icon-${category.icon}.svg`} alt={category.label} aria-hidden="true" className="h-9 w-9" />
                 </span>
                 <span className="mt-3 min-h-[2.5em] text-base leading-tight font-medium">{category.label}</span>
               </li>

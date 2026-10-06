@@ -171,7 +171,7 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
 
               <div className="flex flex-wrap gap-2">
                 {hasMap && (
-                  <Link href={`/partners?view=map&focus=${partner.id}`} className={`${action} bg-flame text-white hover:bg-graphite`}>
+                  <Link href={`/partners?focus=${partner.id}`} className={`${action} bg-flame text-white hover:bg-graphite`}>
                     Показать на карте
                   </Link>
                 )}
@@ -231,7 +231,7 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
                 <h2 id="more" className="display text-[1.6rem] leading-tight sm:text-[2rem]">
                   {nearby.length > 0 ? `Ещё ${CATEGORY_SEO[category].title.toLowerCase()}` : "Ещё заведения"}
                 </h2>
-                <Link href={nearby.length > 0 ? categoryPath(category) : "/partners"} className="text-base font-bold text-flame-ink underline-offset-4 hover:underline">
+                <Link href={nearby.length > 0 ? categoryPath(category) : "/partners?view=catalog"} className="text-base font-bold text-flame-ink underline-offset-4 hover:underline">
                   Смотреть все
                 </Link>
               </div>

@@ -94,4 +94,17 @@ export function fitLogo(image: HTMLImageElement | null) {
   };
   if (image.complete && image.naturalWidth) run();
   else image.addEventListener("load", run, { once: true });
+  // Браузер мог закэшировать картинку без CORS — тогда загрузка с crossOrigin падает. Показываем
+  // логотип как есть, без подрезки, а не битую иконку
+  image.addEventListener(
+    "error",
+    () => {
+      if (!image.crossOrigin) return;
+      image.dataset.fitted = "1";
+      image.removeAttribute("crossorigin");
+      const source = image.src;
+      image.src = `${source}${source.includes("?") ? "&" : "?"}plain=1`;
+    },
+    { once: true },
+  );
 }

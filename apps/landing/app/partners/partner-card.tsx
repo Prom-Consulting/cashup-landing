@@ -19,7 +19,7 @@ export function PartnerCover({
   const photo = partner.photos[0];
   if (photo)
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={photo} alt="" loading="lazy" decoding="async" className={`object-cover ${className}`} />;
+    return <img src={photo} alt={`${partner.name} — фото`} loading="lazy" decoding="async" className={`object-cover ${className}`} />;
   return (
     <span aria-hidden="true" className={`brand-gradient relative grid place-items-center overflow-hidden ${className}`}>
       {partner.logoUrl ? (
@@ -27,7 +27,7 @@ export function PartnerCover({
         <img
           ref={fitLogo}
           src={partner.logoUrl}
-          alt=""
+          alt={`Логотип ${partner.name}`}
           crossOrigin="anonymous"
           className={`rounded-full border-4 border-paper/90 bg-paper object-cover shadow-xl ${large ? "h-32 w-32" : "h-16 w-16 sm:h-20 sm:w-20"}`}
         />
@@ -53,7 +53,7 @@ export function PartnerLogo({ partner, size = "md" }: { partner: PublicPartner; 
         <img
           ref={fitLogo}
           src={image}
-          alt=""
+          alt={`Логотип ${partner.name}`}
           crossOrigin="anonymous"
           loading="lazy"
           className="h-full w-full rounded-full border-2 border-paper bg-paper object-cover"
