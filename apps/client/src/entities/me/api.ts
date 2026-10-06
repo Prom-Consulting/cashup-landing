@@ -101,6 +101,6 @@ export function useRedeemPromo() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: RedeemPromoInput) => promoApi(api).redeemForMe(input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: meKeys.card }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me"] }),
   });
 }

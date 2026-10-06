@@ -21,7 +21,8 @@ import {
 import { useState } from "react";
 import { usePromoCodes, usePromoRedemptions } from "../../entities/promo/api";
 import { CreatePromoDialog } from "../../features/promo/create-promo-dialog";
-import { CopyCodeButton, DeletePromoButton, PromoActiveSwitch } from "../../features/promo/promo-row-actions";
+import { CopyCodeButton, CopyPromoLinkButton, DeletePromoButton, PromoActiveSwitch } from "../../features/promo/promo-row-actions";
+import { EditPromoDialog } from "../../features/promo/edit-promo-dialog";
 import { formatDateTime } from "../../shared/lib/format";
 
 const money = new Intl.NumberFormat("ru-RU");
@@ -133,6 +134,7 @@ export function PromoCodesPage() {
                       <span className="font-mono text-base font-bold whitespace-nowrap">{promo.code}</span>
                       <CopyCodeButton code={promo.code} compact />
                     </div>
+                    <CopyPromoLinkButton promo={promo} />
                     {promo.note && <p className="text-sm text-muted-foreground">{promo.note}</p>}
                   </TableCell>
                   <TableCell label="Кому">{PROMO_AUDIENCE_LABELS[promo.audience]}</TableCell>
@@ -152,6 +154,7 @@ export function PromoCodesPage() {
                     ) : (
                       <div className="flex items-center gap-2">
                         <PromoActiveSwitch promo={promo} />
+                        <EditPromoDialog promo={promo} />
                         <DeletePromoButton promo={promo} />
                       </div>
                     )}

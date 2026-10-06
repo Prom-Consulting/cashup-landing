@@ -95,6 +95,34 @@ export type UpdatePromoInput = {
   note?: string | null;
 };
 
+export const editPromoFormSchema = z.object({
+  active: z.boolean(),
+  maxUses: z.union([z.literal(""), z.coerce.number().int("Целое число").min(1, "Хотя бы одно")]),
+  expiresAt: z.string().refine((value) => value === "" || /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)), "Неверная дата"),
+  note: z.string().trim().max(200, "Не длиннее 200 символов"),
+});
+
+function localDate(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+export function editPromoInitialValues(promo: PromoCode) {
+  return { active: promo.active, maxUses: promo.maxUses == null ? "" : String(promo.maxUses), expiresAt: localDate(promo.expiresAt), note: promo.note ?? "" };
+}
+
+export function editPromoBody(values: ReturnType<typeof editPromoInitialValues>, promo: PromoCode): UpdatePromoInput {
+  const parsed = editPromoFormSchema.parse(values);
+  return {
+    active: parsed.active,
+    maxUses: parsed.maxUses === "" ? null : parsed.maxUses,
+    // Editing a note must not move an existing timestamp to the end of its day.
+    ...(parsed.expiresAt === localDate(promo.expiresAt) ? {} : { expiresAt: parsed.expiresAt === "" ? null : new Date(`${parsed.expiresAt}T23:59:59.999`).toISOString() }),
+    note: parsed.note === "" ? null : parsed.note,
+  };
+}
+
 export const redeemPromoInputSchema = z.object({
   code: z.string().trim().min(1, "Введите промокод").pipe(promoCodeTextSchema),
 });

@@ -4,6 +4,8 @@ import { Logo } from "@loal/ui/logo";
 import { Icon } from "@loal/ui/shadcn";
 import { Link, Outlet, useLocation } from "react-router";
 
+import { LinkedPromoNotice } from "../../features/promo/linked-promo-notice";
+
 const nav = [
   { to: "/", label: "Карта", icon: CreditCardIcon },
   { to: "/history", label: "История", icon: Clock01Icon },
@@ -48,6 +50,7 @@ export function AppLayout() {
         </header>
 
         <main className="mx-auto w-full max-w-[420px] flex-1 px-5 pb-28 lg:max-w-[1120px] lg:px-12 lg:py-12">
+          <LinkedPromoNotice />
           <Outlet />
         </main>
       </div>
