@@ -483,9 +483,16 @@ Content-Type: application/json
 |---|---|---|
 | `401` | — / `INVALID_GOOGLE_TOKEN` | нет входа / плохой `idToken` |
 | `403` | `NOT_BUSINESS_ACCOUNT` | вошёл клиент или суперадмин платформы — им Google недоступен |
-| `409` | `IDENTITY_TAKEN` | этот Google привязан к другому человеку, или у этого человека уже привязан другой Google (сначала отвязать) |
+| `409` | `IDENTITY_TAKEN` | этот Google открывает другой **неудалённый** магазин (отвязать его там), или у этого человека уже привязан другой Google (сначала отвязать) |
 
 Повторная привязка того же Google к тому же человеку — `200`.
+
+**Переезд Google.** Один Google, как и номер, открывает один активный магазин. Если Google
+привязан к человеку, у которого больше нет ни одного неудалённого магазина (магазин удалён,
+номер сменили), привязка без вопросов переносит его к тому, кто привязывает сейчас: у
+прежнего человека Google отвязывается. Если тот человек ещё работает в неудалённом магазине —
+`409 IDENTITY_TAKEN` с текстом «привязан к другому активному заведению»; какой это магазин,
+ответ не раскрывает.
 
 **Отвязать Google:**
 
@@ -1144,7 +1151,11 @@ POST /admin/v1/merchants/{merchantId}/profile-assets?slot=merchantPhoto
 → { "url": "https://…/v1/public/template-assets/<id>.png" }
 ```
 
-Принимаются PNG, JPG и SVG до 25 МБ. На выходе всегда PNG. `merchantLogo` вписывается в
+Принимаются PNG (включая APNG), JPG/JPEG/JFIF, WebP, HEIC/HEIF, AVIF, GIF, TIFF/TIF,
+BMP, SVG, ICO, PSD, JPEG 2000 (JP2) и JPEG XL (JXL) до 25 МБ. Формат определяется по
+содержимому файла, поэтому пустой или общий MIME-тип не мешает загрузке. На выходе
+всегда статичный PNG: для анимаций и многостраничных файлов берётся первый кадр/страница,
+ориентация фото учитывается автоматически. `merchantLogo` вписывается в
 квадрат 512×512 с прозрачными полями, `merchantPhoto` уменьшается до 1600 px по большей
 стороне без обрезки. Полученный `url` кладётся в `logoUrl` или `photos`. Файл без
 профиля ни на что не влияет.
@@ -1243,13 +1254,45 @@ DELETE /admin/v1/merchants/{merchantId}/members/{memberId}
 ответе `branchIds` ограничен его филиалами. `PATCH` заменяет только назначения в его
 области доступа, сохраняя остальные. Менять роль или управлять чужими филиалами нельзя.
 
-Сотрудник (`staff`, `branch_admin`) может иметь только **один активный магазин**,
-включая ожидающего регистрации сотрудника. Попытка добавить во второй магазин —
-`409 EMPLOYEE_ALREADY_ASSIGNED`. Владение (`admin`) несколькими магазинами разрешено.
-Если человек одновременно сотрудник одного магазина и владелец другого, кассовые
-операции без явного выбора магазина и их расчёт используют магазин работодателя.
+**Один номер — один активный магазин.** Человек состоит только в одном неудалённом
+магазине в любой роли (`admin`, `branch_admin`, `staff`), включая ожидающего регистрации
+сотрудника. Попытка добавить его во второй магазин — `409 EMPLOYEE_ALREADY_ASSIGNED`.
+Владелец одного магазина не может быть сотрудником или владельцем другого, пока первый не
+удалён. Удаление магазина сразу освобождает номера всех его людей.
 Повторный POST с тем же номером и ролью в том же магазине добавляет новые филиалы к
 существующему сотруднику; если все уже назначены — `409`. Аккаунт и карта не дублируются.
+
+**Смена номера сотрудника — только супер-админ.** Номер принадлежит человеку (это же его
+вход и клиентская карта), поэтому номер не переписывается: место сотрудника в магазине
+переходит к человеку с новым номером — с той же ролью, правами и филиалами. Прежний
+человек выходит из магазина, его аккаунт, карта и привязанный Google остаются у него.
+
+```
+POST /admin/v1/merchants/{merchantId}/members/{memberId}/phone-code
+{ "phone": "+996700123456" }
+→ 200 { ok: true, expiresInSeconds: 300 }   // код ушёл в WhatsApp на новый номер
+
+PUT /admin/v1/merchants/{merchantId}/members/{memberId}/phone
+{ "phone": "+996700123456", "code": "123456" }
+→ 200 сотрудник (новый id и userId, тот же role / branchIds)
+```
+
+Код приходит человеку с новым номером с пояснением «для смены номера в Loal», он диктует
+его супер-админу. Код одноразовый, действует 5 минут, новый — не чаще раза в минуту
+(`429 OTP_RATE_LIMITED` с `retryAfter`). Неверный код — `401 OTP_INVALID`, истёкший —
+`401 OTP_EXPIRED`, пять ошибок — `429 OTP_TOO_MANY_ATTEMPTS`; при любой ошибке ничего не
+меняется. Номер уже работает в неудалённом магазине (в том числе в этом) —
+`409 PHONE_HAS_ACTIVE_MERCHANT`, проверяется ещё до отправки кода; тот же номер —
+`400 SAME_PHONE`; удалённый, заблокированный или системный аккаунт — `409`. Владельцу и
+другим сотрудникам магазина — `403`. Если меняется номер, указанный контактным у магазина,
+`contactPhone` обновляется. Сессии обоих людей завершаются; в аудите —
+`merchant.member_phone_replaced`.
+
+У магазина со связанным OctoPay смена **контактного** номера (им входят в OctoPay) сначала
+уходит в OctoPay, и Loal сохраняет её только после ответа OctoPay: номер занят там —
+`409 PHONE_TAKEN`, ничего не меняется. Если по магазину ещё не доставлено прошлое событие в
+OctoPay — `409 OCTOPAY_SYNC_PENDING` (код при этом не тратится), повторить через минуту.
+
 
 `branchIds` — массив уникальных UUID, максимум 100. Для совместимости принимается
 прежний `branchId`; вместе с `branchIds` его отправлять нельзя (`400`). У владельца
@@ -1469,13 +1512,62 @@ POST /admin/v1/merchants/{merchantId}/onec-integration/regenerate-token
 
 | Метод | Адрес | Комментарий |
 |---|---|---|
-| `GET` | `/admin/v1/merchants` | Список активных записей. `?includeDeleted=true` включает архив. Только агентство |
+| `GET` | `/admin/v1/merchants` | Список активных записей. `?includeDeleted=true` включает архив, `?includeApplications=true` — заявки без заведения (см. ниже). Только агентство |
 | `POST` | `/admin/v1/merchants` | `{ slug, name, contactPhone, contactEmail?, brandColors? }`. Только агентство. Номер владельца обязателен. `slug` занят — `409 MERCHANT_SLUG_TAKEN` |
 | `GET` | `/admin/v1/merchants/{id}` | Виден и самому магазину |
 | `PATCH` | `/admin/v1/merchants/{id}` | Название, контакты, этап подключения |
 | `POST` | `/admin/v1/merchants/{id}/suspend` | `status: "suspended"` — платформа магазин не обслуживает. Только агентство |
 | `POST` | `/admin/v1/merchants/{id}/activate` | Обратно в `status: "active"`. Только агентство |
 | `DELETE` | `/admin/v1/merchants/{id}` | Soft delete магазина и всех рабочих привязок. Только агентство |
+| `POST` | `/admin/v1/merchants/{id}/reject` | `{ reason }` — отклонить заведение, которое ждёт проверки. Только супер-админ |
+| `GET`/`POST` | `/admin/v1/merchants/{id}/restore-preview`, `/restore`, `/restore/phone-code` | Вернуть удалённый магазин в течение 30 дней (см. «Удаление магазина»). Только супер-админ |
+| `POST` | `/admin/v1/merchants/{id}/octopay/transfer` | `{ fromMerchantId }` — перенести аккаунт OctoPay с другого магазина на этот. Только супер-админ |
+
+**Перенос аккаунта OctoPay.** `POST /admin/v1/merchants/{id}/octopay/transfer { fromMerchantId }`
+→ `200 { merchantId, fromMerchantId, businessId, connected: true }`. Нужен, когда аккаунт работает
+с одним заведением, а должен — с другим (например, вернули старое заведение, а аккаунт был у
+нового). Заявка `bundle` этого магазина, ждавшая аккаунта, становится выполненной. Ошибки:
+`409 TARGET_ALREADY_LINKED` — у этого магазина уже свой аккаунт; `404 ACCOUNT_NOT_FOUND` — у
+исходного нет связи; `409 OCTOPAY_SYNC_PENDING` — по одному из магазинов ещё не доставлено
+прошлое событие в OctoPay, повторить через минуту.
+| `POST` | `/admin/v1/partner-registrations/{id}/reject` | `{ reason }` — отклонить заявку, по которой заведение не создано. Только супер-админ |
+
+**Состояние на экране «Заведения».** В каждом магазине списка (и в ответах `GET`,
+`POST`, `PATCH` по магазину) есть поля, которые сводят `status`, `workflowStatus` и архив в
+одно состояние. Прежние поля не меняются.
+
+- `lifecycle`: `pending_review` (заявка принята, ждёт проверки), `active`, `trial`,
+  `suspended`, `rejected` (отклонён и в архиве), `deleted` (в архиве, можно вернуть),
+  `erased` (прошло 30 дней, контакты стёрты).
+- `restorableUntil` — до какого момента архив можно вернуть, иначе `null`.
+- `rejectionReason` — причина отказа или `null`.
+- `application` (только в списке) — заявка с лендинга, из которой создан магазин:
+  `{ id, plan: "loyalty" | "bundle" | "octopay", submittedAt, octopayState: null | "pending" | "done" | "action_required" | "blocked", octopayBlocker }`,
+  или `null` для магазинов, заведённых вручную. `octopayState` — открытие аккаунта
+  OctoPay после одобрения `bundle`; `blocked` — OctoPay отказал по причине, которую пароль не
+  исправит, и `octopayBlocker` её называет: `ACCOUNT_LINKED_ELSEWHERE` (аккаунт номера связан с
+  другим заведением — перенесите его, см. ниже) или `ACCOUNT_PENDING_DELETION` (аккаунт номера в
+  30 днях после удаления). Такие заявки проверяются снова раз в 6 часов.
+
+С `?includeApplications=true` каждый элемент получает `kind`: `"merchant"` — магазин, как
+выше; `"application"` — заявка, за которой магазина нет:
+`{ kind, id, name, contactPhone, lifecycle: "processing" | "action_required" | "rejected" | "octopay_only", rejectionReason, createdAt, application }`.
+У таких элементов нет страницы магазина. Без параметра ответ прежний — только магазины.
+
+**Отклонение.** `POST /admin/v1/merchants/{id}/reject { reason }` работает только для
+магазина, который ждёт проверки (`lifecycle: pending_review`), иначе
+`409 MERCHANT_NOT_PENDING_REVIEW`; не супер-админу — `403`. Магазин архивируется так же,
+как при `DELETE`, в той же транзакции, и получает `lifecycle: rejected`. Номер владельца
+освобождается: с него можно сразу подать новую заявку. Владелец получает причину в
+WhatsApp. Ответ `200 { id, rejectedAt, rejectionReason, ownerNotified }`; если сообщение не
+дошло (`ownerNotified: false`), повторный вызов — даже на архивном магазине — отправляет
+его снова и прежнюю причину не меняет. На архивном, но не отклонённом магазине —
+`409 MERCHANT_DELETED`.
+
+`POST /admin/v1/partner-registrations/{id}/reject { reason }` — то же для заявки, по
+которой магазин не создан (застряла или «только OctoPay» в процессе). Если магазин уже
+есть — `409 REGISTRATION_HAS_MERCHANT`, если подключение завершено —
+`409 REGISTRATION_COMPLETED`, нет заявки — `404`.
 
 **Создание магазина и вход владельца.** Агентство передаёт в `contactPhone` номер
 владельца с кодом страны, например `+996700123456`. Номер нормализуется как при
@@ -1485,10 +1577,12 @@ POST /admin/v1/merchants/{merchantId}/onec-integration/regenerate-token
 В одной транзакции создаются магазин и членство `admin` без ограничения филиалом.
 Для нового номера создаётся аккаунт `store_admin`, ожидающий первого входа. Если
 человек уже зарегистрирован как клиент или сотрудник, используется его аккаунт:
-профиль, карта, баланс и членства в других магазинах сохраняются. Прежняя сессия
+профиль, карта и баланс сохраняются. Прежняя сессия
 завершается, чтобы после входа токен содержал новые права. Заблокированный,
 удалённый или системный аккаунт (`super_admin`, `api`) нельзя назначить владельцем:
-`409 MERCHANT_OWNER_UNAVAILABLE`, магазин при этом не создаётся.
+`409 MERCHANT_OWNER_UNAVAILABLE`, магазин при этом не создаётся. Если номер уже
+состоит в другом неудалённом магазине (владельцем или сотрудником) —
+`409 PHONE_HAS_ACTIVE_MERCHANT`, магазин тоже не создаётся.
 
 На экране «Войти в магазин» достаточно обычного подтверждения номера:
 `POST /auth/login { phone, otp, deviceId }`. В `GET /auth/me` / JWT появится
@@ -1500,8 +1594,14 @@ POST /admin/v1/merchants/{merchantId}/onec-integration/regenerate-token
 
 ### Удаление магазина
 
-`DELETE /admin/v1/merchants/{id}` возвращает `200 { id, slug, deletedAt }`.
-Повторный запрос возвращает ту же дату; неизвестный UUID — `404`.
+`DELETE /admin/v1/merchants/{id}?octopay=keep|delete` возвращает `200 { id, slug, deletedAt }`.
+Повторный запрос возвращает ту же дату; неизвестный UUID — `404`. Другое значение
+`octopay` — `400`.
+
+`octopay` решает судьбу аккаунта Octopay, связанного с магазином. `keep` (по умолчанию) —
+только разорвать связь: аккаунт Octopay продолжает работать, и позже его можно привязать к
+новому заведению того же номера. `delete` — ещё и попросить Octopay закрыть аккаунт.
+Номер владельца и сотрудников освобождается сразу: с него можно заводить новое заведение.
 
 Магазин, филиалы и все членства (включая владельца и pending-сотрудников) архивируются;
 сессии затронутых людей отзываются. Аккаунты, номера, карты, клиентские подписки и
@@ -1516,12 +1616,67 @@ refresh-токены сотрудников перестают работать.
 1С перестаёт принимать старый токен (`400 Unknown 1С webhook token`), новые счета и резервы Octopay запрещены.
 Отключение исходящих вебхуков и связи Octopay повторяется фоновой задачей при сбое;
 право работать закрывается сразу независимо от доступности этих сервисов.
-При настроенной интеграции удаляется и выключенная связь Octopay: тариф `loal`
-сам по себе не означает отсутствия связи. Подключение синхронизировано с архивированием.
+При настроенной интеграции разрывается и выключенная связь Octopay: тариф `loal`
+сам по себе не означает отсутствия связи. После этого `tariff` архивного магазина — `loal`.
+Подключение синхронизировано с архивированием.
 Подписанные финальные события ранее созданных платежей и commit/cancel существующих
 резервов сохраняют прежние проверки и идемпотентность. Они не восстанавливают доступ.
 История сохраняет `merchantId`, филиал и сотрудника, аудит не удаляется.
-Восстановление магазина в этой версии не предусмотрено.
+**Восстановление — в течение 30 дней** (дальше данные обезличены, и бизнес заводит новое
+заведение обычным путём). Только супер-админ; эти три адреса работают и на архивном
+магазине, где остальное отвечает `410`.
+
+```
+GET  /admin/v1/merchants/{id}/restore-preview
+→ 200 { restorableUntil, ownerMissing, octopay: "linked" | "relink_required" | "none",
+        members: [{ memberId, fullName, phone, role, blocker }] }
+
+POST /admin/v1/merchants/{id}/restore/phone-code
+{ "phone": "+996700123456", "memberId": "<id из preview>" }   // memberId — чьё место займёт номер
+→ 200 { ok: true, expiresInSeconds: 300 }
+
+POST /admin/v1/merchants/{id}/restore
+{ "replacements": [{ "memberId": "...", "phone": "+996700123456", "code": "123456" }] }   // необязательно
+→ 200 { merchant, restoredMembers, replacedMembers: [{ previousMemberId, memberId, phone }], skippedMembers, octopay }
+```
+
+Магазин возвращается как был: те же люди с теми же номерами, ролями и филиалами (их
+привязанный Google работает снова), филиалы, закрытые этим удалением, и прежний `status`
+(у удалённых до этой версии — `suspended`, проверка супер-админом). Отклонённый магазин
+возвращается без отметки об отказе, его заявка снова видна на лендинге. Сессии вернувшихся
+людей завершаются, чтобы новый вход показал магазин. Вебхуки, выключенные удалением,
+включаются снова; выключенные владельцем — нет.
+
+**Номер занят.** Один номер — один активный магазин. Если номер человека за это время стал
+работать в другом магазине (или по нему обрабатывается заявка), `blocker` в preview —
+`active_elsewhere`, `application_in_progress` или `account_closed`:
+
+- кассир или администратор филиала не возвращается и попадает в `skippedMembers`;
+- для владельца нужен новый номер: запросить код (`restore/phone-code` с его `memberId`),
+  человек с новым номером диктует код, и номер передаётся в `replacements`. Без замены —
+  `409 MEMBER_PHONE_TAKEN { members }`. Место переходит к новому номеру с той же ролью;
+  контактный номер магазина обновляется, если менялся он.
+- если аккаунта прежнего владельца больше нет (`ownerMissing: true`), новый владелец
+  передаётся в `replacements` без `memberId` (код — тоже без `memberId`); иначе
+  `409 OWNER_REQUIRED`.
+
+Ошибки кода — как при смене номера сотрудника (`401 OTP_INVALID`, `429 OTP_RATE_LIMITED`…),
+при любой ошибке магазин остаётся в архиве. Магазин не удалён — `409 MERCHANT_NOT_DELETED`;
+прошло 30 дней — `410 MERCHANT_NOT_RESTORABLE`.
+
+**Octopay.** `octopay` в preview — что будет с OctoPay: `restore` — магазин уходил и из OctoPay,
+возврат попросит OctoPay вернуть аккаунт; `relink_required` — удаление только разорвало связь,
+владелец заново привязывает аккаунт кодом из кабинета OctoPay; `linked` — фоновая очистка не
+успела дойти до OctoPay, связь цела; `none` — OctoPay не было. В ответе `restore` вместо
+`restore` приходит результат: `restored`; `gone` (OctoPay вернуть не может, в том числе для
+удалений до этой версии) или `linked_elsewhere` — магазин возвращён без OctoPay, аккаунт
+привязывается заново или переносится; `restored_phone_not_synced` — аккаунт вернулся, но со
+старым номером входа (новый номер владельца в OctoPay занят). OctoPay недоступен —
+`502`, магазин остаётся в архиве, повторить позже.
+
+Одобренная ранее заявка на выход после возврата больше не действует: владельцу
+`GET .../exit-request` её не показывает, а повторное «подтвердить» агентством магазин снова
+не удаляет.
 
 **Через 30 дней после удаления** фоновая задача (раз в час) обезличивает магазин.
 Касается это **любого** удалённого магазина: и по заявке партнёра, и удалённого
@@ -1556,12 +1711,17 @@ refresh-токены сотрудников перестают работать.
 
 ```
 POST /admin/v1/merchants/{merchantId}/exit-request
-{ "reason": "Закрываем точку" }          // необязательно, до 1000 символов
-→ 201 { id, merchantId, status: "pending", reason, createdAt, decidedAt: null, decisionComment: null, ownerNotified: false }
+{ "reason": "Закрываем точку",           // необязательно, до 1000 символов
+  "octopay": "keep" | "delete" }         // необязательно, по умолчанию "keep"
+→ 201 { id, merchantId, status: "pending", reason, octopay, createdAt, decidedAt: null, decisionComment: null, ownerNotified: false }
 
 GET /admin/v1/merchants/{merchantId}/exit-request
 → 200 последняя заявка в том же виде, или null — заявок не было
 ```
+
+`octopay` — откуда уходит владелец: `keep` — только из Loal (аккаунт Octopay остаётся),
+`delete` — из Loal и из Octopay. Агентство только одобряет: при подтверждении удаление
+выполняется ровно так, как выбрал владелец (см. `DELETE` выше).
 
 Открытая заявка у магазина может быть только одна. Повторный `POST`, пока она открыта,
 отвечает `200` и возвращает её же, а не создаёт вторую. После отказа можно подать новую.
@@ -1609,6 +1769,10 @@ POST /admin/v1/merchant-exit-requests/{id}/reject
 активен в нескольких магазинах, миграция останавливается на ограничении
 `merchant_members_one_employer`: сначала нужно определить актуальное место работы.
 Автоматически выбирать магазин и отнимать доступ миграция не будет.
+
+`core 0035` расширяет это правило на все роли (индекс `merchant_members_one_active`
+вместо `merchant_members_one_employer`) и тоже останавливается, если в данных человек
+активен в нескольких магазинах: такие членства разбираются до выкатки.
 
 ### Клиенты и карты
 
@@ -1876,7 +2040,9 @@ POST /admin/v1/template-assets?slot=logo    multipart, поле file
 → { "url": "https://…/v1/public/template-assets/<id>.png" }
 ```
 
-Принимаются PNG, JPG, SVG и PDF до 25 МБ; на выходе всегда PNG. Полученный `url`
+Принимаются PNG/APNG, JPG/JPEG/JFIF, WebP, HEIC/HEIF, AVIF, GIF, TIFF/TIF, BMP,
+SVG, ICO, PSD, JP2 и JXL до 25 МБ; на выходе всегда статичный PNG. PDF не поддерживается.
+Полученный `url`
 кладётся в `design.images.*` или `design.googleImages.*`.
 
 | `slot` | Что это | Как обрабатывается |
@@ -2668,9 +2834,21 @@ OTP CashUp: 6 цифр, 5 минут, 5 ошибок, повторная отп�
 - `POST /v1/public/partner-onboarding`, `Authorization: Bearer <proof>`:
   `{requestId: UUID, plan, name, contactName, category, comment?}`. Телефон берётся
   из проверенного proof, цена — из серверного тарифа. Повтор с теми же данными
-  возвращает текущую заявку; смена данных существующей заявки даёт 409.
-- `GET /v1/public/partner-onboarding` с тем же proof возвращает свою заявку или
+  возвращает текущую заявку. Другие данные, пока заявка ещё обрабатывается, —
+  `409 APPLICATION_IN_PROGRESS`; после создания заведения — `409 PHONE_HAS_ACTIVE_MERCHANT`
+  (`octopay` — `409 APPLICATION_EXISTS`). Если номер уже состоит в неудалённом магазине
+  (владельцем или сотрудником), заявки `loyalty` и `bundle` тоже получают
+  `409 PHONE_HAS_ACTIVE_MERCHANT`.
+- `GET /v1/public/partner-onboarding` с тем же proof возвращает свою **живую** заявку или
   `null`. Новый OTP позволяет восстановить просмотр после закрытия страницы.
+
+**Повторные заявки.** У номера хранится история заявок. Заявка перестаёт быть живой, когда
+супер-админ её отклонил, её заведение удалено или номер больше не работает в этом
+заведении. Тогда `GET` отвечает `null`, а `POST` принимает новую заявку — в том числе с
+прежним `requestId` из той же вкладки: сервер выдаёт новой заявке новый `id`. Чужой
+`requestId` (другого номера) по-прежнему даёт `409`. Если номер стал владельцем или
+сотрудником другого заведения уже после подачи, заявка закрывается как отклонённая, а
+`POST` отвечает `409 PHONE_HAS_ACTIVE_MERCHANT`.
 
 Тарифы: `loyalty` — только Loal, `bundle` — аккаунты LOAL + OctoPay, `octopay` — только
 OctoPay. **Регистрация бесплатная на всех трёх** (ТЗ №4 п. 3): заявка `loyalty` сразу
@@ -2702,9 +2880,13 @@ OctoPay. **Регистрация бесплатная на всех трёх** 
 
 Registration responses also expose `verificationStatus: null | pending | verified` and `requiresOctopayPassword: boolean`. Account creation (`state=ready`) does not approve a LOAL establishment: the owner can log in, but catalog visibility and bonus acceptance require super-admin approval through `POST /admin/v1/merchants/:id/activate`.
 
+**`bundle` opens its OctoPay account only after approval.** The application creates the LOAL establishment at once (`state=ready`, `verificationStatus: pending`) with `octopayUrl: null` and `requiresOctopayPassword: false`. `activate` queues the OctoPay account; a background process opens it with retries, so approval never waits on OctoPay. Then `octopayUrl` appears. If OctoPay reports a conflict, `requiresOctopayPassword` becomes `true` and `POST /v1/public/partner-onboarding/password` retries with the given password (at most once a minute). Before approval that endpoint answers `409`. `octopay` (OctoPay only) still opens its account with the application.
+
 For an earlier OctoPay account created without a password, `POST /v1/public/partner-onboarding/password` accepts `{ password: string }` with the same phone-proof Bearer token. It sets the initial password only, and cannot reset an existing password. OctoPay uses its standard phone/password login; LOAL continues to use phone/OTP login.
 
-Deleting a LOAL establishment queues archival of its linked OctoPay account. Archival disables login, existing sessions, employees, API keys, receiving accounts and pending invoices while retaining financial history. Temporary provider failures are retried. Ordinary unlinking remains separate from account archival.
+Deleting a LOAL establishment unlinks its OctoPay account by default; OctoPay is asked to delete the account itself only when deletion asks for it (`octopay=delete`, or an exit request with `"octopay": "delete"`), and always when the agency rejects a business that already has one. The notice carries the archival moment and the end of the 30-day restore window; OctoPay archives the account at once, keeps it restorable for 30 days and retains financial history. Temporary provider failures are retried; events of one account reach OctoPay in order.
+
+When the agency approves a `bundle` business, OctoPay either opens a new account or links the account the phone already has (its own password stays, so `requiresOctopayPassword` stays `false`). If the phone's account is linked to another business or is within 30 days after deletion, the application waits as `blocked` (see the merchants list) and nothing is asked on the landing.
 
 Категории заявки `POST /v1/public/partner-onboarding` (`category`): `cafe`, `beauty`, `shop`, `sport`, `auto`, `home`, `skincare` (Уходовая косметика), `other` (Другое).
 
@@ -2714,6 +2896,6 @@ Deleting a LOAL establishment queues archival of its linked OctoPay account. Arc
 
 Витрина сохраняется в заявке до оплаты, затем переносится в заведение в одной транзакции с созданием владельца. Повтор заявки с изменённой витриной возвращает 409. Категория сохраняется в карточке русским названием. Новое заведение по-прежнему ожидает проверки супер-админом.
 
-`POST /v1/public/partner-onboarding/assets?slot=merchantLogo|merchantPhoto`: `Authorization: Bearer <подтверждение телефона>` из `/auth/partner-onboarding/verify`; multipart с одним полем `file`, PNG/JPG до 5 МБ. Возвращает `{ "url": "https://…/v1/public/template-assets/…png" }`. Обычный токен входа не подходит. 401 — подтвердить телефон заново; 400/413 — исправить файл; 429 — повторить позже. Загрузка выполняется перед отправкой заявки, после OTP; успешные загрузки повторно не отправляются при повторе в той же форме.
+`POST /v1/public/partner-onboarding/assets?slot=merchantLogo|merchantPhoto`: `Authorization: Bearer <подтверждение телефона>` из `/auth/partner-onboarding/verify`; multipart с одним полем `file`, до 5 МБ. Поддерживаются те же форматы, что для профиля витрины: PNG/APNG, JPG/JPEG/JFIF, WebP, HEIC/HEIF, AVIF, GIF, TIFF/TIF, BMP, SVG, ICO, PSD, JP2 и JXL. Формат определяется по содержимому, результат — статичный PNG с учётом ориентации; у анимаций/многостраничных файлов используется первый кадр/страница. Возвращает `{ "url": "https://…/v1/public/template-assets/…png" }`. Обычный токен входа не подходит. 401 — подтвердить телефон заново; 400/413 — исправить файл; 429 — повторить позже. Загрузка выполняется перед отправкой заявки, после OTP; успешные загрузки повторно не отправляются при повторе в той же форме.
 
 При регистрации или входе по телефону клиентского аккаунта без членства в заведениях карта создаётся до выдачи токенов. Старые клиентские аккаунты без карты восстанавливаются при следующем входе. Уже существующая карта повторно не выпускается, её статус и баланс не изменяются. Оплата подписки и начисление её баланса остаются отдельным сценарием. Сотрудникам и владельцам заведений вход в кабинет не создаёт клиентскую карту. При временной недоступности выпуска возвращается 502; повторный вход безопасен.

@@ -123,6 +123,12 @@ app → pages → widgets → features → entities → shared
   приглашения не нужно (приглашение — прежний путь). `409 MERCHANT_OWNER_UNAVAILABLE` — номер нельзя сделать владельцем,
   у поля. `DELETE` магазина — архив (`deletedAt`, `?includeDeleted=true`), восстановления нет, правки — `410 MERCHANT_DELETED`;
   агентство смотрит архив только на чтение; через 30 дней после удаления сервер обезличивает магазин (название остаётся);
+- один номер — одно живое заведение в любой роли (`409 PHONE_HAS_ACTIVE_MERCHANT` / `EMPLOYEE_ALREADY_ASSIGNED`), удаление
+  сразу освобождает номера. Состояние заведения — `lifecycle` (`lifecycleOf`, `MERCHANT_LIFECYCLE_LABELS`): `pending_review`
+  подтверждают (activate) или отклоняют с причиной (`…/reject`, заявка без заведения — `partner-registrations/{id}/reject`);
+  список `?includeApplications=true` даёт и заявки без заведения (`kind: "application"`, страницы нет). `DELETE ?octopay=keep|delete`
+  (по умолчанию только разорвать связь), вернуть можно 30 дней: `restore-preview` → коды на новый номер владельца → `restore`.
+  Смена номера сотрудника и перенос аккаунта OctōPAY (`octopay/transfer`) — только супер-админ, в карточке заведения;
 - выход из программы: магазин себя не удаляет — владелец подаёт заявку (`…/exit-request`, профиль партнёра, кассиру и
   администратору филиала `403`, повторный POST при открытой — та же заявка), агентство решает на экране «Выход партнёров»
   (`/admin/v1/merchant-exit-requests`: approve = удаление, reject — только с причиной). Решение уходит владельцу в WhatsApp;

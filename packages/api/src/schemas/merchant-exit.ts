@@ -19,6 +19,8 @@ export const exitRequestSchema = z.looseObject({
   /** Строкой: новый статус бэкенда не должен ронять экран. */
   status: z.string(),
   reason: z.string().nullish(),
+  /** keep — уходит только из Loal, delete — из Loal и из OctōPAY. */
+  octopay: z.string().nullish(),
   createdAt: z.string(),
   decidedAt: z.string().nullish(),
   decisionComment: z.string().nullish(),
@@ -34,8 +36,9 @@ export type ExitRequest = z.infer<typeof exitRequestSchema>;
 
 export const exitRequestInputSchema = z.object({
   reason: z.string().trim().max(1000, "Не длиннее 1000 символов"),
+  octopay: z.enum(["keep", "delete"]).default("keep"),
 });
-export type ExitRequestInput = z.infer<typeof exitRequestInputSchema>;
+export type ExitRequestInput = z.input<typeof exitRequestInputSchema>;
 
 export const rejectExitInputSchema = z.object({
   comment: z.string().trim().min(1, "Напишите причину — её получит владелец").max(1000, "Не длиннее 1000 символов"),

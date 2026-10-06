@@ -7,6 +7,9 @@ import {
   type CreateMerchantForm,
   type DeductionQuery,
   type Merchant,
+  type OctopayFate,
+  type RejectInput,
+  type RestoreResult,
   type UpdateMerchantInput,
 } from "@loal/api";
 import { refetchWhilePending, refreshPublicCatalog, useApi } from "@loal/app-kit";
@@ -204,7 +207,8 @@ export function useDeleteMerchant() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (merchantId: string) => merchantsApi(api).remove(merchantId),
+    mutationFn: ({ merchantId, octopay = "keep" }: { merchantId: string; octopay?: OctopayFate }) =>
+      merchantsApi(api).remove(merchantId, octopay),
     // Карточка остаётся открытой на чтение — перечитываем и её, и список
     onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.all }),
   });
@@ -234,5 +238,106 @@ export function useMerchantInvoices(merchantId: string) {
     queryKey: merchantKeys.invoices(merchantId),
     queryFn: () => merchantCabinetApi(api).invoices(merchantId),
     enabled: Boolean(merchantId),
+  });
+}
+
+// ── Заявки, отклонение, возврат из архива, OctōPAY, смена номера ─────────────
+
+/** Список вместе с заявками без заведения (kind: "application"). */
+export function useMerchantsWithApplications(includeDeleted: boolean) {
+  const api = useApi();
+  return useQuery({
+    queryKey: [...merchantKeys.all, "with-applications", { includeDeleted }],
+    queryFn: () => merchantsApi(api).listWithApplications({ includeDeleted }),
+  });
+}
+
+/** Отклонить заведение «ждёт проверки» или заявку без заведения. */
+export function useRejectMerchant() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, kind, input }: { id: string; kind: "merchant" | "application"; input: RejectInput }) =>
+      kind === "merchant" ? merchantsApi(api).reject(id, input) : merchantsApi(api).rejectRegistration(id, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: merchantKeys.all });
+      refreshPublicCatalog(SITE_URL);
+    },
+  });
+}
+
+export const restoreResultKey = (merchantId: string) => [...merchantKeys.detail(merchantId), "restore-result"] as const;
+
+/** Итог последнего возврата этого заведения (до перезагрузки страницы). */
+export function useRestoreResult(merchantId: string) {
+  const queryClient = useQueryClient();
+  const result = useQuery({
+    queryKey: restoreResultKey(merchantId),
+    queryFn: () => null as RestoreResult | null,
+    enabled: false,
+    initialData: null,
+  });
+  return { result: result.data, dismiss: () => queryClient.setQueryData(restoreResultKey(merchantId), null) };
+}
+
+export function useRestorePreview(merchantId: string, enabled: boolean) {
+  const api = useApi();
+  return useQuery({
+    queryKey: [...merchantKeys.detail(merchantId), "restore-preview"],
+    queryFn: () => merchantsApi(api).restorePreview(merchantId),
+    enabled: Boolean(merchantId) && enabled,
+    retry: false,
+  });
+}
+
+export function useRestorePhoneCode(merchantId: string) {
+  const api = useApi();
+  return useMutation({
+    mutationFn: (input: { phone: string; memberId?: string }) => merchantsApi(api).restorePhoneCode(merchantId, input),
+  });
+}
+
+export function useRestoreMerchant(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (replacements: { memberId?: string; phone: string; code: string }[]) =>
+      merchantsApi(api).restore(merchantId, replacements),
+    onSuccess: (result) => {
+      // Итог показываем уже в рабочей карточке: архивная после возврата сразу сменяется ею
+      queryClient.setQueryData(restoreResultKey(merchantId), result);
+      void queryClient.invalidateQueries({ queryKey: merchantKeys.all });
+      refreshPublicCatalog(SITE_URL);
+    },
+  });
+}
+
+export function useTransferOctopay(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (fromMerchantId: string) => merchantsApi(api).transferOctopay(merchantId, fromMerchantId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.all }),
+  });
+}
+
+export function useMemberPhoneCode(merchantId: string) {
+  const api = useApi();
+  return useMutation({
+    mutationFn: ({ memberId, phone }: { memberId: string; phone: string }) =>
+      merchantsApi(api).memberPhoneCode(merchantId, memberId, phone),
+  });
+}
+
+export function useReplaceMemberPhone(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ memberId, phone, code }: { memberId: string; phone: string; code: string }) =>
+      merchantsApi(api).replaceMemberPhone(merchantId, memberId, { phone, code }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: merchantKeys.members(merchantId) });
+      void queryClient.invalidateQueries({ queryKey: merchantKeys.detail(merchantId) });
+    },
   });
 }

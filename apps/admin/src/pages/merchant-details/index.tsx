@@ -2,11 +2,12 @@ import {
   DEDUCTION_CHANNEL_LABELS,
   MEMBER_ROLE_LABELS,
   memberBranchIds,
-  MERCHANT_STATUS_LABELS,
   buyMonthsInputSchema,
   invoiceState,
   type BuyMonthsInput,
+  MERCHANT_LIFECYCLE_LABELS,
   TARIFF_LABELS,
+  lifecycleOf,
   tariffOf,
   type Merchant,
 } from "@loal/api";
@@ -40,7 +41,6 @@ import {
   merchantKeys,
   useAcceptMember,
   useCreateInvite,
-  useDeleteMerchant,
   useGrantSubscription,
   useMerchant,
   useMerchantDeductions,
@@ -52,8 +52,16 @@ import {
   useRemoveMember,
   useSuspendMerchant,
   useActivateMerchant,
+  useMerchantsWithApplications,
+  useRestoreResult,
 } from "../../entities/merchant/api";
 import { EditMerchantForm } from "../../features/merchant/edit-merchant-form";
+import { ApplicationInfo } from "../../features/merchant-lifecycle/application-info";
+import { DeleteMerchantButton } from "../../features/merchant-lifecycle/delete-merchant-dialog";
+import { ChangeMemberPhoneButton } from "../../features/merchant-lifecycle/member-phone-dialog";
+import { OctopayTransfer } from "../../features/merchant-lifecycle/octopay-transfer";
+import { RejectButton } from "../../features/merchant-lifecycle/reject-dialog";
+import { RestorePanel, RestoreResultNotice } from "../../features/merchant-lifecycle/restore-panel";
 import { SITE_URL } from "../../shared/config/env";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
 
@@ -67,6 +75,19 @@ function Storefront({ merchantId }: { merchantId: string }) {
   return (
     <StorefrontForm merchantId={merchantId} profile={profile.data} onSaved={() => refreshPublicCatalog(SITE_URL)} />
   );
+}
+
+function LifecycleBadge({ merchant }: { merchant: Merchant }) {
+  const state = lifecycleOf(merchant);
+  const info = MERCHANT_LIFECYCLE_LABELS[state];
+  return <Badge tone={info?.tone ?? "quiet"}>{info?.label ?? state}</Badge>;
+}
+
+/** Заявка с сайта есть только в списке — берём её оттуда. */
+function useApplicationOf(merchantId: string) {
+  const list = useMerchantsWithApplications(true);
+  const item = list.data?.find((entry) => entry.kind !== "application" && entry.id === merchantId);
+  return item && item.kind !== "application" ? (item.application ?? null) : null;
 }
 
 /** Карточка заведения: реквизиты, команда и коды приглашения владельца. */
@@ -92,12 +113,16 @@ export function MerchantDetailsPage() {
   const invoices = useMerchantInvoices(merchantId);
   const accept = useAcceptMember(merchantId);
   const removeMember = useRemoveMember(merchantId);
-  const remove = useDeleteMerchant();
   const navigate = useNavigate();
+  const application = useApplicationOf(merchantId);
+  const restored = useRestoreResult(merchantId);
 
   if (merchant.isPending) return <Loading />;
   if (merchant.isError) return <ErrorState error={merchant.error} onRetry={() => merchant.refetch()} />;
   if (merchant.data.deletedAt) return <ArchivedMerchant merchant={merchant.data} />;
+  const pendingReview = lifecycleOf(merchant.data) === "pending_review";
+  const hasOctopay =
+    tariffOf(merchant.data.tariff) === "octopay" || application?.plan === "bundle" || application?.plan === "octopay";
 
   return (
     <section className="flex flex-col gap-6">
@@ -113,12 +138,51 @@ export function MerchantDetailsPage() {
             <Badge tone={tariffOf(merchant.data.tariff) === "octopay" ? "good" : "quiet"}>
               {TARIFF_LABELS[tariffOf(merchant.data.tariff)].short}
             </Badge>
-            <Badge tone={merchant.data.status === "active" ? "good" : "warn"}>
-              {MERCHANT_STATUS_LABELS[merchant.data.status]}
-            </Badge>
+            <LifecycleBadge merchant={merchant.data} />
           </span>
         }
       />
+
+      {restored.result && <RestoreResultNotice result={restored.result} onDismiss={restored.dismiss} />}
+
+      {pendingReview && (
+        <Card className="flex flex-col gap-3 border-2 border-primary">
+          <h2 className="text-xl font-bold">Заведение ждёт проверки</h2>
+          <p className="max-w-[70ch] text-base text-muted-foreground">
+            Проверьте данные заведения и владельца. До подтверждения его нет в каталоге и оно не принимает бонусы. Отказ
+            уйдёт владельцу в WhatsApp, а номер освободится для новой заявки.
+          </p>
+          {application && <ApplicationInfo application={application} />}
+          {activate.isError && <ErrorState error={activate.error} />}
+          <div className="flex flex-wrap gap-3">
+            <Button disabled={activate.isPending} onClick={() => activate.mutate()}>
+              {activate.isPending ? "Подтверждаем…" : "Подтвердить заведение"}
+            </Button>
+            <RejectButton id={merchantId} kind="merchant" name={merchant.data.name} />
+          </div>
+        </Card>
+      )}
+
+      {!pendingReview && application && (
+        <Card>
+          <h2 className="text-xl font-bold">Заявка с сайта</h2>
+          <div className="mt-3">
+            <ApplicationInfo application={application} />
+          </div>
+        </Card>
+      )}
+
+      <Card>
+        <h2 className="text-xl font-bold">Аккаунт OctōPAY</h2>
+        <p className="mt-2 mb-4 max-w-[70ch] text-base text-muted-foreground">
+          {tariffOf(merchant.data.tariff) === "octopay"
+            ? "Заведение связано с OctōPAY. "
+            : "Своей связи с OctōPAY у заведения сейчас нет. "}
+          Если аккаунт OctōPAY этого владельца работает с другим заведением, а должен с этим (например, вернули старое
+          заведение), перенесите его сюда.
+        </p>
+        <OctopayTransfer merchantId={merchantId} />
+      </Card>
 
       <Card>
         <h2 className="text-xl font-bold">Реквизиты</h2>
@@ -271,6 +335,7 @@ export function MerchantDetailsPage() {
                     Подтвердить
                   </Button>
                 )}
+                <ChangeMemberPhoneButton merchantId={merchantId} member={member} />
                 <ConfirmDialog
                   trigger={
                     <Button variant="ghost" size="sm">
@@ -327,21 +392,21 @@ export function MerchantDetailsPage() {
 
       <Card>
         <h2 className="text-xl font-bold">
-          {merchant.data.workflowStatus === "approval" && merchant.data.status === "suspended" ? "Заведение ожидает проверки" : merchant.data.status === "suspended" ? "Заведение приостановлено" : "Приостановить или удалить"}
+          {merchant.data.status === "suspended" && !pendingReview ? "Заведение приостановлено" : "Приостановить или удалить"}
         </h2>
         <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
-          {merchant.data.workflowStatus === "approval" && merchant.data.status === "suspended"
-            ? "Проверьте данные заведения и владельца. До вашего подтверждения заведение не показывается в каталоге и не принимает бонусы. Подтверждение включает его работу в LOAL."
+          {pendingReview
+            ? "Пока заведение ждёт проверки, его можно только подтвердить или отклонить (выше) — или удалить."
             : merchant.data.status === "suspended"
             ? "Платформа его сейчас не обслуживает: бонусы здесь не принимаются. Верните в работу — и всё заработает, как раньше, если подписка заведения действует."
-            : "Приостановленное заведение перестаёт обслуживаться платформой, вернуть его можно в любой момент. Удаление отправляет его в архив насовсем: сотрудники теряют доступ и могут работать в другом магазине, связь с OctōPAY и 1С отключается. Клиенты, карты, подписки и балансы остаются — они принадлежат платформе."}
+            : "Приостановленное заведение перестаёт обслуживаться платформой, вернуть его можно в любой момент. Удаление отправляет его в архив: сотрудники теряют доступ, их номера сразу свободны, 1С отключается. Вернуть заведение можно в течение 30 дней. Клиенты, карты, подписки и балансы остаются — они принадлежат платформе."}
         </p>
         {suspend.isError && <ErrorState error={suspend.error} />}
         {activate.isError && <ErrorState error={activate.error} />}
         <div className="mt-4 flex flex-wrap gap-3">
-          {merchant.data.status === "suspended" ? (
+          {pendingReview ? null : merchant.data.status === "suspended" ? (
             <Button disabled={activate.isPending} onClick={() => activate.mutate()}>
-              {activate.isPending ? "Подтверждаем…" : merchant.data.workflowStatus === "approval" ? "Подтвердить заведение" : "Вернуть в работу"}
+              {activate.isPending ? "Возвращаем…" : "Вернуть в работу"}
             </Button>
           ) : (
             <ConfirmDialog
@@ -352,15 +417,11 @@ export function MerchantDetailsPage() {
               onConfirm={() => suspend.mutateAsync()}
             />
           )}
-          <ConfirmDialog
-            trigger={<Button variant="danger">Удалить заведение</Button>}
-            title={`Удалить «${merchant.data.name}»?`}
-            description="Заведение уйдёт в архив: его сотрудники сразу потеряют доступ, связанный аккаунт OctōPAY также уйдёт в архив, вход и приём платежей закроются; связь с 1С отключится, из каталога заведение пропадёт. Историю операций можно будет смотреть. Держатели карт ничего не потеряют. Восстановить нельзя."
-            confirmLabel="Удалить"
-            onConfirm={async () => {
-              await remove.mutateAsync(merchantId);
-              navigate("/");
-            }}
+          <DeleteMerchantButton
+            merchantId={merchantId}
+            name={merchant.data.name}
+            hasOctopay={hasOctopay}
+            onDeleted={() => navigate("/")}
           />
         </div>
       </Card>
@@ -407,6 +468,7 @@ export function MerchantDetailsPage() {
  * операции сервер отклоняет (410 MERCHANT_DELETED), а историю агентство смотреть может.
  */
 function ArchivedMerchant({ merchant }: { merchant: Merchant }) {
+  const state = lifecycleOf(merchant);
   const deductions = useMerchantDeductions(merchant.id, { page: 1, pageSize: 10 });
   const invoices = useMerchantInvoices(merchant.id);
   return (
@@ -417,20 +479,45 @@ function ArchivedMerchant({ merchant }: { merchant: Merchant }) {
       <PageHeader
         title={merchant.name}
         description={`${merchant.slug} · создан ${formatDate(merchant.createdAt)}`}
-        action={<Badge tone="quiet">удалён {formatDate(merchant.deletedAt)}</Badge>}
+        action={<LifecycleBadge merchant={merchant} />}
       />
-      <Card>
-        <h2 className="text-xl font-bold">Заведение в архиве</h2>
-        <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
-          Сотрудники потеряли доступ, связь с OctōPAY и 1С отключена, в каталоге его нет. Клиенты, карты и балансы
-          сохранились. Менять заведение и проводить операции нельзя, восстановление не предусмотрено.
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-xl font-bold">
+          {state === "rejected" ? "Заведение отклонено" : state === "erased" ? "Данные стёрты" : "Заведение в архиве"}
+        </h2>
+        {state === "rejected" && (
+          <p className="text-base">
+            Причина: «{merchant.rejectionReason ?? "—"}». Номер владельца свободен для новой заявки.
+          </p>
+        )}
+        <p className="max-w-[70ch] text-base text-muted-foreground">
+          {state === "erased"
+            ? "Прошло 30 дней после удаления: контакты обезличены, вернуть заведение нельзя. Бизнес заводит новое заведение обычным путём."
+            : `Удалено ${formatDate(merchant.deletedAt)} Сотрудники потеряли доступ, в каталоге его нет, менять заведение и проводить операции нельзя. Клиенты, карты и балансы сохранились.`}
         </p>
         <p className="mt-3 text-base">
           {[merchant.contactPhone ? formatPhone(merchant.contactPhone) : null, merchant.contactEmail]
             .filter(Boolean)
             .join(" · ") || "Контактов не было"}
         </p>
+        {state === "rejected" && (
+          <div>
+            <RejectButton id={merchant.id} kind="merchant" name={merchant.name} resend previousReason={merchant.rejectionReason} />
+          </div>
+        )}
       </Card>
+
+      {merchant.restorableUntil && state !== "erased" && (
+        <Card className="flex flex-col gap-4">
+          <h2 className="text-xl font-bold">Вернуть заведение</h2>
+          <p className="max-w-[70ch] text-base text-muted-foreground">
+            Заведение вернётся как было: люди с теми же номерами и ролями, филиалы и прежний статус
+            {state === "rejected" ? " (отклонённое — снова «ждёт проверки», заявка снова видна на сайте)" : ""}. Можно до{" "}
+            {formatDate(merchant.restorableUntil)}
+          </p>
+          <RestorePanel merchantId={merchant.id} />
+        </Card>
+      )}
       <Card>
         <h2 className="text-xl font-bold">Последние списания</h2>
         {deductions.isPending && <Loading />}

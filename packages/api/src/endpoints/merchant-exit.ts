@@ -20,10 +20,10 @@ export const merchantExitApi = (api: ApiClient) => ({
     api.request(exitRequestSchema.nullable(), `/admin/v1/merchants/${merchantId}/exit-request`),
 
   request: (merchantId: string, input: ExitRequestInput) => {
-    const { reason } = exitRequestInputSchema.parse(input);
+    const { reason, octopay } = exitRequestInputSchema.parse(input);
     return api.request(exitRequestSchema, `/admin/v1/merchants/${merchantId}/exit-request`, {
       method: "POST",
-      body: reason ? { reason } : {},
+      body: { ...(reason ? { reason } : {}), octopay },
     });
   },
 
