@@ -17,7 +17,7 @@ import {
   type OtpRequestInput,
   type PhoneRegisterInput,
   type RegisterInput,
-  type UpdateProfileInput, phoneCheckResultSchema } from "../schemas/auth";
+  type UpdateProfileInput, phoneCheckResultSchema, googleLinkSchema } from "../schemas/auth";
 
 /**
  * Вход один на все кабинеты: почта с паролем или телефон с кодом из WhatsApp.
@@ -77,6 +77,25 @@ export const authApi = (api: ApiClient) => ({
       body: { ...otpLoginInputSchema.parse(input), deviceId: getDeviceId() },
       anonymous: true,
     }),
+
+  /**
+   * Вход через Google — только сотрудникам магазинов, у которых Google уже привязан в профиле.
+   * Регистрации через Google нет: 404 GOOGLE_NOT_LINKED — «войдите по номеру и привяжите».
+   * 403 NOT_BUSINESS_ACCOUNT, 503 GOOGLE_SIGN_IN_DISABLED (прячем кнопку) / GOOGLE_UNAVAILABLE.
+   */
+  loginWithGoogle: (idToken: string) =>
+    api.request(authTokensSchema, "/auth/google", {
+      method: "POST",
+      body: { idToken, deviceId: getDeviceId() },
+      anonymous: true,
+    }),
+
+  /** Привязать Google к тому, кто вошёл. 409 IDENTITY_TAKEN — Google чужой или у человека уже другой. */
+  linkGoogle: (idToken: string) =>
+    api.request(googleLinkSchema, "/auth/me/google", { method: "POST", body: { idToken } }),
+
+  /** Отвязать Google; 204 и тогда, когда привязки не было. */
+  unlinkGoogle: () => api.request(z.undefined(), "/auth/me/google", { method: "DELETE" }),
 
   me: () => api.request(sessionSchema, "/auth/me"),
 

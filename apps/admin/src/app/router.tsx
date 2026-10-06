@@ -14,6 +14,8 @@ import { MerchantDetailsPage } from "../pages/merchant-details";
 import { MerchantsPage } from "../pages/merchants";
 import { TemplateEditorPage } from "../pages/template-editor";
 import { TemplatesPage } from "../pages/templates";
+import { TariffsPage } from "../pages/tariffs";
+import { ExitRequestsPage } from "../pages/exit-requests";
 import { AppLayout } from "../widgets/app-layout";
 
 /** Все экраны, кроме входа, доступны только администратору платформы. */
@@ -39,6 +41,8 @@ export function AppRouter() {
         <Route path="programs" element={<ProgramsPage />} />
         <Route path="certificates" element={<CertificatesPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="tariffs" element={<TariffsPage />} />
+        <Route path="exit-requests" element={<ExitRequestsPage />} />
         <Route path="bonus-items" element={<BonusItemsPage />} />
         <Route path="promo-codes" element={<PromoCodesPage />} />
         <Route path="leads" element={<LeadsPage />} />

@@ -19,7 +19,20 @@ const monthsWord = (n: number) => (n === 1 ? "месяц" : n < 5 ? "месяц�
 export function InvoiceForm({ merchantId }: { merchantId: string }) {
   const createInvoice = useCreateInvoice(merchantId);
   const [issued, setIssued] = useState<Invoice | null>(null);
+  // Цена тарифа «Только Loal» — 0: счёт не нужен, бонусы и так принимаются
+  const [free, setFree] = useState(false);
   const initialValues: CreateInvoiceInput = { months: 1 };
+
+  if (free)
+    return (
+      <div role="status" className="rounded-[24px] bg-muted p-5">
+        <p className="text-xl font-bold">Доступ сейчас бесплатный</p>
+        <p className="mt-1 max-w-[60ch] text-base text-muted-foreground">
+          Оплачивать Loal не нужно: магазин принимает бонусы и виден в каталоге и без подписки. Если агентство введёт
+          цену, здесь снова можно будет выставить счёт.
+        </p>
+      </div>
+    );
 
   if (issued)
     return (
@@ -59,6 +72,7 @@ export function InvoiceForm({ merchantId }: { merchantId: string }) {
         try {
           setIssued(await createInvoice.mutateAsync(values));
         } catch (error) {
+          if (error instanceof ApiError && error.code === "MERCHANT_ACCESS_FREE") return setFree(true);
           applyServerIssues(error, helpers, invoiceErrorText(error));
         } finally {
           helpers.setSubmitting(false);

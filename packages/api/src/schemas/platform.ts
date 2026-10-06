@@ -306,13 +306,12 @@ const priceKgs = z.coerce
   .min(1, "Цена больше нуля")
   .max(10_000_000, "Слишком большая цена");
 
-/** Экран цен у агентства. Новая цена действует со следующего счёта, выставленные не меняются. */
+/** Цена подписки клиента. Новая цена действует со следующего счёта, выставленные не меняются. */
+// Цена доступа магазина (merchantAccessPriceKgs) устарела: она теперь тариф «Только Loal» — /admin/v1/tariffs
 export const platformPricesInputSchema = z.object({
-  merchantAccessPriceKgs: priceKgs,
   cardSubscriptionPriceKgs: priceKgs,
 });
 export type PlatformPricesInput = {
-  merchantAccessPriceKgs: number | string;
   cardSubscriptionPriceKgs: number | string;
 };
 

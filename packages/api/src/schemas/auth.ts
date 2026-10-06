@@ -64,6 +64,8 @@ export const profileSchema = z.looseObject({
   phone: z.string().nullish(),
   fullName: z.string().nullish(),
   role: platformRoleSchema,
+  /** Привязанный Google для входа (только сотрудники магазинов); старый шлюз поля не отдаёт. */
+  google: z.looseObject({ email: z.string().nullish() }).nullish(),
 });
 export type Profile = z.infer<typeof profileSchema>;
 
@@ -164,3 +166,8 @@ export const updateProfileInputSchema = z.object({
   email: z.union([z.literal(""), z.string().trim().toLowerCase().pipe(z.email("Похоже, в почте опечатка"))]),
 });
 export type UpdateProfileInput = { fullName: string; email: string };
+
+/** Ответ привязки Google: почта того аккаунта, что теперь открывает вход. */
+export const googleLinkSchema = z.looseObject({
+  google: z.looseObject({ email: z.string().nullish() }),
+});

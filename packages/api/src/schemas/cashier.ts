@@ -21,6 +21,8 @@ export const cashierOverviewSchema = z.looseObject({
       status: z.string().nullish(),
       expiresAt: z.string().nullish(),
       isActive: z.boolean().nullish(),
+      /** Доступ бесплатный (цена тарифа «Только Loal» — 0): вместо срока показываем «Бесплатно». */
+      free: z.boolean().nullish(),
     })
     .nullish(),
   permissions: z.looseObject({ redeem: z.boolean().nullish() }).nullish(),

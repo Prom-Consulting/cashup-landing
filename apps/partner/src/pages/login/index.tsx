@@ -1,7 +1,7 @@
-import { LoginForm } from "@loal/app-kit";
+import { GoogleSignIn, LoginForm } from "@loal/app-kit";
 import { Logo } from "@loal/ui/logo";
 import { Link, useNavigate } from "react-router";
-import { SITE_URL } from "../../shared/config/env";
+import { GOOGLE_CLIENT_ID, SITE_URL } from "../../shared/config/env";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -15,6 +15,9 @@ export function LoginPage() {
         <div className="mt-8">
           {/* Владельцев теперь заводят по телефону — основной вход по коду из WhatsApp */}
           <LoginForm defaultMode="phone" onDone={() => navigate("/", { replace: true })} />
+        </div>
+        <div className="mt-6">
+          <GoogleSignIn clientId={GOOGLE_CLIENT_ID} onDone={() => navigate("/", { replace: true })} />
         </div>
         <p className="mt-6 text-base text-slate">
           Дали код приглашения?{" "}

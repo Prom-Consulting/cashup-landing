@@ -7,5 +7,6 @@ export function subscriptionState(overview: CashierOverview | undefined) {
   const until = subscription?.expiresAt ?? null;
   // Право списывать даёт сервер; нет поля — значит, ограничений не сообщили
   const canRedeem = overview?.permissions?.redeem !== false;
-  return { active: Boolean(active), until, canRedeem };
+  const free = subscription?.free === true;
+  return { active: Boolean(active) || free, until: free ? null : until, free, canRedeem };
 }

@@ -82,6 +82,7 @@ services:
         VITE_API_URL: ${API_URL:-https://loal.promconsult.pro}
         VITE_SITE_URL: https://${LANDING_HOST:-loal.kg}
         VITE_CASHIER_APP_URL: https://${CASHIER_HOST:-cashier.loal.kg}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-753939199773-34gbat3ifsb35teep7ltu4dbnltm1t4b.apps.googleusercontent.com}
     image: loal-partner:latest
     labels:
       - traefik.enable=true
@@ -135,6 +136,7 @@ services:
         VITE_API_URL: ${API_URL:-https://loal.promconsult.pro}
         VITE_SITE_URL: https://${LANDING_HOST:-loal.kg}
         VITE_PARTNER_APP_URL: https://${PARTNER_HOST:-partner.loal.kg}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-753939199773-34gbat3ifsb35teep7ltu4dbnltm1t4b.apps.googleusercontent.com}
     image: loal-cashier:latest
     labels:
       - traefik.enable=true

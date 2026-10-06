@@ -2,6 +2,8 @@ import {
   type CheckoutPointInput,
   ApiError,
   merchantCabinetApi,
+  merchantExitApi,
+  type ExitRequestInput,
   merchantsApi,
   promoApi,
   tariffOf,
@@ -28,6 +30,7 @@ export const merchantKeys = {
   webhooks: (id: string) => ["merchant", id, "webhooks"] as const,
   deliveries: (id: string, webhookId: string) => ["merchant", id, "webhooks", webhookId] as const,
   checkoutPoints: (id: string) => ["merchant", id, "checkout-points"] as const,
+  exitRequest: (id: string) => ["merchant", id, "exit-request"] as const,
 };
 
 /** Открытые филиалы; includeArchived — вместе с закрытыми, чтобы журнал назвал прошлую точку. */
@@ -342,5 +345,26 @@ export function useSetCheckoutPointActive(merchantId: string) {
     mutationFn: ({ pointId, isActive }: { pointId: string; isActive: boolean }) =>
       merchantCabinetApi(api).setCheckoutPointActive(merchantId, pointId, isActive),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.checkoutPoints(merchantId) }),
+  });
+}
+
+// ── Выход из программы ───────────────────────────────────────────────────────
+
+/** Последняя заявка на выход или null. Только владельцу — остальным сервер ответит 403. */
+export function useExitRequest(merchantId: string, enabled: boolean) {
+  const api = useApi();
+  return useQuery({
+    queryKey: merchantKeys.exitRequest(merchantId),
+    queryFn: () => merchantExitApi(api).current(merchantId),
+    enabled: Boolean(merchantId) && enabled,
+  });
+}
+
+export function useRequestExit(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ExitRequestInput) => merchantExitApi(api).request(merchantId, input),
+    onSuccess: (saved) => queryClient.setQueryData(merchantKeys.exitRequest(merchantId), saved),
   });
 }

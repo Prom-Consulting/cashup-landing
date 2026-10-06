@@ -15,7 +15,7 @@ export function BranchOverview() {
   if (overview.isError) return <ErrorState error={overview.error} onRetry={() => overview.refetch()} />;
 
   const { branch, branches, merchant, cashier } = overview.data;
-  const { active, until, canRedeem } = subscriptionState(overview.data);
+  const { active, until, free, canRedeem } = subscriptionState(overview.data);
   // Нескольким филиалам заголовок — магазин, а филиалы перечисляем ниже; ни одного — списывать нельзя
   const many = branches.length > 1;
   const unassigned = branches.length === 0 && !branch;
@@ -67,6 +67,7 @@ export function BranchOverview() {
           <div>
             <Badge tone={active ? "good" : "quiet"}>{active ? "Бонусы принимаются" : overview.data.subscription ? "Не активна" : "Нет подписки"}</Badge>
           </div>
+          {free && <p className="text-base text-muted-foreground">Бесплатно — оплачивать доступ не нужно.</p>}
           {until && (
             <p className="text-base text-muted-foreground">
               {active ? "Действует до" : "Закончилась"} {formatDate(until)}

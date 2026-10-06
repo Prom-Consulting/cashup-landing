@@ -13,3 +13,5 @@ export * from "./redemptions";
 export * from "./referrals";
 export * from "./subscription";
 export * from "./cashier";
+export * from "./merchant-exit";
+export * from "./tariffs";

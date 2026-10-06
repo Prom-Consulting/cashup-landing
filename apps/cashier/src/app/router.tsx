@@ -6,6 +6,7 @@ import { LoginPage } from "../pages/login";
 import { NotFoundPage } from "../pages/not-found";
 import { OverviewPage } from "../pages/overview";
 import { PosPage } from "../pages/pos";
+import { ProfilePage } from "../pages/profile";
 import { StorefrontPage } from "../pages/storefront";
 import { RedeemPage } from "../pages/redeem";
 import { CashierOnly } from "../widgets/cashier-only";
@@ -33,6 +34,7 @@ export function AppRouter() {
         <Route path="history" element={<HistoryPage />} />
         <Route path="storefront" element={<StorefrontPage />} />
         <Route path="pos" element={<PosPage />} />
+        <Route path="profile" element={<ProfilePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

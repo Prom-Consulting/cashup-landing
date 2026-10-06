@@ -11,3 +11,6 @@ export const OCTOPAY_INTEGRATIONS_URL = `${OCTOPAY_APP_URL}/business/integration
 
 /** Кабинет кассира филиала: кассиров партнёра отправляем туда. */
 export const CASHIER_APP_URL = import.meta.env.VITE_CASHIER_APP_URL ?? "https://cashier.loal.kg";
+
+/** Web client ID Google (тот же, что в GOOGLE_CLIENT_IDS бэкенда). Пусто — кнопок Google нет. */
+export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || undefined;

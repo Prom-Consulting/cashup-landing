@@ -20,6 +20,7 @@ import {
 } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useState } from "react";
+import { Link } from "react-router";
 import {
   useAuditLogs,
   usePlatformSettings,
@@ -31,11 +32,6 @@ import { formatDateTime } from "../../shared/lib/format";
 const money = new Intl.NumberFormat("ru-RU");
 
 const PRICE_FIELDS = [
-  {
-    name: "merchantAccessPriceKgs",
-    label: "Доступ магазина",
-    hint: "Месяц приёма бонусов. По ней считается счёт магазину и оплата доступа партнёром.",
-  },
   {
     name: "cardSubscriptionPriceKgs",
     label: "Подписка клиента",
@@ -49,16 +45,19 @@ function PricesCard({ settings }: { settings: PlatformSettings }) {
   // Отдельно от status: после сохранения форма пересоздаётся с новыми ценами и сбрасывает status
   const [saved, setSaved] = useState(false);
   const initialValues: PlatformPricesInput = {
-    merchantAccessPriceKgs: settings.merchantAccessPriceKgs ?? "",
     cardSubscriptionPriceKgs: settings.cardSubscriptionPriceKgs ?? "",
   };
 
   return (
     <Card>
-      <h2 className="text-xl font-bold">Цены</h2>
+      <h2 className="text-xl font-bold">Подписка клиента</h2>
       <p className="mt-1 max-w-[70ch] text-base text-muted-foreground">
         Целые сомы за месяц. Счёт считает сервер: цена × месяцы. Новая цена действует со следующего счёта — уже
-        выставленные не меняются. Каждая смена попадает в журнал ниже.
+        выставленные не меняются. Каждая смена попадает в журнал ниже. Цены тарифов магазинов — в разделе{" "}
+        <Link to="/tariffs" className="text-flame-ink underline underline-offset-4">
+          «Тарифы»
+        </Link>
+        .
       </p>
       <Formik
         initialValues={initialValues}
@@ -80,7 +79,7 @@ function PricesCard({ settings }: { settings: PlatformSettings }) {
         {(form) => (
           <Form className="mt-5 flex flex-col gap-5" noValidate>
             <FocusFirstError form={form} />
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid max-w-[420px] gap-5">
               {PRICE_FIELDS.map((field) => {
                 const value = Number(form.values[field.name]);
                 return (

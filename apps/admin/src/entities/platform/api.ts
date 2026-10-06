@@ -1,5 +1,7 @@
 import {
   platformApi,
+  tariffsApi,
+  type TariffPriceInput,
   type AppleRelevanceInput,
   type BonusItemInput,
   type BonusItemQuery,
@@ -404,5 +406,28 @@ export function useCertificateHealthQuery(certificateId: string | null) {
     queryFn: () => platformApi(api).certificateHealth(certificateId!),
     enabled: Boolean(certificateId),
     retry: false,
+  });
+}
+
+// ── Тарифы бизнеса ───────────────────────────────────────────────────────────
+
+export const tariffKeys = { all: ["tariffs"] as const };
+
+export function useTariffs() {
+  const api = useApi();
+  return useQuery({ queryKey: tariffKeys.all, queryFn: () => tariffsApi(api).list() });
+}
+
+export function useSetTariffPrice() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ code, input }: { code: string; input: TariffPriceInput }) => tariffsApi(api).setPrice(code, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: tariffKeys.all });
+      // Цена «Только Loal» видна и в настройках платформы, а смена — в журнале
+      void queryClient.invalidateQueries({ queryKey: platformKeys.settings });
+      void queryClient.invalidateQueries({ queryKey: platformKeys.audit });
+    },
   });
 }

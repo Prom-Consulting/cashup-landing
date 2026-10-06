@@ -5,20 +5,22 @@ import {
   type ChangePasswordInput,
   authApi,
 } from "@loal/api";
-import { ProfileForm, useApi } from "@loal/app-kit";
+import { GoogleLink, ProfileForm, useApi } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { TextInput } from "@loal/ui/inputs";
 import { Button, Card, PageHeader } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useCurrentMerchant } from "../../entities/session/model";
+import { ExitRequestCard } from "../../features/merchant-exit/exit-request-card";
+import { GOOGLE_CLIENT_ID } from "../../shared/config/env";
 
 const initialValues: ChangePasswordInput = { currentPassword: "", newPassword: "", repeatPassword: "" };
 
-/** Профиль: кто вошёл, имя и почта, смена пароля. */
+/** Профиль: кто вошёл, вход через Google, имя и почта, смена пароля. */
 export function ProfilePage() {
   const api = useApi();
-  const { label, membership } = useCurrentMerchant();
+  const { label, membership, merchantId, canManage } = useCurrentMerchant();
 
   return (
     <section className="flex max-w-[560px] flex-col gap-6">
@@ -31,6 +33,11 @@ export function ProfilePage() {
             ? `${MERCHANT_ROLE_LABELS[membership.role]!.title}. ${MERCHANT_ROLE_LABELS[membership.role]!.can}`
             : "Сотрудник магазина"}
         </p>
+      </Card>
+
+      <Card>
+        <h2 className="text-xl font-bold">Вход через Google</h2>
+        <GoogleLink clientId={GOOGLE_CLIENT_ID} />
       </Card>
 
       <Card>
@@ -114,6 +121,9 @@ export function ProfilePage() {
           )}
         </Formik>
       </Card>
+
+      {/* Заявку подаёт только владелец — кассиру и администратору филиала сервер ответит 403 */}
+      {canManage && merchantId && <ExitRequestCard merchantId={merchantId} />}
     </section>
   );
 }
