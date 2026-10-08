@@ -64,3 +64,15 @@ export function useArchiveCustomer() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: customerKeys.all }),
   });
 }
+
+export function useDeleteCustomer() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (customerId: string) => platformApi(api).deleteCustomer(customerId),
+    onSuccess: async (_, customerId) => {
+      queryClient.removeQueries({ queryKey: customerKeys.cards(customerId) });
+      await queryClient.invalidateQueries({ queryKey: customerKeys.all });
+    },
+  });
+}

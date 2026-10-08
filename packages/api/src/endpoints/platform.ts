@@ -94,6 +94,10 @@ export const platformApi = (api: ApiClient) => ({
   archiveCustomer: (customerId: string) =>
     api.request(customerSchema, `/admin/v1/customers/${customerId}/archive`, { method: "POST", body: {} }),
 
+  /** Erases the account too, freeing the phone and email for a new registration. */
+  deleteCustomer: (customerId: string) =>
+    api.request(z.undefined(), `/admin/v1/customers/${encodeURIComponent(customerId)}`, { method: "DELETE" }),
+
   customerCards: (customerId: string) => api.request(z.array(cardSchema), `/admin/v1/customers/${customerId}/cards`),
 
   issueCard: (input: IssueCardInput) =>
