@@ -1,15 +1,11 @@
-// Три способа подключения из ТЗ (раздел 2.3). Используются на главной и на странице «Стать партнёром».
+import { businessPrice } from "./business-pricing";
 
-
+// Три способа подключения на странице «Стать партнёром».
 
 export type Model = {
   key: string;
   title: string;
   price: string;
-  /** Обычная цена — перечёркнута рядом с акционной. */
-  oldPrice?: string;
-  /** До какого момента действует акционная цена: таймер на карточке. */
-  priceUntil?: string;
   priceNote: string;
   points: string[];
   featured?: boolean;
@@ -21,11 +17,8 @@ export function models(partnerUrl: string): Model[] {
     {
       key: "loyalty",
       title: "Только лояльность",
-      price: "0 сом",
-      oldPrice: "8 750 сом",
-      // Конец 30 ноября по Бишкеку
-      priceUntil: "2026-11-30T23:59:59+06:00",
-      priceNote: "бесплатно до 30 ноября 2026, пока набирается аудитория",
+      price: businessPrice("loyalty"),
+      priceNote: "в месяц",
       points: [
         "Место в каталоге Loal и кабинет партнёра",
         "Сами задаёте максимальный % оплаты бонусами на месяц",
@@ -37,14 +30,14 @@ export function models(partnerUrl: string): Model[] {
     {
       key: "bundle",
       title: "OctōPAY + лояльность",
-      price: "0 $",
-      priceNote: "абонентской платы за лояльность",
+      price: businessPrice("bundle"),
+      priceNote: "в месяц за лояльность и OctōPAY",
       points: [
         "Приём QR-платежей через OctōPAY",
         "Клиент сам решает, сколько бонусов потратить при оплате",
         "Счёт клиенту: кассир вводит только сумму",
         "Метка «оплата бонусами в OctōPAY» в каталоге",
-        "Платите только комиссию с оборота",
+        "Комиссия за платежи — по условиям OctōPAY",
       ],
       featured: true,
       cta: { label: "Подключить пакет", href: `${partnerUrl.split("#")[0]}?plan=bundle#form` },

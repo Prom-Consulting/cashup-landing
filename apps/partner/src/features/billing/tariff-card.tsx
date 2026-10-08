@@ -9,14 +9,14 @@ import { formatDate } from "../../shared/lib/format";
 import { OctopayIntegration } from "../octopay/integration";
 
 const BUNDLE_PERKS = [
-  "Loal бесплатно — без абонентской платы",
+  "Лояльность включена в подписку OctōPAY + Loal",
   "Клиент платит через OctōPAY и сам решает, сколько бонусов потратить",
   "«Счёт клиенту»: кассир вводит только сумму",
 ];
 
 /**
  * Тариф магазина — следует из связи с OctōPAY, его не выбирают. На «Только Loal» показываем
- * срок подписки и дорогу к бесплатному пакету; на «OctōPAY + Loal» — что Loal бесплатен.
+ * срок подписки; на «OctōPAY + Loal» — оплату пакета через OctōPAY.
  */
 export function TariffCard({
   merchantId,
@@ -48,7 +48,7 @@ export function TariffCard({
           <h2 className="display mt-1 text-[1.6rem] leading-tight">{label.title}</h2>
         </div>
         {tariff === "octopay" ? (
-          <Badge tone="good">Loal бесплатно</Badge>
+          <Badge tone="good">Оплата в OctōPAY</Badge>
         ) : (
           <Badge tone={paidActive ? "good" : "warn"}>
             {paidActive ? `оплачено до ${formatDate(subscription?.expiresAt)}` : "не оплачено"}
@@ -73,7 +73,7 @@ export function TariffCard({
           </div>
           {/* Дорога к пакету: тот же блок подключения, что и ниже, — просто с объяснением зачем */}
           <div className="mt-5 rounded-[20px] bg-muted p-4 sm:p-5">
-            <p className="text-lg font-bold">OctōPAY + Loal — Loal бесплатно</p>
+            <p className="text-lg font-bold">OctōPAY + Loal — единая подписка</p>
             <ul className="mt-2 flex flex-col gap-1.5">
               {BUNDLE_PERKS.map((perk) => (
                 <li key={perk} className="flex gap-2 text-base leading-snug">
@@ -83,7 +83,7 @@ export function TariffCard({
               ))}
             </ul>
             <p className="mt-2 text-sm text-muted-foreground">
-              Подключите свой магазин в OctōPAY ниже — тариф сменится сам.
+              Подключите свой магазин в OctōPAY ниже — тариф сменится сам. Подписку на пакет оплачивают в OctōPAY.
             </p>
           </div>
         </>

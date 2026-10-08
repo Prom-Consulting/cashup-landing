@@ -24,7 +24,7 @@ export function BillingPage() {
         description="Счёт — это оплата. Приём бонусов включает подписка: она продлевается после оплаты."
         action={
           tariff === "octopay" ? (
-            <Badge tone="good">Loal бесплатно</Badge>
+            <Badge tone="good">Оплата в OctōPAY</Badge>
           ) : (
             <Badge tone={paidActive ? "good" : "warn"}>
               {paidActive ? `доступ до ${formatDate(subscription.data?.expiresAt)}` : "доступ закрыт"}
@@ -37,16 +37,18 @@ export function BillingPage() {
         <Card className="flex flex-col gap-2">
           <h2 className="text-xl font-bold">Ваш тариф — {TARIFF_LABELS.octopay.title}</h2>
           <p className="max-w-[70ch] text-base text-muted-foreground">
-            Пока магазин подключён к OctōPAY, платить за Loal не нужно — бонусы принимаются и так. Оплаченные месяцы ниже
-            пригодятся, только если вы отключите OctōPAY.
+            Лояльность включена в платную подписку OctōPAY + Loal. Стоимость и оплата пакета — в OctōPAY. Оплаченные
+            отдельно месяцы Loal ниже пригодятся, если вы отключите OctōPAY.
           </p>
         </Card>
       )}
 
       <Card>
-        <h2 className="text-xl font-bold">Новый счёт</h2>
+        <h2 className="text-xl font-bold">{tariff === "octopay" ? "Отдельная подписка Loal" : "Новый счёт"}</h2>
         <p className="mt-2 max-w-[70ch] text-base text-muted-foreground">
-          После оплаты через OctōPAY доступ продлевается сам — вручную ничего включать не нужно.
+          {tariff === "octopay"
+            ? "Этот счёт продлевает только отдельную подписку Loal для работы без OctōPAY. Подписку на пакет оплачивают в OctōPAY."
+            : "После оплаты через OctōPAY доступ продлевается сам — вручную ничего включать не нужно."}
         </p>
         <div className="mt-5">{merchantId && <InvoiceForm merchantId={merchantId} />}</div>
       </Card>

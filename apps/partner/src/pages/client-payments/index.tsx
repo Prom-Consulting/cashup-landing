@@ -23,7 +23,7 @@ export function ClientPaymentsPage() {
         <Card className="flex flex-col gap-3">
           <h2 className="text-xl font-bold">Доступно на тарифе OctōPAY + Loal</h2>
           <p className="text-lg leading-snug text-muted-foreground">
-            Клиент платит по ссылке OctōPAY и сам решает, сколько бонусов потратить. А Loal на этом тарифе бесплатен.
+            Клиент платит по ссылке OctōPAY и сам решает, сколько бонусов потратить. Лояльность включена в платную подписку на пакет.
           </p>
           <p className="text-base text-muted-foreground">
             {canManage

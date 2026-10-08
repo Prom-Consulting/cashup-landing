@@ -85,8 +85,8 @@ function OwnerDashboard() {
             {subscription.data ? "Подписка закончилась" : "Loal ещё не оплачен"}
           </h2>
           <p className="mt-2 max-w-[70ch] text-lg">
-            Списания не проходят ни через приложение, ни через 1С. Оплатите Loal — или подключите OctōPAY, и Loal станет
-            бесплатным.
+            Списания не проходят ни через приложение, ни через 1С. Оплатите подписку Loal или подключите платный пакет
+            OctōPAY + Loal.
           </p>
           <Link to="/billing" className="mt-4 inline-block text-lg text-destructive underline underline-offset-4">
             Перейти к оплате

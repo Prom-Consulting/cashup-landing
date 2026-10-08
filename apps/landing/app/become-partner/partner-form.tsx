@@ -12,6 +12,7 @@ import { StorefrontImages } from "./storefront-images";
 import type { Point } from "./location-picker";
 import { toPhoneDigits, coordsFrom2gis, merchantProfileFormSchema } from "@loal/api";
 import { categories } from "../_data/categories";
+import { businessPrice } from "../_data/business-pricing";
 import { API_URL, EMAIL, PARTNER_APP_URL, PHONE, PHONE_HREF } from "../_data/site";
 
 gsap.registerPlugin(useGSAP);
@@ -23,8 +24,8 @@ const LocationPicker = dynamic(() => import("./location-picker"), {
 });
 
 const plans = [
-  { id: "loyalty", label: "Только лояльность", note: "0 сом вместо 8 750 — до 30 ноября" },
-  { id: "bundle", label: "OctōPAY + лояльность", note: "без абонентской платы" },
+  { id: "loyalty", label: "Только лояльность", note: `${businessPrice("loyalty")}/мес` },
+  { id: "bundle", label: "OctōPAY + лояльность", note: `${businessPrice("bundle")}/мес` },
   { id: "octopay", label: "Только OctōPAY", note: "комиссия с оборота" },
 ] as const;
 const PLAN_LABEL: Record<PlanId, string> = { loyalty: plans[0].label, bundle: plans[1].label, octopay: plans[2].label };
@@ -736,9 +737,9 @@ function Alert({ text }: { text: string }) {
   );
 }
 
-/** Этапы подключения: для лояльности есть оплата, для бесплатных тарифов — нет. */
+/** Registration is free; the payment step is only for an existing onboarding invoice. */
 function Status({ sent, failed, phone }: { sent: Registration; failed: string | null; phone: string }) {
-  const paid = sent.plan === "loyalty";
+  const paid = sent.plan === "loyalty" && sent.amount > 0;
   const stages = paid ? ["Заявка принята", "Оплата", "Кабинет готов"] : ["Заявка принята", "Создаём кабинеты", "Кабинеты готовы"];
   if (sent.plan !== "octopay") stages.push("Проверка супер-админа");
   const at =
@@ -758,7 +759,7 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
           : "Подключаем ваш бизнес";
 
   const text =
-    sent.verificationStatus === "pending" ? "Кабинет создан. До проверки супер-админа заведение не показывается в каталоге LOAL и не принимает бонусы. Вы уже можете войти и проверить данные витрины." : sent.state === "ready"
+    sent.verificationStatus === "pending" ? "Кабинет создан. До проверки супер-админа заведение не показывается в каталоге LOAL и не принимает бонусы. Вы уже можете войти и проверить данные витрины. Подписка оплачивается отдельно: «Только лояльность» — в кабинете Loal, пакет — в OctōPAY." : sent.state === "ready"
       ? sent.plan === "octopay"
         ? "Аккаунт OctōPAY создан. Войдите по этому телефону и паролю, заданному в форме."
         : sent.plan === "bundle"
@@ -835,10 +836,13 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
           Логин: <span className="font-bold whitespace-nowrap">{formatPhone(phone)}</span>
         </p>
       )}
-      {sent.state === "ready" && sent.plan !== "loyalty" && (
+      {sent.state === "ready" && (
         <p className="rounded-2xl bg-cream px-4 py-3 text-base leading-relaxed">
-          Абонентской платы нет — только комиссия с платежей. Чтобы принимать оплату, подключите банковский счёт в
-          кабинете OctōPAY.
+          {sent.plan === "loyalty"
+            ? `Подписка «Только лояльность» — ${businessPrice("loyalty")}/мес. Оплатите её в кабинете Loal, чтобы принимать бонусы после проверки заведения.`
+            : sent.plan === "bundle"
+              ? `Подписка «OctōPAY + лояльность» — ${businessPrice("bundle")}/мес, оплата — в OctōPAY. Для приёма платежей подключите банковский счёт в кабинете OctōPAY.`
+              : "Абонентской платы нет — только комиссия с платежей. Чтобы принимать оплату, подключите банковский счёт в кабинете OctōPAY."}
         </p>
       )}
       {sent.state === "pending_payment" && (

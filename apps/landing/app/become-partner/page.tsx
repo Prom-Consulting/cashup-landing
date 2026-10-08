@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { CorporateHero } from "../_components/business-section";
 import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
-import { PriceCountdown } from "../_components/price-countdown";
 import { models } from "../_data/models";
+import { businessPrice } from "../_data/business-pricing";
 import { PAGE_SEO, openGraph } from "../_data/seo";
 import { CITY, EMAIL, OCTOPAY_URL, PARTNER_MAIL, PHONE, PHONE_HREF } from "../_data/site";
 import { PartnerForm } from "./partner-form";
@@ -22,7 +22,7 @@ const steps = [
   },
   {
     title: "Получаете кабинет",
-    text: "Регистрация бесплатная на всех трёх моделях. Абонентской платы за «Только лояльность» пока нет — пока набирается аудитория, в пакете с OctōPAY её нет вовсе.",
+    text: `Регистрация бесплатная на всех трёх моделях. Подписка «Только лояльность» — ${businessPrice("loyalty")} в месяц, «OctōPAY + лояльность» — ${businessPrice("bundle")} в месяц.`,
   },
   {
     title: "Настраиваете процент",
@@ -56,7 +56,7 @@ const gains = [
 const faq = [
   {
     q: "Когда заведение появится в каталоге?",
-    a: "На тарифе «Только лояльность» — после оплаты, в пакете с OctōPAY — после автоматического подключения. Если подписка «Только лояльность» не продлена, заведение скрывается из каталога до оплаты.",
+    a: "После проверки заведения: на тарифе «Только лояльность» — при оплаченной подписке, в пакете — при включённой связи с OctōPAY. Подписку на пакет оплачивают в OctōPAY. Если подписка «Только лояльность» не продлена, заведение скрывается из каталога до оплаты.",
   },
   {
     q: "Кто платит за бонусы клиента?",
@@ -130,17 +130,8 @@ export default function BecomePartnerPage() {
                     }`}
                   >
                     {m.price}
-                    {m.oldPrice && (
-                      <s className="ml-3 align-middle text-[0.5em] font-extrabold text-graphite/60 decoration-flame decoration-[3px]">
-                        <span className="sr-only">вместо </span>
-                        {m.oldPrice}
-                      </s>
-                    )}
                   </p>
                   <p className="mt-2 font-medium">{m.priceNote}</p>
-                  {m.priceUntil && (
-                    <PriceCountdown until={m.priceUntil} label="Бесплатно ещё" className="mt-3 text-base" />
-                  )}
                   <ul className="mt-8 flex flex-1 flex-col gap-3">
                     {m.points.map((pt) => (
                       <li key={pt} className="flex gap-3">
@@ -177,11 +168,10 @@ export default function BecomePartnerPage() {
               ))}
             </div>
             <p className="mt-8 max-w-[64ch] text-sm opacity-75">
-              Все подписки оплачиваются через{" "}
+              Подписка «Только лояльность» оплачивается в кабинете Loal через{" "}
               <a href={OCTOPAY_URL} className="underline underline-offset-4 hover:no-underline">
                 OctōPAY
-              </a>{" "}
-              на счёт Loal и продлеваются в кабинете партнёра.
+              </a>. Подписку на пакет «OctōPAY + лояльность» оплачивают в OctōPAY.
             </p>
           </div>
         </section>
@@ -191,7 +181,7 @@ export default function BecomePartnerPage() {
             <div>
               <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)] brand-gradient-text">Заявка</h2>
               <p className="mt-6 max-w-[42ch] text-lg leading-relaxed">
-                Выберите тариф и подтвердите телефон. Платная лояльность подключится после оплаты, бесплатные тарифы — сразу. Если нужна помощь, напишите нам.
+                Выберите тариф и подтвердите телефон — регистрация бесплатная. Подписку «Только лояльность» оплачивают в кабинете Loal, пакет — в OctōPAY. Если нужна помощь, напишите нам.
               </p>
               <ul className="mt-8 flex flex-col gap-3 text-lg">
                 <li>
