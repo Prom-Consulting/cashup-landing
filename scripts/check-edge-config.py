@@ -50,4 +50,6 @@ for name in (".github/workflows/cd.yml", "scripts/ship.sh"):
     source = (root / name).read_text()
     assert source.index("bash scripts/check-edge-ready.sh") < source.index(
         "docker compose -f infra/docker-compose.yml up -d"), f"{name}: probe the gateway before rollout"
+probe = (root / "scripts/check-edge-ready.sh").read_text()
+assert "--label traefik.enable=false" in probe, "The deployment probe must never receive public traffic"
 print("Edge checks passed: all five sites, shared quota, trusted IP source, no public bypass, deployment readiness")
