@@ -93,7 +93,7 @@ ship_front() {
 
   if [ "$SKIP_CHECKS" = 0 ]; then
     step "Фронт: проверки как в CI"
-    (cd "$FRONT_REPO" && pnpm install --frozen-lockfile && pnpm test:integration-ui && pnpm -r --filter "./apps/*" build)
+    (cd "$FRONT_REPO" && python3 scripts/check-edge-config.py && pnpm install --frozen-lockfile && pnpm test:integration-ui && pnpm -r --filter "./apps/*" build)
     ok "Тесты и сборка всех приложений прошли"
   fi
 
@@ -114,6 +114,7 @@ for service in $(docker compose -f infra/docker-compose.yml config --services); 
   echo "Сборка: $service"
   docker compose -f infra/docker-compose.yml build "$service"
 done
+bash scripts/check-edge-ready.sh
 docker compose -f infra/docker-compose.yml up -d --remove-orphans
 docker image prune -f > /dev/null
 docker compose -f infra/docker-compose.yml ps
