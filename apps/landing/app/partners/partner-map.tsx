@@ -1,9 +1,9 @@
 "use client";
 
 import type { PublicPartner } from "@loal/api";
-import { Map as MapLibreMap, Marker, type MapOptions, type PaddingOptions } from "maplibre-gl";
+import { Map as MapLibreMap, Marker, type PaddingOptions } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { mapStyle as style } from "../_data/map-style";
 import { CITY_CENTER, coordsOf } from "../_data/partner-coords";
 import { monogram } from "../_data/partners-api";
@@ -21,7 +21,7 @@ function pinElement(partner: PublicPartner, index: number, onClick: () => void) 
   };
   const root = make("button", "loal-pin") as HTMLButtonElement;
   root.type = "button";
-  root.style.setProperty("--i", String(index));
+  root.style.setProperty("--i", String(Math.min(index, 5)));
   root.setAttribute(
     "aria-label",
     `${partner.name}${partner.maxCoveragePercent ? `, до ${partner.maxCoveragePercent}% бонусами` : ""}`,
@@ -95,6 +95,7 @@ function clusterElement(group: PublicPartner[], onClick: () => void) {
 }
 
 export function PartnerMap({
+  visible,
   partners,
   activeId,
   selectedId,
@@ -103,6 +104,7 @@ export function PartnerMap({
   padding,
   onSelect,
 }: {
+  visible: boolean;
   partners: PublicPartner[];
   /** Подсвеченная точка: выбранная или та, над строкой которой держат курсор. */
   activeId: string | null;
@@ -119,6 +121,7 @@ export function PartnerMap({
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null);
   const markers = useRef(new Map<string, Marker>());
+  const [hasSize, setHasSize] = useState(false);
   const [ready, setReady] = useState(false);
   const select = useRef(onSelect);
   select.current = onSelect;
@@ -128,7 +131,16 @@ export function PartnerMap({
   // пересобирать карту (раньше от этого всё мигало)
   const selectedRef = useRef(selectedId);
   selectedRef.current = selectedId;
-  const placedRef = useRef<{ partner: PublicPartner; coords: [number, number] }[]>([]);
+  const placed = useMemo(
+    () =>
+      partners.flatMap((partner) => {
+        const coords = coordsOf(partner);
+        return coords ? [{ partner, coords }] : [];
+      }),
+    [partners],
+  );
+  const placedRef = useRef(placed);
+  placedRef.current = placed;
   const clusters = useRef(new Map<string, Marker>());
 
   /**
@@ -203,14 +215,19 @@ export function PartnerMap({
           const lats = group.map((member) => member.coords[1]);
           const same = Math.max(...lngs) - Math.min(...lngs) < 1e-5 && Math.max(...lats) - Math.min(...lats) < 1e-5;
           if (same)
-            instance.easeTo({ center: [lng, lat], zoom: SPREAD_ZOOM, padding: paddingRef.current, duration: 600 });
+            instance.easeTo({
+              center: [lng, lat],
+              zoom: SPREAD_ZOOM,
+              padding: paddingRef.current,
+              duration: reducedMotion() ? 0 : 320,
+            });
           else
             instance.fitBounds(
               [
                 [Math.min(...lngs), Math.min(...lats)],
                 [Math.max(...lngs), Math.max(...lats)],
               ],
-              { padding: paddingRef.current, maxZoom: SPREAD_ZOOM + 0.5, duration: reducedMotion() ? 0 : 700 },
+              { padding: paddingRef.current, maxZoom: SPREAD_ZOOM + 0.5, duration: reducedMotion() ? 0 : 320 },
             );
         },
       );
@@ -224,31 +241,61 @@ export function PartnerMap({
       const element = marker.getElement();
       element.classList.add("is-leaving");
       element.style.pointerEvents = "none";
-      window.setTimeout(() => marker.remove(), reducedMotion() ? 0 : 220);
+      window.setTimeout(() => marker.remove(), reducedMotion() ? 0 : 120);
     });
   };
   const reclusterRef = useRef(recluster);
   reclusterRef.current = recluster;
 
+  // Быстрое переключение вида может скрыть контейнер до загрузки JS карты.
+  // Не создаём WebGL и не запрашиваем тайлы, пока карту действительно не открыли.
   useEffect(() => {
-    if (!container.current) return;
+    const element = container.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => {
+      if (!element.clientWidth || !element.clientHeight) return;
+      setHasSize(true);
+      observer.disconnect();
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!hasSize || !container.current) return;
+    const points = placedRef.current;
+    const lngs = points.map(({ coords }) => coords[0]);
+    const lats = points.map(({ coords }) => coords[1]);
     const instance = new MapLibreMap({
       container: container.current,
       style,
-      // Начинаем с города целиком — потом облёт к заведениям
+      // Сразу загружаем нужный район: без облёта и запросов тайлов промежуточных масштабов.
       center: CITY_CENTER,
-      zoom: 10.6,
+      zoom: 12.2,
+      ...(points.length > 0
+        ? {
+            bounds: [
+              [Math.min(...lngs), Math.min(...lats)],
+              [Math.max(...lngs), Math.max(...lats)],
+            ] as [[number, number], [number, number]],
+            fitBoundsOptions: { padding: paddingRef.current, maxZoom: points.length === 1 ? 15 : 14.5, duration: 0 },
+          }
+        : {}),
+      // Храним уже просмотренные тайлы при переключении на каталог и обратно.
+      maxTileCacheSize: 64,
+      pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
       attributionControl: { compact: true },
       dragRotate: false,
       pitchWithRotate: false,
       // Карта на весь экран: колесо и щипок тачпада масштабируют карту, а не страницу
       scrollZoom: true,
-    } as MapOptions);
+    });
     instance.touchZoomRotate.disableRotation();
     instance.scrollZoom.setWheelZoomRate(1 / 300);
     instance.scrollZoom.setZoomRate(1 / 80);
     map.current = instance;
-    instance.once("load", () => setReady(true));
+    // HTML-меткам не нужны загруженные тайлы: показываем их сразу, даже на медленной сети.
+    setReady(true);
     const onZoomEnd = () => reclusterRef.current();
     // Кружки собираются и распадаются прямо во время приближения, раз в кадр
     let frame = 0;
@@ -261,67 +308,42 @@ export function PartnerMap({
     };
     instance.on("zoom", onZoom);
     instance.on("zoomend", onZoomEnd);
-    const observer = new ResizeObserver(() => instance.resize());
+    const observer = new ResizeObserver(() => {
+      if (container.current?.clientWidth && container.current.clientHeight) instance.resize();
+    });
     observer.observe(container.current);
     return () => {
       observer.disconnect();
+      cancelAnimationFrame(frame);
       instance.remove();
       map.current = null;
     };
-  }, []);
+  }, [hasSize]);
 
-  // Облёт к заведениям, и только потом точки падают на карту — по очереди
+  // Метки доступны сразу; карта и её кэш остаются живыми при переключении вида.
   useEffect(() => {
     const instance = map.current;
     if (!ready || !instance) return;
-    const placed = partners.flatMap((partner) => {
-      const coords = coordsOf(partner);
-      return coords ? [{ partner, coords: coords as [number, number] }] : [];
+    placed.forEach(({ partner, coords }, index) => {
+      const element = pinElement(partner, index, () => select.current(partner));
+      const marker = new Marker({ element, anchor: "bottom" }).setLngLat(coords).addTo(instance);
+      markers.current.set(partner.id, marker);
     });
-    placedRef.current = placed;
-    const still = reducedMotion();
-    let cancelled = false;
-
-    const drop = () => {
-      if (cancelled) return;
-      placed.forEach(({ partner, coords }, index) => {
-        const element = pinElement(partner, index, () => select.current(partner));
-        const marker = new Marker({ element, anchor: "bottom" }).setLngLat(coords).addTo(instance);
-        markers.current.set(partner.id, marker);
-      });
-      reclusterRef.current();
-      flyRef.current();
-    };
-
-    if (placed.length === 0) {
-      instance.easeTo({ zoom: 12.2, duration: still ? 0 : 1600 });
-    } else {
-      const lngs = placed.map((item) => item.coords[0]);
-      const lats = placed.map((item) => item.coords[1]);
-      instance.once("moveend", drop);
-      instance.fitBounds(
-        [
-          [Math.min(...lngs), Math.min(...lats)],
-          [Math.max(...lngs), Math.max(...lats)],
-        ],
-        {
-          padding: paddingRef.current,
-          maxZoom: placed.length === 1 ? 15 : 14.5,
-          duration: still ? 0 : 2200,
-          curve: 1.6,
-        },
-      );
-    }
+    reclusterRef.current();
+    flyRef.current();
 
     return () => {
-      cancelled = true;
-      instance.off("moveend", drop);
       markers.current.forEach((marker) => marker.remove());
       markers.current.clear();
       clusters.current.forEach((marker) => marker.remove());
       clusters.current.clear();
     };
-  }, [partners, ready]);
+  }, [placed, ready]);
+
+  useEffect(() => {
+    if (visible) map.current?.resize();
+    else map.current?.stop();
+  }, [visible]);
 
   useEffect(() => {
     markers.current.forEach((marker, id) => marker.getElement().classList.toggle("is-active", id === activeId));
@@ -332,17 +354,15 @@ export function PartnerMap({
 
   const focusRef = useRef(focusId);
   focusRef.current = focusId;
-  // Подлёт к выбранному. Если точки ещё не упали (карту только открыли из каталога) —
-  // подлетим сразу, как они появятся
+  // Если карту ещё загружаем, выбор выполнится сразу после создания меток.
   const flyToFocus = () => {
     const marker = focusRef.current ? markers.current.get(focusRef.current) : null;
     if (!marker || !map.current) return;
-    map.current.flyTo({
+    map.current.easeTo({
       center: marker.getLngLat(),
       zoom: Math.max(map.current.getZoom(), 15.5),
       padding: paddingRef.current,
-      duration: reducedMotion() ? 0 : 1100,
-      essential: true,
+      duration: reducedMotion() ? 0 : 360,
     });
   };
   const flyRef = useRef(flyToFocus);
@@ -354,7 +374,7 @@ export function PartnerMap({
   const zoomBy = (delta: number) => {
     const instance = map.current;
     if (!instance) return;
-    const options = { duration: reducedMotion() ? 0 : 300 };
+    const options = { duration: reducedMotion() ? 0 : 180 };
     if (delta > 0) instance.zoomIn(options);
     else instance.zoomOut(options);
   };
@@ -367,7 +387,7 @@ export function PartnerMap({
       <div
         role="group"
         aria-label="Масштаб карты"
-        className="absolute right-4 bottom-[calc(var(--sheet,0px)+1.5rem)] z-10 flex flex-col overflow-hidden rounded-full bg-paper shadow-[0_8px_24px_rgb(22_21_21/0.18)] md:right-6 md:bottom-8"
+        className="absolute right-3 bottom-[min(calc(var(--sheet,0px)+0.75rem),calc(100%-11rem))] z-10 flex flex-col overflow-hidden rounded-full bg-paper shadow-[0_8px_24px_rgb(22_21_21/0.18)] md:right-6 md:bottom-8"
       >
         {[
           { label: "Приблизить", path: "M12 5v14M5 12h14", delta: 1 },

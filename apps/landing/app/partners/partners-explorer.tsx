@@ -18,10 +18,15 @@ const PartnerMap = dynamic(() => import("./partner-map").then((module) => module
 type View = "catalog" | "map";
 
 /** Открываемся картой; каталог — ?view=catalog: ссылку можно отправить, «назад» возвращает на карту. */
-function useView(): [View, (next: View) => void] {
+function useView(): [View, (next: View) => void, boolean] {
   const [view, setViewState] = useState<View>("map");
+  const [mapOpened, setMapOpened] = useState(false);
   useEffect(() => {
-    const read = () => setViewState(new URLSearchParams(window.location.search).get("view") === "catalog" ? "catalog" : "map");
+    const read = () => {
+      const next = new URLSearchParams(window.location.search).get("view") === "catalog" ? "catalog" : "map";
+      setViewState(next);
+      if (next === "map") setMapOpened(true);
+    };
     read();
     window.addEventListener("popstate", read);
     return () => window.removeEventListener("popstate", read);
@@ -32,10 +37,11 @@ function useView(): [View, (next: View) => void] {
     if (next === "catalog") url.searchParams.set("view", "catalog");
     else url.searchParams.delete("view");
     window.history.pushState(null, "", url);
+    if (next === "map") setMapOpened(true);
     setViewState(next);
     window.scrollTo({ top: 0 });
   };
-  return [view, setView];
+  return [view, setView, mapOpened];
 }
 
 function ViewSwitch({ view, onChange, floating = false }: { view: View; onChange: (next: View) => void; floating?: boolean }) {
@@ -74,22 +80,46 @@ function ViewSwitch({ view, onChange, floating = false }: { view: View; onChange
 }
 
 /**
- * Каталог заведений: по умолчанию — витрина как на маркетплейсе, по желанию — карта Бишкека
- * со списком на ней. Карточка заведения открывается одинаково из обоих видов.
+ * Карта и каталог используют одни данные. При переключении сохраняем карту,
+ * загруженные тайлы и выбранный район, чтобы не загружать их заново.
  */
 export function PartnersExplorer({ partners }: { partners: PublicPartner[] }) {
-  const [view, setView] = useView();
+  const [view, setView, mapOpened] = useView();
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [focus, setFocus] = useState<{ id: string; at: number } | null>(null);
-  const [layout, setLayout] = useState<PanelLayout>({ kind: "side", right: 424 });
+  const [layout, setLayout] = useState<PanelLayout>({ kind: "sheet", height: 232 });
+  const [viewport, setViewport] = useState({ width: 375, height: 600 });
   const section = useRef<HTMLElement>(null);
+
+  // Учитываем реальную шапку, адресную строку браузера и экранную клавиатуру.
+  useEffect(() => {
+    const header = document.querySelector("header");
+    const resize = () => {
+      const height = Math.max(
+        180,
+        (window.visualViewport?.height ?? window.innerHeight) - (header?.getBoundingClientRect().height ?? 88),
+      );
+      setViewport({ width: window.innerWidth, height });
+      section.current?.style.setProperty("--map-height", `${height}px`);
+    };
+    resize();
+    const observer = new ResizeObserver(resize);
+    if (header) observer.observe(header);
+    window.addEventListener("resize", resize);
+    window.visualViewport?.addEventListener("resize", resize);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", resize);
+      window.visualViewport?.removeEventListener("resize", resize);
+    };
+  }, []);
 
   const padding: PaddingOptions =
     layout.kind === "side"
-      ? { top: 120, bottom: 90, left: layout.right + 60, right: 110 }
-      : { top: 120, bottom: layout.height + 50, left: 40, right: 80 };
+      ? { top: 80, bottom: 48, left: Math.min(layout.right + 24, Math.max(24, viewport.width - 180)), right: 64 }
+      : { top: 76, bottom: Math.min(layout.height + 16, Math.max(16, viewport.height - 156)), left: 36, right: 60 };
 
   const pick = (partner: PublicPartner) => {
     setSelectedId(partner.id);
@@ -125,41 +155,44 @@ export function PartnersExplorer({ partners }: { partners: PublicPartner[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, partners]);
 
-  if (view === "catalog")
-    return (
-      <div data-view="catalog">
-        <PartnersCatalog partners={partners} viewSwitch={<ViewSwitch view={view} onChange={setView} />} />
-      </div>
-    );
-
   return (
-    <section
-      ref={section}
-      data-view="map"
-      aria-label="Карта заведений"
-      style={{ "--sheet": layout.kind === "sheet" ? `${layout.height}px` : "0px" } as CSSProperties}
-      className="relative h-[calc(100dvh-88px)] min-h-[520px] overflow-hidden [touch-action:pan-x_pan-y] bg-cream sm:h-[calc(100svh-100px)]"
-    >
-      <PartnerMap
-        partners={partners}
-        activeId={hoveredId ?? selectedId}
-        selectedId={selectedId}
-        focusId={focus ? `${focus.id}` : null}
-        focusKey={focus?.at ?? 0}
-        padding={padding}
-        onSelect={pick}
-      />
-      <div className="absolute top-4 right-4 z-30 md:top-6 md:right-6">
-        <ViewSwitch view={view} onChange={setView} floating />
-      </div>
-      <PartnersPanel
-        partners={partners}
-        selectedId={selectedId}
-        onHover={setHoveredId}
-        onPick={pick}
-        onLayout={setLayout}
-        onOpen={(partner) => router.push(partnerPath(partner))}
-      />
-    </section>
+    <div data-view={view}>
+      {view === "catalog" && (
+        <PartnersCatalog partners={partners} viewSwitch={<ViewSwitch view={view} onChange={setView} />} />
+      )}
+      <section
+        ref={section}
+        hidden={view !== "map"}
+        aria-label="Карта заведений"
+        style={{ "--sheet": layout.kind === "sheet" ? `${layout.height}px` : "0px" } as CSSProperties}
+        className="partners-map relative h-[var(--map-height,calc(100dvh-88px))] min-h-[180px] overflow-hidden [touch-action:pan-x_pan-y] bg-cream"
+      >
+        {mapOpened && (
+          <PartnerMap
+            visible={view === "map"}
+            partners={partners}
+            activeId={hoveredId ?? selectedId}
+            selectedId={selectedId}
+            focusId={focus?.id ?? null}
+            focusKey={focus?.at ?? 0}
+            padding={padding}
+            onSelect={pick}
+          />
+        )}
+        <div className="absolute top-3 right-3 z-30 md:top-6 md:right-6">
+          <ViewSwitch view={view} onChange={setView} floating />
+        </div>
+        {view === "map" && (
+          <PartnersPanel
+            partners={partners}
+            selectedId={selectedId}
+            onHover={setHoveredId}
+            onPick={pick}
+            onLayout={setLayout}
+            onOpen={(partner) => router.push(partnerPath(partner))}
+          />
+        )}
+      </section>
+    </div>
   );
 }
