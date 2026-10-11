@@ -24,6 +24,7 @@ export const mapStyle: StyleSpecification = {
         "raster-contrast": -0.08,
         "raster-brightness-min": 0.1,
         "raster-opacity": 0.9,
+        "raster-fade-duration": 100,
       },
     },
   ],

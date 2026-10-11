@@ -29,7 +29,7 @@ function phoneHref(phone: string) {
 }
 
 function useDesktop() {
-  const [desktop, setDesktop] = useState(true);
+  const [desktop, setDesktop] = useState(false);
   useEffect(() => {
     const query = window.matchMedia("(min-width: 768px)");
     const update = () => setDesktop(query.matches);
@@ -185,8 +185,26 @@ export function PartnersPanel({
   };
   const sheetStops = () => {
     const height = bounds()?.height ?? 700;
-    return { peek: 184, half: Math.round(height * 0.5), full: height - 16 };
+    const peek = Math.min(232, Math.round(height * 0.45));
+    return { peek, half: Math.max(peek, Math.round(height * 0.6)), full: Math.max(peek, height - 56) };
   };
+
+  // Поворот телефона и клавиатура меняют доступную высоту, даже без window.resize.
+  useEffect(() => {
+    const parent = panel.current?.parentElement;
+    if (!parent) return;
+    const resize = () => {
+      if (!parent.clientHeight) return;
+      setPosition((current) => clamp(current.x, current.y));
+      const stops = sheetStops();
+      setSheet((current) => Math.min(stops.full, Math.max(stops.peek, current ?? stops.peek)));
+    };
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(parent);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [desktop]);
 
   // Место панели помним между заходами; экран сузился — возвращаем в пределы карты
   useEffect(() => {
@@ -219,21 +237,30 @@ export function PartnersPanel({
 
   // Карта должна знать, какую часть экрана закрывает панель
   useEffect(() => {
-    if (desktop) onLayout({ kind: "side", right: collapsed ? 0 : position.x + PANEL_WIDTH });
-    else onLayout({ kind: "sheet", height: sheet ?? sheetStops().peek });
+    const element = panel.current;
+    if (!element) return;
+    const update = () => {
+      if (desktop) onLayout({ kind: "side", right: collapsed ? 0 : position.x + element.offsetWidth });
+      else onLayout({ kind: "sheet", height: element.offsetHeight });
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [desktop, collapsed, position.x, sheet]);
+  }, [desktop, collapsed, position.x, onLayout]);
 
   // Выбрали точку на карте — строка в списке выезжает в поле зрения, шторка приоткрывается
   useEffect(() => {
     if (!selectedId) return;
     if (!desktop && (sheet ?? 0) < sheetStops().half) setSheet(sheetStops().half);
     if (desktop && collapsed) setCollapsed(false);
-    requestAnimationFrame(() =>
-      list.current
-        ?.querySelector(`[data-id="${selectedId}"]`)
-        ?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
-    );
+    const frame = requestAnimationFrame(() => {
+      const element = list.current;
+      const row = element?.querySelector<HTMLElement>(`[data-id="${selectedId}"]`);
+      if (element && row) element.scrollTop += row.getBoundingClientRect().top - element.getBoundingClientRect().top;
+    });
+    return () => cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
@@ -281,17 +308,17 @@ export function PartnersPanel({
   const style = {
     "--x": `${position.x}px`,
     "--y": `${position.y}px`,
-    "--sheet-h": sheet ? `${sheet}px` : "184px",
+    "--sheet-h": sheet ? `${sheet}px` : "232px",
   } as CSSProperties;
 
   return (
     <div
       ref={panel}
       style={style}
-      className={`absolute inset-x-0 bottom-0 z-20 flex h-[var(--sheet-h)] flex-col overflow-hidden rounded-t-[28px] bg-paper/92 shadow-[0_-12px_40px_rgb(22_21_21/0.18)] backdrop-blur-xl md:inset-auto md:top-0 md:left-0 md:h-auto md:max-h-[calc(100%-48px)] md:w-[400px] md:translate-x-[var(--x)] md:translate-y-[var(--y)] md:rounded-[28px] md:shadow-[0_24px_60px_rgb(22_21_21/0.22)] ${
+      className={`absolute inset-x-0 bottom-0 z-20 flex h-[var(--sheet-h)] max-h-[calc(100%-56px)] flex-col overflow-hidden rounded-t-[24px] bg-paper pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgb(22_21_21/0.14)] md:inset-auto md:top-0 md:left-0 md:h-auto md:max-h-[calc(100%-48px)] md:w-[400px] md:translate-x-[var(--x)] md:translate-y-[var(--y)] md:rounded-[28px] md:bg-paper/95 md:pb-0 md:shadow-[0_24px_60px_rgb(22_21_21/0.22)] md:backdrop-blur-xl ${
         dragging
           ? "select-none md:scale-[1.01] md:shadow-[0_32px_80px_rgb(22_21_21/0.3)]"
-          : "transition-[height] duration-300 ease-out md:transition-shadow"
+          : "transition-[height] duration-180 ease-out motion-reduce:transition-none md:transition-shadow"
       }`}
     >
       <div
@@ -299,9 +326,9 @@ export function PartnersPanel({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className={`shrink-0 touch-none px-5 pt-3 pb-4 md:px-6 md:pt-5 ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`shrink-0 touch-none px-4 pt-2 pb-3 md:px-6 md:pt-5 ${searching ? "hidden md:block" : ""} ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
       >
-        <span aria-hidden="true" className="mx-auto mb-3 block h-1.5 w-11 rounded-full bg-smoke md:hidden" />
+        <span aria-hidden="true" className="mx-auto mb-2 block h-1 w-11 rounded-full bg-smoke md:hidden" />
         <div className="flex items-start gap-3">
           <span className="mt-2 hidden md:block">
             <Grip />
@@ -316,34 +343,25 @@ export function PartnersPanel({
                 : "Скоро здесь появятся заведения"}
             </p>
           </div>
-          {/* Телефон: снизу шторки места нет — подключение заведения живёт в её шапке */}
-          <Link
-            href="/become-partner"
-            className="flex shrink-0 items-center gap-2 rounded-2xl bg-flame py-2 pr-3 pl-2.5 text-[0.8125rem] leading-[1.15] font-bold text-white transition-colors outline-none hover:bg-graphite focus-visible:ring-3 focus-visible:ring-graphite md:hidden"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 shrink-0">
-              <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
-            </svg>
-            <span>
-              Добавить
-              <br />
-              своё заведение
-            </span>
-          </Link>
           <button
             type="button"
             onClick={() => {
+              if (!desktop) {
+                const stops = sheetStops();
+                setSheet((sheet ?? stops.peek) > stops.peek ? stops.peek : stops.full);
+                return;
+              }
               setCollapsed(!collapsed);
               remember(position, !collapsed);
             }}
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? "Развернуть список" : "Свернуть список"}
-            className="hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-cream transition-colors outline-none hover:bg-graphite hover:text-paper focus-visible:ring-3 focus-visible:ring-flame md:grid"
+            aria-expanded={desktop ? !collapsed : (sheet ?? 0) > sheetStops().peek}
+            aria-label={(desktop ? collapsed : (sheet ?? 0) <= sheetStops().peek) ? "Развернуть список" : "Свернуть список"}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-cream transition-colors outline-none hover:bg-graphite hover:text-paper focus-visible:ring-3 focus-visible:ring-flame"
           >
             <svg
               viewBox="0 0 24 24"
               aria-hidden="true"
-              className={`h-5 w-5 transition-transform ${collapsed ? "rotate-180" : ""}`}
+              className={`h-5 w-5 transition-transform duration-150 ${(desktop ? !collapsed : (sheet ?? 0) > sheetStops().peek) ? "rotate-180" : ""}`}
             >
               <path
                 d="m6 15 6-6 6 6"
@@ -360,7 +378,7 @@ export function PartnersPanel({
 
       <div className={`flex min-h-0 flex-1 flex-col ${collapsed ? "md:hidden" : ""}`}>
         {partners.length > 0 && (
-          <div className="flex shrink-0 flex-col gap-3 px-5 pb-3 md:px-6">
+          <div className={`flex shrink-0 flex-col gap-3 px-4 pb-3 md:px-6 ${searching ? "pt-3 md:pt-0" : ""}`}>
             <SearchField
               inputRef={input}
               value={query}
@@ -378,14 +396,14 @@ export function PartnersPanel({
               onBlur={() => setSearching(false)}
               onKeyDown={onSearchKey}
             />
-            {(categories.length > 0 || category) && !searching && (
+            {(categories.length > 0 || category) && !searching && (desktop || (sheet ?? 0) > sheetStops().peek) && (
               <CategoryChips
                 categories={[...new Set([...categories.map(([name]) => name), ...(category ? [category] : [])])].map(
                   (name) => ({ name }),
                 )}
                 value={category}
                 onChange={setCategory}
-                className="-mx-5 px-5 md:-mx-6 md:px-6"
+                className="-mx-4 px-4 md:-mx-6 md:px-6"
               />
             )}
           </div>
@@ -423,7 +441,7 @@ export function PartnersPanel({
                       onBlur={() => onHover(null)}
                       onClick={() => onPick(partner)}
                       aria-expanded={selected}
-                      className="flex w-full items-center gap-3 rounded-[22px] p-3 text-left outline-none focus-visible:ring-3 focus-visible:ring-flame"
+                      className="flex w-full items-center gap-2 rounded-[22px] p-2 text-left outline-none focus-visible:ring-3 focus-visible:ring-flame sm:gap-3 sm:p-3"
                     >
                       <Avatar partner={partner} />
                       <span className="min-w-0 flex-1">
@@ -450,7 +468,7 @@ export function PartnersPanel({
                         </span>
                       </span>
                       {partner.maxCoveragePercent ? (
-                        <span className="shrink-0 rounded-full bg-flame px-3 py-1 text-sm font-bold text-white">
+                        <span className="shrink-0 rounded-full bg-flame px-2 py-1 text-xs font-bold text-white sm:px-3 sm:text-sm">
                           до {partner.maxCoveragePercent}%
                         </span>
                       ) : null}
@@ -524,6 +542,11 @@ export function PartnersPanel({
                 </button>
               </li>
             )}
+            <li className="mt-3 border-t border-smoke pt-3 md:hidden">
+              <Link href="/become-partner" className="flex min-h-11 items-center justify-center rounded-full bg-flame px-4 text-sm font-bold text-white">
+                Добавить своё заведение
+              </Link>
+            </li>
           </ul>
         )}
 

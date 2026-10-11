@@ -121,9 +121,7 @@ html {
 }
 
 /*
- * Точка заведения на карте каталога. Появляется как находка: падает сверху с отскоком,
- * от места приземления расходится волна, по фото пробегает блик. Каждая следующая —
- * с задержкой (--i), так что карта «наполняется» на глазах.
+ * Метки появляются быстро; общая задержка ограничена 100 мс даже у большого каталога.
  * Корень двигает MapLibre (transform), поэтому анимируем только вложенные слои.
  */
 .loal-pin {
@@ -134,7 +132,7 @@ html {
   border: 0;
   background: none;
   cursor: pointer;
-  --delay: calc(var(--i, 0) * 120ms);
+  --delay: calc(var(--i, 0) * 20ms);
 }
 .loal-pin:focus-visible {
   outline: none;
@@ -147,13 +145,13 @@ html {
   position: absolute;
   inset: 0;
   transform-origin: 50% 100%;
-  animation: loal-pin-drop 900ms cubic-bezier(0.2, 1.5, 0.35, 1) var(--delay) both;
+  animation: loal-pin-drop 220ms ease-out var(--delay) both;
 }
 .loal-pin__lift {
   position: absolute;
   inset: 0;
   transform-origin: 50% 100%;
-  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 150ms ease-out;
 }
 .loal-pin:hover .loal-pin__lift,
 .loal-pin.is-active .loal-pin__lift {
@@ -194,7 +192,7 @@ html {
   border-radius: 999px;
   background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.75) 48%, transparent 62%);
   transform: translateX(-120%);
-  animation: loal-pin-glint 900ms ease-out calc(var(--delay) + 650ms) both;
+  animation: loal-pin-glint 260ms ease-out calc(var(--delay) + 120ms) both;
   pointer-events: none;
 }
 .loal-pin__tail {
@@ -219,7 +217,7 @@ html {
   font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
-  animation: loal-pin-badge 420ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--delay) + 800ms) both;
+  animation: loal-pin-badge 160ms ease-out var(--delay) both;
 }
 /* Волна от острия — один раз при приземлении */
 .loal-pin__ripple {
@@ -232,7 +230,7 @@ html {
   border: 2px solid var(--flame);
   border-radius: 50%;
   opacity: 0;
-  animation: loal-pin-ripple 1100ms ease-out calc(var(--delay) + 450ms) both;
+  animation: loal-pin-ripple 300ms ease-out calc(var(--delay) + 80ms) both;
 }
 /* Выбранная точка дышит мягким ореолом */
 .loal-pin__halo {
@@ -255,13 +253,11 @@ html {
 @keyframes loal-pin-drop {
   0% {
     opacity: 0;
-    transform: translateY(-70px) scale(0.35);
-    filter: blur(6px);
+    transform: translateY(-10px) scale(0.9);
   }
   55% {
     opacity: 1;
     transform: translateY(5px) scale(1.08, 0.94);
-    filter: blur(0);
   }
   78% {
     transform: translateY(-3px) scale(0.98, 1.02);
@@ -339,8 +335,8 @@ html {
   transform: translate(var(--dx, 0px), var(--dy, 0px));
   transform-origin: 50% 100%;
   transition:
-    transform 420ms cubic-bezier(0.34, 1.4, 0.64, 1),
-    opacity 260ms ease;
+    transform 180ms ease-out,
+    opacity 120ms ease;
 }
 .loal-pin.is-clustered {
   pointer-events: none;
@@ -349,8 +345,8 @@ html {
   opacity: 0;
   transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(0.3);
   transition:
-    transform 320ms cubic-bezier(0.5, 0, 0.75, 0),
-    opacity 220ms ease 80ms;
+    transform 160ms ease-out,
+    opacity 100ms ease;
 }
 .loal-pin {
   touch-action: none;
@@ -381,7 +377,7 @@ html {
   box-shadow: 0 0 0 6px rgb(255 93 52 / 0.18), 0 10px 26px rgb(22 21 21 / 0.28);
   color: #fff;
   /* Кружок появляется с пружинкой, при распаде — гаснет (класс is-leaving у корня) */
-  animation: loal-cluster-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: loal-cluster-in 180ms ease-out both;
   transition: scale 160ms ease;
 }
 .loal-cluster:hover .loal-cluster__body {
@@ -391,7 +387,7 @@ html {
   box-shadow: 0 0 0 4px var(--graphite), 0 10px 26px rgb(22 21 21 / 0.28);
 }
 .loal-cluster.is-leaving .loal-cluster__body {
-  animation: loal-cluster-out 220ms ease-in both;
+  animation: loal-cluster-out 120ms ease-in both;
 }
 @keyframes loal-cluster-in {
   from {
@@ -454,5 +450,20 @@ html {
 @media (max-width: 767px) {
   body:has([data-view="map"]) .partners-footer {
     display: none;
+  }
+}
+
+/* На телефоне атрибуция остаётся над шторкой, а декоративные эффекты не грузят GPU. */
+@media (max-width: 767px) {
+  .partners-map .maplibregl-ctrl-bottom-right {
+    bottom: var(--sheet, 232px);
+  }
+  .loal-pin__ripple,
+  .loal-pin__face::after {
+    display: none;
+  }
+  .loal-pin.is-active .loal-pin__halo {
+    animation: none;
+    opacity: 0.6;
   }
 }
