@@ -3,6 +3,7 @@ import { ArrowLeft02Icon, RefreshIcon } from "@hugeicons/core-free-icons";
 import { Button, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
 import { Link, useParams } from "react-router";
 import { appleWalletUrl, usePassInfo } from "../../entities/card/api";
+import { PartnersButton } from "../../features/partners/partners-button";
 import { CardView } from "../../widgets/card-view";
 import { WalletButtons } from "../../widgets/wallet-buttons";
 
@@ -39,6 +40,7 @@ export function CardPage() {
       <CardView pass={pass.data} />
 
       <div className="flex flex-col gap-3">
+        <PartnersButton />
         <WalletButtons serial={serial} appleUrl={appleWalletUrl(serial)} />
 
         {/* Подписка оформляется по входу: сервер узнаёт человека по токену, а не по номеру карты */}

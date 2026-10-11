@@ -6,6 +6,7 @@ import { WalletButtons } from "../../widgets/wallet-buttons";
 import { Button, Card, Dialog, DialogContent, DialogTrigger, ErrorState, Icon, Loading } from "@loal/ui/shadcn";
 import { Link, useLocation } from "react-router";
 import { useMyCard, useMyHistory } from "../../entities/me/api";
+import { PartnersButton } from "../../features/partners/partners-button";
 import { FirstCardForm } from "../../features/subscription/first-card-form";
 import { RenewSubscription } from "../../features/subscription/renew-subscription";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
@@ -174,6 +175,7 @@ export function MyCardPage() {
             </p>
           </div>
           <div className="flex flex-col gap-3">
+            <PartnersButton />
             {walletUrl && <WalletButtons serial={serialNumber} appleUrl={walletUrl} />}
 
             <Dialog>
