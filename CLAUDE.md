@@ -133,6 +133,19 @@ app → pages → widgets → features → entities → shared
   администратору филиала `403`, повторный POST при открытой — та же заявка), агентство решает на экране «Выход партнёров»
   (`/admin/v1/merchant-exit-requests`: approve = удаление, reject — только с причиной). Решение уходит владельцу в WhatsApp;
   `ownerNotified: false` — не дошло, повторное решение отправляет снова;
+- код входа приходит в WhatsApp или Telegram: `POST /auth/otp/request { phone, channel }`, включённые каналы —
+  `GET /auth/otp/channels` (Telegram показываем только при `telegram: true`, выбор помнит `useOtpChannel`); проверяет
+  код тот же вход, канал сервер помнит. `502 OTP_DELIVERY_FAILED` — Telegram не доставил, предлагаем WhatsApp. Ключ
+  Telegram-сервиса — только в env бэкенда (`TELEGRAM_OTP_API_KEY`), во фронт не попадает;
+- кабинет партнёра входит по номеру и паролю (`BusinessLoginForm`: `/auth/login { phone, password }`, `401 INVALID_CREDENTIALS`,
+  `429 PASSWORD_LOCKED`); «Нет пароля или забыли» — код и новый пароль одним `POST /auth/password/reset`, человек сразу внутри.
+  Без своего пароля (`profile.password`: `set: false` или `mustChange: true`) кабинет закрыт экраном `PasswordGate`
+  (`POST /auth/me/password/setup`). Агентство рассылает временные пароли в WhatsApp на экране «Пароли партнёров»
+  (`/admin/v1/business-passwords`, по одному человеку — кабинет сам проходит очередь). Кассир по-прежнему входит по коду.
+  Неверный текущий пароль при смене — `400 CURRENT_PASSWORD_INVALID` (не 401: тот выкидывал из кабинета);
+- поддержка: владелец и администратор филиала пишут агентству (`/admin/v1/merchants/{id}/support-tickets`, раздел
+  «Поддержка», ветка открывается заново новым сообщением), агентство отвечает во входящих (`/admin/v1/support-tickets`),
+  ответ уходит автору и в WhatsApp. Общие куски — `SupportTicketList`, `SupportMessages`, `SupportReplyForm` в `@loal/app-kit`;
 - `POST /auth/check-phone { phone }` → `{ exists }` — подсказка до кода, не право входа; `429`/`503` — «не знаем», вход
   не блокируем (`useCheckPhone`);
 - вход через Google — только сотрудникам магазинов (владелец, администратор филиала, кассир), регистрации через Google

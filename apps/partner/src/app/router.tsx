@@ -13,10 +13,12 @@ import { ProfilePage } from "../pages/profile";
 import { PosPage } from "../pages/pos";
 import { RedeemPage } from "../pages/redeem";
 import { StorefrontPage } from "../pages/storefront";
+import { SupportPage } from "../pages/support";
 import { TeamPage } from "../pages/team";
 import { WebhooksPage } from "../pages/webhooks";
 import { AppLayout } from "../widgets/app-layout";
 import { OwnerOnly } from "../widgets/owner-only";
+import { PasswordGate } from "../widgets/password-gate";
 
 /** Кабинет открыт тем, кто состоит хотя бы в одном магазине. */
 export function AppRouter() {
@@ -30,7 +32,9 @@ export function AppRouter() {
             allow={(session) => session.merchants.length > 0}
             deniedMessage="Эта учётная запись не привязана к заведению. Попросите нас выдать доступ или войдите под другой."
           >
-            <AppLayout />
+            <PasswordGate>
+              <AppLayout />
+            </PasswordGate>
           </RequireAuth>
         }
       >
@@ -88,6 +92,17 @@ export function AppRouter() {
           }
         />
         <Route path="profile" element={<ProfilePage />} />
+        {["support", "support/:ticketId"].map((path) => (
+          <Route
+            key={path}
+            path={path}
+            element={
+              <OwnerOnly title="Поддержка" allowBranch>
+                <SupportPage />
+              </OwnerOnly>
+            }
+          />
+        ))}
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

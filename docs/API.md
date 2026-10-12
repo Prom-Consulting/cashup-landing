@@ -41,6 +41,7 @@
 | `PROMO_NOT_FOUND` | 404 | промокод отсутствует или выключен |
 | `PROMO_ALREADY_USED` | 409 | код уже применён |
 | `PROMO_WRONG_AUDIENCE` | 400 | код предназначен другой аудитории |
+| `PROMO_SUBSCRIPTION_EXISTS` | 400 | код только для клиентов, у которых ещё ни разу не было подписки |
 | `PROMO_EXPIRED` | 400 | срок кода истёк |
 | `PROMO_EXHAUSTED` | 400 | закончились использования |
 | `MERCHANT_SLUG_TAKEN` | 409 | slug заведения занят |
@@ -228,9 +229,24 @@ JWT живёт по умолчанию 12 часов. После `401` токе�
 POST /auth/otp/request
 Content-Type: application/json
 
-{ "phone": "+996700000001" }
-→ 200 { "ok": true, "expiresInSeconds": 300 }
+{ "phone": "+996700000001", "channel": "whatsapp" }
+→ 200 { "ok": true, "expiresInSeconds": 300, "channel": "whatsapp" }
 ```
+
+`channel` — `"whatsapp"` (по умолчанию, если поля нет) или `"telegram"`. Какие каналы включены,
+отвечает `GET /auth/otp/channels` → `{ "whatsapp": true, "telegram": true }` (без токена,
+не кэшировать): кнопку Telegram показываем, только если `telegram: true`.
+
+Код из Telegram приходит от Telegram Gateway (сообщение «Verification code» от Telegram),
+номер должен быть зарегистрирован в Telegram. Проверяется он тем же `/auth/login`,
+`/auth/register`, `/auth/password/reset` — канал повторно не передаётся, сервер помнит, куда
+отправил последний код. Новый код в любом канале отменяет прежний. `expiresInSeconds` у Telegram
+может быть чуть меньше 300 — показываем таймер по ответу. Ошибки те же, что у WhatsApp
+(`OTP_RATE_LIMITED` + `retryAfter`, `OTP_INVALID`, `OTP_EXPIRED`, `OTP_TOO_MANY_ATTEMPTS`), плюс:
+
+- `502 OTP_DELIVERY_FAILED` (+ `retryAfter`) — Telegram не доставил: номера нет в Telegram или
+  сбой Gateway; предлагаем получить код в WhatsApp;
+- `503 OTP_CHANNEL_UNAVAILABLE` — Telegram выключен на сервере.
 
 Номер — с кодом страны (см. «Общее»), иначе `400`. Код состоит из 6 цифр, уходит в WhatsApp и живёт
 5 минут. Повторный запрос раньше чем через 60 секунд — `429` с текстом, через сколько
@@ -366,9 +382,32 @@ Content-Type: application/json
 { "email": "client@example.com", "password": "password123", "deviceId": "..." }
    или
 { "phone": "+996700000001", "otp": "123456", "deviceId": "..." }
+   или
+{ "phone": "+996700000001", "password": "...", "deviceId": "..." }
 → { "accessToken": "...", "expiresIn": "12h", "refreshToken": "...", "refreshExpiresIn": "30d" } (по почте)
-→ тот же ответ с `isNewAccount: false` (по телефону)
+→ тот же ответ с `isNewAccount: false` (по телефону и коду)
+→ тот же ответ с `passwordMustChange: boolean` (по телефону и паролю)
 ```
+
+**Пароль для сотрудников магазинов (с 12 октября 2026).** В кабинет партнёра владелец и
+администратор филиала входят по номеру и паролю. Неверный номер, номер без пароля и неверный
+пароль отвечают одинаково — `401 INVALID_CREDENTIALS` «Неверный номер или пароль». Десять
+неверных паролей подряд закрывают номер на 15 минут: `429 PASSWORD_LOCKED` + `retryAfter`
+(секунды) — предлагаем войти по коду. `passwordMustChange: true` — человек вошёл временным
+паролем из WhatsApp, кабинет сразу просит придумать свой.
+
+Нет пароля или забыли — тот же вход по коду, но с новым паролем:
+
+```
+POST /auth/password/reset
+{ "phone": "+996700000001", "otp": "123456", "newPassword": "не короче 8", "deviceId": "..." }
+→ 200 { "accessToken", "expiresIn", "refreshToken", "refreshExpiresIn" }
+```
+
+Код запрашивают обычным `/auth/otp/request` (WhatsApp или Telegram). Номер без аккаунта —
+`404 ACCOUNT_NOT_FOUND`, аккаунт не сотрудника магазина — `403 NOT_BUSINESS_ACCOUNT`; код при
+этом уже поглощён. `newPassword` — 8–72 символа (`400` с `issues`). Вход по коду без пароля
+(`/auth/login { phone, otp }`) по-прежнему работает — его использует касса и мобильное приложение.
 
 Успешный вход возвращает `200 OK`. OTP поглощается этим запросом; повторно отправлять
 `/auth/login` после успешного `200` нельзя — повтор получит `401 OTP_EXPIRED`.
@@ -539,12 +578,13 @@ Authorization: Bearer <accessToken>
 | Метод | Адрес | Что делает |
 |---|---|---|
 | `GET` | `/auth/me` | Разбор токена: `sub`, `email`, `role`, `merchants[]`, `sessionId`. Отвечает `401`, если сессия заменена |
-| `GET` | `/auth/me/profile` | `{ id, email, phone, fullName, role, google }`; у зарегистрированных по телефону `email` и `fullName` — `null`; `google` — `{ email }` привязанного Google или `null` |
+| `GET` | `/auth/me/profile` | `{ id, email, phone, fullName, role, google, password }`; у зарегистрированных по телефону `email` и `fullName` — `null`; `google` — `{ email }` привязанного Google или `null`; `password` — `{ set, mustChange }`: есть ли пароль и временный ли он |
 | `POST` | `/auth/me/google` | Привязать Google для входа — только сотрудникам магазинов, см. «Вход через Google» |
 | `DELETE` | `/auth/me/google` | Отвязать Google; `204` |
 | `POST` | `/auth/logout` | `204`; отзывает текущую server-side сессию |
 | `PUT` | `/auth/me` | Смена имени и почты (так клиент добавляет их позже); возвращает новый токен |
-| `PUT` | `/auth/me/password` | `{ currentPassword, newPassword }` |
+| `PUT` | `/auth/me/password` | `{ currentPassword, newPassword }`; неверный текущий — `400 CURRENT_PASSWORD_INVALID` с `issues` у `currentPassword` (раньше был `401`, и клиент принимал его за конец сессии); `newPassword` 8–72 символа |
+| `POST` | `/auth/me/password/setup` | `{ newPassword }` — задать свой пароль без текущего, только если пароля нет или он временный (`password.mustChange`); иначе `409 PASSWORD_ALREADY_SET`. `200 { ok: true }`, токены не меняются |
 | `DELETE` | `/v1/me/account` | Безвозвратно удалить текущий аккаунт и все клиентские данные; успех `204` без тела |
 
 В токене лежит `merchants[]` — список магазинов, где человек работает, с ролью и
@@ -741,6 +781,10 @@ GET /v1/me/card
       "cycleStartedAt": "2026-09-28T10:15:00.000Z",
       "cycleEndsAt": "2026-12-27T10:15:00.000Z",
       "frozenAt": null, "bonusBurnAt": null
+    },
+    "savings": {
+      "spent": 1200, "cashbackReceived": 3400, "subscriptionsPaid": 990,
+      "toBreakEven": 0, "surplus": 210
     }
   }
 ```
@@ -754,6 +798,20 @@ Google Wallet не настроен).
 `subscription` приходит `null`, когда цикла ещё не было. При `frozen`
 `bonusBurnAt` задаёт серверную дату сгорания; после сгорания карта
 остаётся `frozen` с нулевым балансом до новой оплаты.
+
+`savings` — вкладка «Экономия», всё за всё время и по всем картам человека (перевыпуск
+не обнуляет):
+
+| Поле | Что это |
+|---|---|
+| `spent` | Сколько бонусов потрачено. Потраченный бонус = сэкономленный сом |
+| `cashbackReceived` | Сколько бонусов пришло cashback. В экономию не входит: это получено, а не сэкономлено |
+| `subscriptionsPaid` | Сколько сом заплачено за подписки. Промокод и реферальная программа — 0 |
+| `toBreakEven` | Сколько ещё потратить, чтобы окупить все купленные подписки |
+| `surplus` | Насколько клиент уже в плюсе |
+
+Одно из двух последних всегда `0`. Шкалу «до выхода в плюс» фронт строит из них:
+заполнение = `spent / subscriptionsPaid`; при `subscriptionsPaid = 0` клиент сразу в плюсе.
 
 **`404`, если карты нет.** Это честный ответ человеку, которому её ещё не выпускали, —
 показывайте экран «карты пока нет», а не ошибку.
@@ -781,13 +839,15 @@ GET /v1/me/history?page=1&pageSize=20
 |---|---|
 | `spend` | Потратили у магазина. `merchantName` — где, `items` — что купили |
 | `grant` | Выдала подписка в начале периода |
-| `burn` | Сгорел остаток в конце периода |
+| `burn` | Сгорел остаток в конце периода или истёк cashback |
 | `welcome` | Приветственные баллы при выдаче первой карты |
 | `referral` | Стартовые или заработанные реферальные баллы |
+| `cashback` | Вернулось за покупку, оплаченную деньгами. `merchantName` — где купили |
 | `other` | Всё прочее: ручная правка, наследие старой механики |
 
-`merchantName` приходит `null` у всего, что платформа делает сама, и у магазина,
-которого уже удалили. `items` пустой у всего, кроме трат.
+`merchantName` приходит `null` у всего, что платформа делает сама (кроме `cashback`), и у
+магазина, которого уже удалили. Неизвестный `kind` показывайте как `other`: список
+будет расти. `items` пустой у всего, кроме трат.
 
 История собирается по человеку, а не по куску пластика: перевыпуск карты её не
 обнуляет, и строки со старой карты остаются на месте.
@@ -866,7 +926,7 @@ Notification-service имеет read-only runtime-зависимость от `c
 Ошибка промокода не отменяет вход; временный сбой можно повторить в кабинете.
 
 Кнопка «Изменить» использует существующий `PATCH /admin/v1/promo-codes/{id}`:
-`active`, `maxUses`, `expiresAt`, `note`. Уже выданные месяцы и история сохраняются.
+`active`, `clientEligibility`, `maxUses`, `expiresAt`, `note`. Уже выданные месяцы и история сохраняются.
 Если дату не редактировали, `expiresAt` не отправляется. Код, аудитория и число
 месяцев по текущему контракту задаются только при создании.
 
@@ -888,10 +948,18 @@ POST /v1/me/promo-code          (токен клиента)
 оплаченные: нет подписки — она начинается сразу с выдачей бонусов; есть — месяцы
 добавляются к ней.
 
+Для клиентских кодов с `clientEligibility: "without_subscription"` подписка должна
+активироваться впервые. Карта, автоматически созданная при регистрации, не мешает
+применить код. Любая предыдущая подписка (включая истёкшую, отменённую,
+замороженную, бесплатную или подписку до перевыпуска карты) запрещает применение.
+Сервер проверяет историю клиента в транзакции активации; отказ возвращает
+`400 PROMO_SUBSCRIPTION_EXISTS` и не расходует использование промокода.
+`clientEligibility: "all"` сохраняет обычное применение и продление подписки.
+
 | Код | Когда |
 |---|---|
 | `404` | Код не найден, выключен или удалён; либо у человека ещё нет карты |
-| `400` | Код для магазинов, истёк или исчерпан лимит использований |
+| `400` | Код для магазинов, истёк, исчерпан лимит использований или не подходит по истории подписки |
 | `409` | Этот человек уже применял этот код |
 | `502` | Сервис карт не ответил — код не засчитан, можно повторить |
 
@@ -1041,7 +1109,7 @@ POST /admin/v1/merchants/{merchantId}/subscription     { "months": 1 }
 
 | `tariff` | Когда | Бонусы | Абонентская плата Loal | «Счёт клиенту» |
 |---|---|---|---|---|
-| `octopay` — OctōPAY + Loal | связь с OctōPAY подключена и включена | принимаются без отдельной подписки Loal | входит в пакет 9 470 сом/мес, оплата в OctōPAY | есть |
+| `octopay` — OctōPAY + Loal | связь с OctōPAY подключена и включена, **и подписка OctōPAY оплачена или в пробном периоде** | принимаются без отдельной подписки Loal | входит в пакет 9 470 сом/мес, оплата в OctōPAY | есть |
 | `loal` — только Loal | связи нет или она выключена | при оплаченной подписке **или пока цена тарифа 0** | 8 750 сом/мес | нет |
 
 - **Утверждённая цена «Только Loal» — 8 750 сом/мес**: для приёма бонусов и показа в
@@ -1058,6 +1126,11 @@ POST /admin/v1/merchants/{merchantId}/subscription     { "months": 1 }
   (по умолчанию 10, `0` — выключить; первая — через 30 секунд после старта) — касса не
   спрашивает OctōPAY на каждом списании. Если OctōPAY не ответил, тариф не меняется.
 - Смена тарифа обновляет каталог на лендинге.
+- **С 12 октября 2026 пакет зависит от оплаты в OctōPAY.** Кончился пробный или оплаченный
+  период OctōPAY (`subscription.active: false` в `GET …/octopay-integration`) — магазин переходит на
+  `loal` при живой связи и для бонусов ему нужна своя подписка Loal (или оплата OctōPAY). Раньше
+  неоплаченный бизнес терял OctōPAY, но бесплатно сохранял бонусы Loal. OctōPAY, который ещё не
+  присылает `subscription`, пакет не отнимает.
 
 
 ### Промокод магазина
@@ -1092,24 +1165,6 @@ POST /admin/v1/merchants/{merchantId}/payments          { "months": 1 }
 
 Счёт отвечает на вопрос «заплатили ли», подписка — «можно ли принимать бонусы». Это
 разные вещи и разные адреса.
-
-### Привязка Octopay
-
-Магазин связывают с бизнесом в Octopay одноразовым кодом из кабинета Octopay. Код
-передаётся только при подключении и не сохраняется в браузере, URL, логах или аналитике.
-
-```
-GET    /admin/v1/merchants/{merchantId}/octopay-integration
-POST   /admin/v1/merchants/{merchantId}/octopay-integration  { "token": "loal_link_..." }
-DELETE /admin/v1/merchants/{merchantId}/octopay-integration
-→ { connected, octopayBusinessName, connectedAt }
-```
-
-`GET` отвечает `200` и при отсутствии связи (`connected: false`, остальные поля `null`).
-`POST` отвечает `201`, идемпотентный `DELETE` — `204`. `merchantId` передаётся только в URL.
-При подключении: `400` — код неверен, использован или истёк; `403` — пользователь не владелец;
-`409` — один из магазинов уже связан; `502` — Octopay временно недоступен. Перед отключением
-интерфейс предупреждает, что кнопка оплаты баллами исчезнет с новых и уже открытых счетов магазина.
 
 ### Профиль для витрины
 
@@ -1384,9 +1439,14 @@ DELETE /admin/v1/merchants/{merchantId}/octopay-integration
   "payableKgsBankAccountCount": 1,
   "ready": true,
   "octopayBusinessName": "Mir Vostoka",
-  "connectedAt": "2026-09-30T12:00:00.000Z"
+  "connectedAt": "2026-09-30T12:00:00.000Z",
+  "subscription": { "active": true, "level": "trial", "endsAt": "2026-11-10T00:00:00.000Z" }
 }
 ```
+
+`subscription` — подписка пакета в OctōPAY: `active` — оплачена или в пробном периоде, `level` —
+`active` | `trial` | `unlimited` | `expired`, `endsAt` — до какого числа (`null` — бессрочно). Сам объект
+`null`, пока OctōPAY его не присылает. `active: false` — пакет не действует, см. «Тариф магазина».
 
 `connected` — связь существует, `isEnabled` — она включена в Octopay,
 `invoiceReady` — для Loal выбран активный и готовый к приёму оплаты банковский
@@ -2043,6 +2103,7 @@ POST   /admin/v1/cards/by-template/{templateId}/revoke
 | `tierReward` | Уровень и его выгода: «Gold · 7% баллами» |
 | `discount` | Скидка программы |
 | `bonusItem` | Бонусный товар: название или количество |
+| `saved` | Экономия: сколько бонусов клиент потратил за всё время |
 
 Любой другой `key` — обычный статичный текст: что написали в `value`, то и покажется.
 Так делают подписи, условия, адрес — всё, что не меняется.
@@ -2201,8 +2262,9 @@ GET    /admin/v1/certificates/{id}/health   проверить, что ключ 
 GET    /admin/v1/promo-codes?audience=merchant|client&includeDeleted=true
 POST   /admin/v1/promo-codes
        { "code"?: "SUMMER-2026", "audience": "merchant", "months": 2,
+         "clientEligibility"?: "all",
          "maxUses"?: 100, "expiresAt"?: "2026-12-31T23:59:59+06:00", "note"?: "…" }
-PATCH  /admin/v1/promo-codes/{id}      { "active"?, "maxUses"?, "expiresAt"?, "note"? }
+PATCH  /admin/v1/promo-codes/{id}      { "active"?, "clientEligibility"?, "maxUses"?, "expiresAt"?, "note"? }
 DELETE /admin/v1/promo-codes/{id}
 GET    /admin/v1/promo-codes/{id}/redemptions
 ```
@@ -2211,12 +2273,19 @@ GET    /admin/v1/promo-codes/{id}/redemptions
 
 ```json
 { "id": "...", "code": "SUMMER-2026", "audience": "merchant", "months": 2,
+  "clientEligibility": "all",
   "maxUses": 100, "uses": 7, "expiresAt": null, "active": true,
   "note": "летняя акция", "createdAt": "..." }
 ```
 
 - `audience`: `merchant` — продлевает подписку магазина (право принимать бонусы),
   `client` — подписку карты клиента. Код одной аудитории другой не подходит.
+- `clientEligibility`: `all` — для всех клиентов; `without_subscription` — только
+  для тех, у кого подписка ещё ни разу не активировалась. Для `merchant` допустимо
+  только `all`. При создании без поля и у существующих кодов — `all`.
+  Поле возвращается в списке, меняется через `PATCH`; отсутствие поля в `PATCH`
+  сохраняет настройку. Изменение влияет на будущие применения, не отзывает уже
+  выданные месяцы и не разрешает повторно применить тот же код.
 - `code` можно не присылать — сервер сгенерирует вида `LOAL-7KX2QM` (без похожих
   символов 0/O, 1/I/L). Свой код: 4–32 символа, латиница, цифры, дефис; хранится
   заглавными, повтор существующего — `409`.
@@ -2251,6 +2320,106 @@ GET /admin/v1/reports/settlements?month=2026-09&format=csv
   попадают. Архивированные магазины со списаниями остаются в отчёте и сохраняют название.
 - `merchantName` — `null`, если core-service в этот момент не ответил; `merchantId` есть
   всегда.
+
+### Деньги
+
+`GET /admin/v1/revenue` — только агентству. Сколько заплатили и откуда у работающих заведений доступ
+к бонусам:
+
+```ts
+{
+  merchants: {
+    merchantId, name, createdAt, tariff: "octopay" | "loal",
+    access: "octopay_paid" | "octopay_trial" | "octopay_unlimited" | "octopay_unknown"
+          | "loal_paid" | "loal_free" | "none",
+    octopay: { subscriptionActive /* null — OctōPAY не сообщает */, level, endsAt, checkedAt },
+    loal: { subscriptionUntil, paidCount, paidTotal, lastPaidAt,
+            pendingInvoices /* неоплаченные счета за 30 дней */, grantedMonths, promoMonths },
+  }[],
+  byAccess: Record<access, number>,
+  money: {
+    merchants: { paidTotal, paidCount, paid30d, pending30d },   // подписки заведений в Loal
+    clients:   { paidTotal, paidCount, paid30d, pending30d },   // подписки клиентов
+  },
+}
+```
+
+`loal_free` — подписка Loal есть, но не оплачена: выдана агентством (`grantedMonths`, считается
+с 12.10.2026 по журналу `merchant.subscription_granted`) или промокодом (`promoMonths`). Деньги
+пакета `octopay` приходят в OctōPAY и здесь не считаются. Ручная выдача месяцев
+(`POST /admin/v1/merchants/{id}/subscription`) теперь пишется в журнал аудита с тем, кто выдал.
+
+### Поддержка: вопросы магазинов
+
+Владелец и администратор филиала пишут агентству из кабинета партнёра; переписка — ветка
+сообщений. Статус: `open` — ждёт ответа агентства, `answered` — агентство ответило, `closed` —
+закрыт. Новое сообщение магазина в любую ветку (в том числе закрытую) возвращает её в `open`.
+
+Магазин (`admin`, `branch_admin`; кассиру `403`). Владелец видит все ветки магазина,
+администратор филиала — только свои:
+
+| Метод | Адрес | Что делает |
+|---|---|---|
+| `GET` | `/admin/v1/merchants/{id}/support-tickets` | Список `SupportTicket[]`, свежие сверху |
+| `POST` | `/admin/v1/merchants/{id}/support-tickets` | `{ subject (1–120), message (1–4000) }` → `201 SupportTicket` |
+| `GET` | `/admin/v1/merchants/{id}/support-tickets/{ticketId}` | `{ ticket, messages[] }`; отмечает ответы прочитанными |
+| `POST` | `/admin/v1/merchants/{id}/support-tickets/{ticketId}/messages` | `{ message }` → `200 { ticket, messages }` |
+| `POST` | `/admin/v1/merchants/{id}/support-tickets/{ticketId}/close` | Закрыть → `200 { ticket, messages }` |
+
+Агентство (`super_admin`):
+
+| Метод | Адрес | Что делает |
+|---|---|---|
+| `GET` | `/admin/v1/support-tickets?status=open\|answered\|closed` | `{ items: AgencySupportTicket[], summary: { open, answered, closed, unread } }`, до 500 веток |
+| `GET` | `/admin/v1/support-tickets/{ticketId}` | `{ ticket, messages[] }`; отмечает вопрос прочитанным |
+| `POST` | `/admin/v1/support-tickets/{ticketId}/messages` | `{ message }` → `200 { ticket, messages, notified }`; статус `answered` |
+| `POST` | `/admin/v1/support-tickets/{ticketId}/close` | Закрыть → `200 { ticket, messages }` |
+
+```ts
+SupportTicket = {
+  id, merchantId, subject, status: "open" | "answered" | "closed",
+  createdAt, lastMessageAt,
+  unread: boolean,          // другая сторона написала после того, как вы открывали ветку
+  lastMessage: { side: "merchant" | "agency", body /* до 160 знаков */, createdAt } | null,
+  author: { userId, name, phone },   // кто задал вопрос
+}
+AgencySupportTicket = SupportTicket & { merchantName }
+SupportMessage = { id, side: "merchant" | "agency", authorName /* у агентства «Поддержка Loal» */, body, createdAt }
+```
+
+Ответ агентства уходит автору вопроса и в WhatsApp (со ссылкой partner.loal.kg/support);
+`notified: false` — сообщение не дошло, ответ при этом сохранён. Чужая или несуществующая
+ветка — `404 SUPPORT_TICKET_NOT_FOUND`. Ошибки полей — `400` с `issues`.
+
+### Пароли сотрудников магазинов: рассылка
+
+Переход бизнеса на вход по паролю. Агентство (`super_admin`) рассылает временные пароли в
+WhatsApp по одному человеку, кабинет проходит список сам и показывает ход рассылки.
+
+```
+GET /admin/v1/business-passwords
+→ { items: BusinessPasswordRecipient[], summary: { total, none, temporary, set } }
+
+POST /admin/v1/business-passwords/{userId}/send   { "replaceOwn"?: boolean }
+→ 200 { item: BusinessPasswordRecipient, delivered: boolean, skipped: boolean }
+```
+
+```ts
+BusinessPasswordRecipient = {
+  userId, fullName, phone,
+  password: "none" | "temporary" | "set",   // нет, временный из WhatsApp, свой
+  passwordIssuedAt, passwordChangedAt,        // ISO или null
+  merchants: { merchantId, merchantName, role: "admin" | "branch_admin" }[],
+}
+```
+
+В список входят владельцы и администраторы филиалов работающих заведений (активных и
+приостановленных; не ждущих проверки и не удалённых). Кассиры паролей не получают и входят в
+кассу по коду. `send` создаёт новый временный пароль (вида `ABCD-EF23`), сохраняет его и шлёт в
+WhatsApp: сайт, логин (номер) и пароль. Повтор для `temporary` выдаёт новый пароль, прежний
+перестаёт работать. У кого пароль уже свой (`set`) — `skipped: true`, ничего не меняется, пока
+не передать `replaceOwn: true`. WhatsApp не доставил — `502 WHATSAPP_FAILED`, пароль остаётся
+прежним. Человек больше не в списке — `404 RECIPIENT_NOT_FOUND`.
 
 ### Лиды, аудит, настройки платформы
 
@@ -2504,9 +2673,13 @@ Authorization: Bearer <accessToken>
 ```
 
 Сервер создаёт карту, если её ещё нет, отмечает клиента реферером и один раз начисляет
-`2000` баллов. Карта реферера не замораживается и её баллы не сгорают из-за отсутствия
-подписки. Повтор безопасен: второй раз `2000` не начисляются. Ответ совпадает с
-`GET /v1/me/referrals`.
+`2000` баллов. Реферал получает **30 дней бесплатного доступа** от подключения: в
+`GET /v1/me/card` это обычный цикл `subscription` со `status: "active"` и `cycleEndsAt`
+через 30 дней. Приглашённые срок не продлевают. Дальше — как у клиента без оплаты:
+карта замораживается, баллы сгорают через 30 дней, если не купить подписку.
+Если у клиента уже идёт оплаченная подписка, она не меняется и бесплатный месяц не
+добавляется. Повтор безопасен: второй раз `2000` и второй бесплатный месяц не выдаются.
+Ответ совпадает с `GET /v1/me/referrals`.
 
 ### Кабинет реферера
 
@@ -2696,6 +2869,22 @@ Content-Type: application/json
 `bonus_operation_id` вида `octopay:<invoice_id>:bonus:<положительная версия>`;
 банковское событие это поле передавать не должно.
 
+#### Cashback
+
+`payment_method: "bank"` — покупка оплачена **целиком деньгами**, и клиент получает
+cashback: 1 бонус за каждый целый сом `bank_amount` (тыйыны отбрасываются, 750,50 → 750).
+Смешанная и бонусная оплата cashback не дают.
+
+- Кому: телефону, на который кассир выставил счёт, или подтверждённому на NFC-кассе.
+  Без телефона или у удалённого магазина — не начисляется.
+- Только при действующем цикле подписки: оплаченном или бесплатном месяце реферала.
+  Карта без подписки, замороженная или с истёкшим периодом — не получает.
+- Начисляется один раз на платёж: повтор события ничего не добавляет.
+- Живёт **90 дней** с начисления, потом сгорает сам (в истории — `burn`). Сгорание
+  подписки и её досрочное продление cashback не трогают.
+- При трате сначала списываются те бонусы, что сгорят раньше.
+- Возврат платежа cashback пока не списывает: OctōPAY не присылает событие возврата.
+
 До `fulfilled` card-service сверяет merchant, статус `committed`, бонусную и полную
 суммы, а также связанную ledger-транзакцию, после чего идемпотентно записывает в неё
 кассира и филиал из созданного Cashup-счёта. Чужая или уже конфликтующая атрибуция
@@ -2756,6 +2945,7 @@ Authorization: Bearer <токен сотрудника>
 | `checkoutPointName` | строка / `null` | Название NFC/QR-кассы, включая отключённые; поле обогащает ответ списка |
 | `bonusAmount` | число / `null` | Окончательно списанные баллы после финального события |
 | `bankAmount` | число / `null` | Окончательная банковская часть в KGS после финального события |
+| `cashbackPoints` | число / `null` | Сколько бонусов клиент получил cashback. `null` — оплата бонусами или ещё не подтверждена; `0` — не положен (нет подписки, нет клиента) |
 
 Названия могут отсутствовать в ответе создания счёта и появятся после чтения списка.
 `amount` всегда содержит **полную стоимость покупки**, `providerInvoiceId` — номер
@@ -2844,6 +3034,10 @@ JavaScript-фронтенду токен не отдаётся в JSON. Он х�
 «потолка нет» (то же, что 100). Форма кассы должна предлагать только проценты не выше
 него, иначе создание вернёт `400` «Проценты превышают лимит магазина». Удалённый или
 неизвестный магазин — `404`.
+
+У каждого варианта в ответе `/quote` есть `cashbackAmount` — сколько бонусов клиент
+получит после оплаты. Не ноль только у варианта `percent: 0` («Оплатить и получить X
+бонусов»): `floor(amount)`. Варианты со списанием бонусов cashback не дают.
 
 Ответы клиентских операций описаны в [octopay.md](./octopay.md). Создание сессии
 идемпотентно для одинаковых `sessionId`, токена и точки. Срок сессии 30 минут; она
@@ -2940,3 +3134,13 @@ When the agency approves a `bundle` business, OctoPay either opens a new account
 `POST /v1/public/partner-onboarding/assets?slot=merchantLogo|merchantPhoto`: `Authorization: Bearer <подтверждение телефона>` из `/auth/partner-onboarding/verify`; multipart с одним полем `file`, до 5 МБ. Поддерживаются те же форматы, что для профиля витрины: PNG/APNG, JPG/JPEG/JFIF, WebP, HEIC/HEIF, AVIF, GIF, TIFF/TIF, BMP, SVG, ICO, PSD, JP2 и JXL. Формат определяется по содержимому, результат — статичный PNG с учётом ориентации; у анимаций/многостраничных файлов используется первый кадр/страница. Возвращает `{ "url": "https://…/v1/public/template-assets/…png" }`. Обычный токен входа не подходит. 401 — подтвердить телефон заново; 400/413 — исправить файл; 429 — повторить позже. Загрузка выполняется перед отправкой заявки, после OTP; успешные загрузки повторно не отправляются при повторе в той же форме.
 
 При регистрации или входе по телефону клиентского аккаунта без членства в заведениях карта создаётся до выдачи токенов. Старые клиентские аккаунты без карты восстанавливаются при следующем входе. Уже существующая карта повторно не выпускается, её статус и баланс не изменяются. Оплата подписки и начисление её баланса остаются отдельным сценарием. Сотрудникам и владельцам заведений вход в кабинет не создаёт клиентскую карту. При временной недоступности выпуска возвращается 502; повторный вход безопасен.
+
+
+## Дополнение: восстановление NFC и повторы cashback (08.10.2026)
+
+Серверный контракт recovery, привязка запроса к конкретной кассе,
+сохранение плательщика после очистки OTP-сессии и идемпотентные результаты
+90-дневного cashback описаны в [CHECKOUT_RECOVERY.md](./CHECKOUT_RECOVERY.md).
+Миграции добавляются поверх текущей истории: card `0015_cashback_receipts`,
+core `0042_checkout_payer_snapshot`. Существующие bonus_lots и финальные
+оплаченные счета повторно не начисляются.

@@ -5,7 +5,7 @@ import {
   type ChangePasswordInput,
   authApi,
 } from "@loal/api";
-import { GoogleLink, ProfileForm, useApi, useProfile } from "@loal/app-kit";
+import { GoogleLink, PasswordSetupForm, ProfileForm, useApi, useProfile } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { PasswordInput, formatPhone } from "@loal/ui/inputs";
@@ -18,13 +18,31 @@ import { GOOGLE_CLIENT_ID } from "../../shared/config/env";
 
 const initialValues: ChangePasswordInput = { currentPassword: "", newPassword: "", repeatPassword: "" };
 
-/** Смена пароля — для тех, кто входит по почте. Глазик в каждом поле. */
+/**
+ * Пароль входа в кабинет — по номеру телефона. Пока своего нет (или он временный из WhatsApp),
+ * задаётся без текущего; дальше меняется через текущий. Глазик в каждом поле.
+ */
 function ChangePasswordCard() {
   const api = useApi();
+  const profile = useProfile();
+  const password = profile.data?.password;
+  if (password && (!password.set || password.mustChange)) {
+    return (
+      <Card className="flex flex-col">
+        <h2 className="text-xl font-bold">Пароль</h2>
+        <p className="mt-1 mb-5 text-base text-muted-foreground">
+          Вход в кабинет — по номеру телефона и паролю. Задайте свой пароль.
+        </p>
+        <PasswordSetupForm />
+      </Card>
+    );
+  }
   return (
     <Card className="flex flex-col">
       <h2 className="text-xl font-bold">Пароль</h2>
-      <p className="mt-1 text-base text-muted-foreground">Для входа по почте. По номеру и через Google пароль не нужен.</p>
+      <p className="mt-1 text-base text-muted-foreground">
+        Для входа по номеру телефона. Забыли — на экране входа «Войти по коду».
+      </p>
         <Formik
           initialValues={initialValues}
           validate={zodValidate(changePasswordInputSchema)}
@@ -38,7 +56,9 @@ function ChangePasswordCard() {
               applyServerIssues(
                 error,
                 helpers,
-                error instanceof ApiError && error.status === 400 ? "Текущий пароль не подошёл" : undefined,
+                error instanceof ApiError && (error.status === 400 || error.status === 401)
+                  ? "Текущий пароль не подошёл"
+                  : undefined,
               );
             } finally {
               helpers.setSubmitting(false);

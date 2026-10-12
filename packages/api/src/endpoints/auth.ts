@@ -17,7 +17,12 @@ import {
   type OtpRequestInput,
   type PhoneRegisterInput,
   type RegisterInput,
-  type UpdateProfileInput, phoneCheckResultSchema, googleLinkSchema } from "../schemas/auth";
+  type UpdateProfileInput, phoneCheckResultSchema, googleLinkSchema,
+  otpChannelsSchema,
+  phonePasswordLoginInputSchema,
+  type PhonePasswordLoginInput,
+  type PasswordResetInput,
+} from "../schemas/auth";
 
 /**
  * Вход один на все кабинеты: почта с паролем или телефон с кодом из WhatsApp.
@@ -37,7 +42,14 @@ export const authApi = (api: ApiClient) => ({
       anonymous: true,
     }),
 
-  /** Код живёт 5 минут, повторный запрос раньше 60 секунд — 429. На код даётся 5 попыток. */
+  /** Какие каналы кода включены: Telegram показываем, только если telegram: true. */
+  otpChannels: () => api.request(otpChannelsSchema, "/auth/otp/channels", { anonymous: true }),
+
+  /**
+   * Код живёт 5 минут, повторный запрос раньше 60 секунд — 429. На код даётся 5 попыток.
+   * channel — whatsapp (по умолчанию) или telegram; проверяет код тот же вход, канал сервер помнит.
+   * 502 OTP_DELIVERY_FAILED — Telegram не доставил, 503 OTP_CHANNEL_UNAVAILABLE — Telegram выключен.
+   */
   requestOtp: (input: OtpRequestInput) =>
     api.request(otpRequestResultSchema, "/auth/otp/request", {
       method: "POST",
@@ -69,6 +81,35 @@ export const authApi = (api: ApiClient) => ({
       method: "POST",
       body: { ...input, deviceId: getDeviceId() },
       anonymous: true,
+    }),
+
+  /**
+   * Кабинет партнёра: номер и пароль. 401 INVALID_CREDENTIALS — одно на «нет номера», «нет пароля»
+   * и «неверный пароль»; 429 PASSWORD_LOCKED + retryAfter — десять ошибок подряд, номер закрыт на 15 минут.
+   */
+  loginByPassword: (input: PhonePasswordLoginInput) =>
+    api.request(authTokensSchema, "/auth/login", {
+      method: "POST",
+      body: { ...phonePasswordLoginInputSchema.parse(input), deviceId: getDeviceId() },
+      anonymous: true,
+    }),
+
+  /**
+   * Нет пароля или забыли: код (обычный requestOtp) и новый пароль — и человек сразу внутри.
+   * 404 ACCOUNT_NOT_FOUND, 403 NOT_BUSINESS_ACCOUNT; код при этом уже израсходован.
+   */
+  resetPassword: ({ phone, otp, newPassword }: PasswordResetInput) =>
+    api.request(authTokensSchema, "/auth/password/reset", {
+      method: "POST",
+      body: { phone, otp, newPassword, deviceId: getDeviceId() },
+      anonymous: true,
+    }),
+
+  /** Свой пароль без текущего — только пока его нет или он временный, иначе 409 PASSWORD_ALREADY_SET. */
+  setupPassword: (newPassword: string) =>
+    api.request(z.looseObject({ ok: z.boolean() }), "/auth/me/password/setup", {
+      method: "POST",
+      body: { newPassword },
     }),
 
   loginByOtp: (input: OtpLoginInput) =>

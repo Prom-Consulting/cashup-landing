@@ -1,6 +1,9 @@
 import { RequireAuth, isSuperAdmin } from "@loal/app-kit";
 import { Route, Routes } from "react-router";
 import { LeadsPage } from "../pages/leads";
+import { SupportPage } from "../pages/support";
+import { RevenuePage } from "../pages/revenue";
+import { BusinessPasswordsPage } from "../pages/business-passwords";
 import { LoginPage } from "../pages/login";
 import { NotFoundPage } from "../pages/not-found";
 import { ProfilePage } from "../pages/profile";
@@ -46,6 +49,10 @@ export function AppRouter() {
         <Route path="bonus-items" element={<BonusItemsPage />} />
         <Route path="promo-codes" element={<PromoCodesPage />} />
         <Route path="leads" element={<LeadsPage />} />
+        <Route path="revenue" element={<RevenuePage />} />
+        <Route path="support" element={<SupportPage />} />
+        <Route path="support/:ticketId" element={<SupportPage />} />
+        <Route path="business-passwords" element={<BusinessPasswordsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

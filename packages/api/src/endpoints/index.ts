@@ -15,3 +15,6 @@ export * from "./subscription";
 export * from "./cashier";
 export * from "./merchant-exit";
 export * from "./tariffs";
+export * from "./support";
+export * from "./business-passwords";
+export * from "./revenue";

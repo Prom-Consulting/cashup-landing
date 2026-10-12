@@ -11,6 +11,7 @@ import {
   UserGroupIcon,
   Wallet01Icon,
   NfcIcon,
+  CustomerSupportIcon,
 } from "@hugeicons/core-free-icons";
 import { WelcomeToast } from "@loal/app-kit";
 import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
@@ -20,6 +21,7 @@ import { useId } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { type MerchantTariff } from "@loal/api";
 import { useTariff } from "../../entities/merchant/api";
+import { useSupportTickets } from "../../entities/support/api";
 import { useCurrentMerchant } from "../../entities/session/model";
 import { CASHIER_APP_URL } from "../../shared/config/env";
 
@@ -41,6 +43,7 @@ const nav: Item[] = [
   { to: "/pos", label: "Касса", icon: CashierIcon },
   { to: "/webhooks", label: "Вебхуки", icon: LinkSquare02Icon, access: "owner" },
   { to: "/onec", label: "Обмен с 1С", icon: Settings02Icon, access: "owner" },
+  { to: "/support", label: "Поддержка", icon: CustomerSupportIcon, access: "branch" },
   // Вход через Google, имя и почта, выход из программы — раньше сюда можно было попасть только по адресу
   { to: "/profile", label: "Настройки", icon: UserSettings01Icon },
 ];
@@ -55,6 +58,9 @@ export function AppLayout() {
   );
   const location = useLocation();
   const selectId = useId();
+  // Ответ поддержки — повод заглянуть: число непрочитанных у пункта меню
+  const support = useSupportTickets(canRunBranch ? (merchantId ?? "") : "");
+  const supportUnread = support.data?.filter((ticket) => ticket.unread).length ?? 0;
 
   const isActive = (to: string) => (to === "/" ? location.pathname === "/" : location.pathname.startsWith(to));
 
@@ -75,6 +81,12 @@ export function AppLayout() {
           <Link key={item.to} to={item.to} className={`${navLinkClass(isActive(item.to))} flex items-center gap-3`}>
             {withIcon && <Icon icon={withIcon.icon} />}
             {item.label}
+            {item.to === "/support" && supportUnread > 0 && (
+              <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-white">
+                {supportUnread}
+                <span className="sr-only"> непрочитано</span>
+              </span>
+            )}
           </Link>
         );
       }}

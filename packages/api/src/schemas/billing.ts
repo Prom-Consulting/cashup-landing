@@ -37,6 +37,14 @@ export const octopayIntegrationSchema = z.looseObject({
   ready: z.boolean().optional(),
   octopayBusinessName: z.string().nullable(),
   connectedAt: z.string().nullable(),
+  /**
+   * Подписка пакета в OctōPAY: active — оплачена или в пробном периоде (level: active | trial |
+   * unlimited | expired), endsAt — до какого числа. Не оплачена — пакет не действует и бонусы
+   * Loal нужно оплачивать отдельно. null — OctōPAY ещё не сообщает.
+   */
+  subscription: z
+    .looseObject({ active: z.boolean(), level: z.string(), endsAt: z.string().nullable() })
+    .nullish(),
 });
 export type OctopayIntegration = z.infer<typeof octopayIntegrationSchema>;
 

@@ -11,11 +11,17 @@ import { Field } from "@loal/ui/field";
 import { Button, PhoneInput, Spinner, TextInput, OtpInput, PasswordInput } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
 import { useEffect, useState } from "react";
+import { OtpChannelPicker, otpChannelErrorText, otpSentText, useOtpChannel } from "./otp-channel";
 import { useLogin, useLoginByOtp, useRequestOtp, useSession } from "./session";
 
 /** Одно понятное сообщение вместо технической ошибки шлюза. */
-function loginErrorText(error: unknown): string {
+export function loginErrorText(error: unknown): string {
+  const channel = otpChannelErrorText(error);
+  if (channel) return channel;
   if (error instanceof ApiError) {
+    if (error.code === "INVALID_CREDENTIALS") return "Неверный номер или пароль";
+    if (error.code === "PASSWORD_LOCKED")
+      return error.message || "Слишком много попыток. Войдите по коду или попробуйте через 15 минут.";
     // Коды шлюза; текст — запасной путь для шлюза, который ещё отвечал без кода
     if (error.code === "OTP_INVALID" || (error.status === 401 && /invalid otp/i.test(error.message)))
       return "Неверный код";
@@ -100,7 +106,7 @@ function ByPassword({ onDone }: { onDone?: () => void }) {
 }
 
 /** Код живёт 5 минут, повторить можно раз в минуту — отсюда обратный отсчёт. */
-function useCooldown() {
+export function useCooldown() {
   const [left, setLeft] = useState(0);
   useEffect(() => {
     if (left <= 0) return;
@@ -112,6 +118,7 @@ function useCooldown() {
 
 function ByPhone({ onDone }: { onDone?: () => void }) {
   const requestOtp = useRequestOtp();
+  const { channel, choose, telegramAvailable } = useOtpChannel();
   const loginByOtp = useLoginByOtp();
   const cooldown = useCooldown();
   const [sent, setSent] = useState(false);
@@ -126,11 +133,11 @@ function ByPhone({ onDone }: { onDone?: () => void }) {
         helpers.setStatus(undefined);
         try {
           if (!sent) {
-            await requestOtp.mutateAsync({ phone: values.phone });
+            await requestOtp.mutateAsync({ phone: values.phone, channel });
             setSent(true);
             helpers.setFieldTouched("otp", false, false);
             cooldown.start();
-            helpers.setStatus("Код отправлен в WhatsApp");
+            helpers.setStatus(otpSentText(channel));
           } else {
             await loginByOtp.mutateAsync(values);
             onDone?.();
@@ -145,7 +152,11 @@ function ByPhone({ onDone }: { onDone?: () => void }) {
       {(form) => (
         <Form className="flex flex-col gap-6" noValidate>
           <FocusFirstError form={form} />
-          <Field label="Телефон" hint="Код придёт в WhatsApp" error={fieldError(form, "phone")}>
+          <Field
+            label="Телефон"
+            hint={telegramAvailable ? undefined : "Код придёт в WhatsApp"}
+            error={fieldError(form, "phone")}
+          >
             {(parts) => (
               <PhoneInput
                 {...parts}
@@ -155,6 +166,13 @@ function ByPhone({ onDone }: { onDone?: () => void }) {
               />
             )}
           </Field>
+
+          <OtpChannelPicker
+            channel={channel}
+            onChange={choose}
+            available={telegramAvailable}
+            disabled={form.isSubmitting}
+          />
 
           {sent && (
             <Field label="Код из сообщения" error={fieldError(form, "otp")}>
@@ -192,9 +210,9 @@ function ByPhone({ onDone }: { onDone?: () => void }) {
               onClick={async () => {
                 form.setStatus(undefined);
                 try {
-                  await requestOtp.mutateAsync({ phone: form.values.phone });
+                  await requestOtp.mutateAsync({ phone: form.values.phone, channel });
                   cooldown.start();
-                  form.setStatus("Код отправлен повторно");
+                  form.setStatus(otpSentText(channel, true));
                 } catch (error) {
                   form.setStatus(loginErrorText(error));
                 }

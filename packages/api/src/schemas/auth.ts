@@ -66,6 +66,11 @@ export const profileSchema = z.looseObject({
   role: platformRoleSchema,
   /** Привязанный Google для входа (только сотрудники магазинов); старый шлюз поля не отдаёт. */
   google: z.looseObject({ email: z.string().nullish() }).nullish(),
+  /**
+   * Пароль входа в кабинет партнёра: set — есть ли он, mustChange — временный из WhatsApp.
+   * Старый шлюз поля не отдаёт — тогда ничего не требуем.
+   */
+  password: z.looseObject({ set: z.boolean(), mustChange: z.boolean() }).nullish(),
 });
 export type Profile = z.infer<typeof profileSchema>;
 
@@ -81,6 +86,8 @@ export const authTokensSchema = z.looseObject({
   /** Первый вход человека, которого заранее завёл администратор: аккаунт активирован. */
   registrationCompleted: z.boolean().nullish(),
   message: z.string().nullish(),
+  /** Вход по номеру и паролю: true — вошли временным паролем, кабинет попросит свой. */
+  passwordMustChange: z.boolean().nullish(),
 });
 export type AuthTokens = z.infer<typeof authTokensSchema>;
 
@@ -98,13 +105,26 @@ export const otpSchema = z
   .min(1, "Введите код из сообщения")
   .regex(/^\d{6}$/, "В коде шесть цифр");
 
-export const otpRequestInputSchema = z.object({ phone: phoneSchema });
-export type OtpRequestInput = z.infer<typeof otpRequestInputSchema>;
+/** Куда прислать код: WhatsApp (по умолчанию) или Telegram. */
+export const OTP_CHANNELS = ["whatsapp", "telegram"] as const;
+export type OtpChannel = (typeof OTP_CHANNELS)[number];
+export const OTP_CHANNEL_LABELS: Record<OtpChannel, string> = { whatsapp: "WhatsApp", telegram: "Telegram" };
 
-/** Ответ на запрос кода: сколько секунд он живёт (по умолчанию 300). */
+/** Какие каналы включены на сервере. Старый шлюз ответит 404 — тогда только WhatsApp. */
+export const otpChannelsSchema = z.looseObject({
+  whatsapp: z.boolean().default(true),
+  telegram: z.boolean().default(false),
+});
+export type OtpChannels = z.infer<typeof otpChannelsSchema>;
+
+export const otpRequestInputSchema = z.object({ phone: phoneSchema, channel: z.enum(OTP_CHANNELS).optional() });
+export type OtpRequestInput = z.input<typeof otpRequestInputSchema>;
+
+/** Ответ на запрос кода: сколько секунд он живёт (по умолчанию 300) и куда ушёл. */
 export const otpRequestResultSchema = z.looseObject({
   ok: z.boolean().optional(),
   expiresInSeconds: z.number().optional(),
+  channel: z.string().nullish(),
 });
 export type OtpRequestResult = z.infer<typeof otpRequestResultSchema>;
 
@@ -143,14 +163,43 @@ export const registerInputSchema = z.object({
 });
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 
+/** Правила нового пароля — одни для смены, первого пароля и сброса по коду. */
+export const newPasswordSchema = z
+  .string()
+  .min(8, "Не короче 8 символов")
+  .max(72, "Не длиннее 72 символов")
+  .refine((value) => !/^\d+$/.test(value), "Пароль не может быть из одних цифр");
+
+const samePassword = { message: "Пароли не совпадают", path: ["repeatPassword"] };
+
+/** Вход в кабинет партнёра: номер и пароль. Длину на входе не проверяем — правила могли поменяться. */
+export const phonePasswordLoginInputSchema = z.object({
+  phone: phoneSchema,
+  password: z.string().min(1, "Введите пароль"),
+});
+export type PhonePasswordLoginInput = z.infer<typeof phonePasswordLoginInputSchema>;
+
+/** Свой пароль вместо временного или впервые — без текущего (POST /auth/me/password/setup). */
+export const passwordSetupInputSchema = z
+  .object({ newPassword: newPasswordSchema, repeatPassword: z.string().min(1, "Повторите пароль") })
+  .refine((v) => v.newPassword === v.repeatPassword, samePassword);
+export type PasswordSetupInput = z.infer<typeof passwordSetupInputSchema>;
+
+/** «Нет пароля или забыли»: код на номер и сразу новый пароль (POST /auth/password/reset). */
+export const passwordResetInputSchema = z
+  .object({
+    phone: phoneSchema,
+    otp: otpSchema,
+    newPassword: newPasswordSchema,
+    repeatPassword: z.string().min(1, "Повторите пароль"),
+  })
+  .refine((v) => v.newPassword === v.repeatPassword, samePassword);
+export type PasswordResetInput = z.infer<typeof passwordResetInputSchema>;
+
 export const changePasswordInputSchema = z
   .object({
     currentPassword: z.string().min(1, "Введите текущий пароль"),
-    newPassword: z
-      .string()
-      .min(8, "Не короче 8 символов")
-      .max(72, "Не длиннее 72 символов")
-      .refine((value) => !/^\d+$/.test(value), "Пароль не может быть из одних цифр"),
+    newPassword: newPasswordSchema,
     repeatPassword: z.string().min(1, "Повторите пароль"),
   })
   .refine((v) => v.newPassword === v.repeatPassword, { message: "Пароли не совпадают", path: ["repeatPassword"] })
