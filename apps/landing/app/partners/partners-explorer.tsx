@@ -3,10 +3,11 @@
 import type { PublicPartner } from "@loal/api";
 import type { PaddingOptions } from "maplibre-gl";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+import { partnerPath } from "../_data/seo";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { PartnersCatalog } from "./partners-catalog";
 import { PartnersPanel, type PanelLayout } from "./partners-panel";
-import { PlaceCard } from "./place-card";
 
 // MapLibre работает только в браузере — на сервере вместо карты тёплая подложка
 const PartnerMap = dynamic(() => import("./partner-map").then((module) => module.PartnerMap), {
@@ -84,6 +85,7 @@ function ViewSwitch({ view, onChange, floating = false }: { view: View; onChange
  */
 export function PartnersExplorer({ partners }: { partners: PublicPartner[] }) {
   const [view, setView, mapOpened] = useView();
+  const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [focus, setFocus] = useState<{ id: string; at: number } | null>(null);
@@ -118,8 +120,6 @@ export function PartnersExplorer({ partners }: { partners: PublicPartner[] }) {
     layout.kind === "side"
       ? { top: 80, bottom: 48, left: Math.min(layout.right + 24, Math.max(24, viewport.width - 180)), right: 64 }
       : { top: 76, bottom: Math.min(layout.height + 16, Math.max(16, viewport.height - 156)), left: 36, right: 60 };
-
-  const selected = selectedId ? (partners.find((partner) => partner.id === selectedId) ?? null) : null;
 
   const pick = (partner: PublicPartner) => {
     setSelectedId(partner.id);
@@ -182,7 +182,6 @@ export function PartnersExplorer({ partners }: { partners: PublicPartner[] }) {
         <div className="absolute top-3 right-3 z-30 md:top-6 md:right-6">
           <ViewSwitch view={view} onChange={setView} floating />
         </div>
-        {view === "map" && selected && <PlaceCard partner={selected} onClose={() => setSelectedId(null)} />}
         {view === "map" && (
           <PartnersPanel
             partners={partners}
@@ -190,6 +189,7 @@ export function PartnersExplorer({ partners }: { partners: PublicPartner[] }) {
             onHover={setHoveredId}
             onPick={pick}
             onLayout={setLayout}
+            onOpen={(partner) => router.push(partnerPath(partner))}
           />
         )}
       </section>

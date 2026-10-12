@@ -121,139 +121,199 @@ html {
 }
 
 /*
- * Точка заведения на карте каталога — «табличка», как цена на карте маркетплейса: логотип
- * в скруглённом квадрате и процент бонусами. Выбранная темнеет. Корень двигает MapLibre
- * (transform), поэтому анимируем только вложенные слои.
+ * Метки появляются быстро; общая задержка ограничена 100 мс даже у большого каталога.
+ * Корень двигает MapLibre (transform), поэтому анимируем только вложенные слои.
  */
 .loal-pin {
   position: relative;
-  display: block;
+  width: 64px;
+  height: 80px;
   padding: 0;
   border: 0;
   background: none;
   cursor: pointer;
-  touch-action: none;
   --delay: calc(var(--i, 0) * 20ms);
 }
 .loal-pin:focus-visible {
   outline: none;
 }
-.loal-pin:focus-visible .loal-pin__lift {
-  outline: 3px solid var(--flame);
-  outline-offset: 2px;
-}
-/*
- * Слой для кружков и веера: прячась в кружок, точка стягивается к его центру и тает;
- * выходя — возвращается на место; веером — расходится.
- */
-.loal-pin__spread {
-  display: block;
-  transform: translate(var(--dx, 0px), var(--dy, 0px));
-  transform-origin: 50% 100%;
-  transition:
-    transform 420ms cubic-bezier(0.34, 1.4, 0.64, 1),
-    opacity 260ms ease;
-}
-.loal-pin.is-clustered {
-  pointer-events: none;
-}
-.loal-pin.is-clustered .loal-pin__spread {
-  opacity: 0;
-  transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(0.3);
-  transition:
-    transform 320ms cubic-bezier(0.5, 0, 0.75, 0),
-    opacity 220ms ease 80ms;
+.loal-pin:focus-visible .loal-pin__face {
+  outline: 3px solid var(--graphite);
+  outline-offset: 3px;
 }
 .loal-pin__drop {
-  display: block;
+  position: absolute;
+  inset: 0;
   transform-origin: 50% 100%;
-  animation: loal-pin-drop 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2) var(--delay) both;
+  animation: loal-pin-drop 220ms ease-out var(--delay) both;
 }
 .loal-pin__lift {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  height: 40px;
-  margin-bottom: 7px;
-  padding: 4px 11px 4px 4px;
-  border-radius: 14px;
-  background: var(--paper);
-  color: var(--graphite);
-  box-shadow:
-    0 0 0 1px rgb(22 21 21 / 0.06),
-    0 8px 20px rgb(22 21 21 / 0.18);
+  position: absolute;
+  inset: 0;
   transform-origin: 50% 100%;
-  transition:
-    transform 160ms ease-out,
-    background-color 160ms ease-out,
-    color 160ms ease-out;
+  transition: transform 150ms ease-out;
 }
-/* Без процента — только логотип, табличка квадратная */
-.loal-pin__lift:not(:has(.loal-pin__label)) {
-  padding-right: 4px;
-}
-.loal-pin:hover .loal-pin__lift {
-  transform: translateY(-2px);
-}
+.loal-pin:hover .loal-pin__lift,
 .loal-pin.is-active .loal-pin__lift {
-  background: var(--graphite);
-  color: var(--paper);
-  transform: translateY(-3px) scale(1.08);
-}
-.loal-pin.is-active {
-  z-index: 5;
+  transform: translateY(-6px) scale(1.12);
 }
 .loal-pin__face {
-  flex: none;
-  width: 32px;
-  height: 32px;
+  position: absolute;
+  top: 0;
+  left: 4px;
+  width: 56px;
+  height: 56px;
+  padding: 3px;
   overflow: hidden;
-  border-radius: 10px;
-  background: #fff;
+  border-radius: 999px;
+  background: conic-gradient(from 210deg, var(--coral), var(--flame), var(--amber), var(--peach), var(--coral));
+  box-shadow: 0 12px 26px rgb(255 93 52 / 0.45);
 }
 .loal-pin__img {
   display: grid;
   place-items: center;
   width: 100%;
   height: 100%;
+  overflow: hidden;
+  border: 2px solid var(--paper);
+  border-radius: 999px;
   object-fit: cover;
   background: linear-gradient(135deg, var(--coral), var(--amber));
   color: #fff;
   font-family: var(--font-heading), sans-serif;
-  font-size: 13px;
+  font-size: 20px;
   font-weight: 800;
 }
-img.loal-pin__img {
-  background: #fff;
+/* Блик: косая полоса света пробегает по фото сразу после приземления */
+.loal-pin__face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.75) 48%, transparent 62%);
+  transform: translateX(-120%);
+  animation: loal-pin-glint 260ms ease-out calc(var(--delay) + 120ms) both;
+  pointer-events: none;
 }
-.loal-pin__label {
-  font-family: var(--font-heading), sans-serif;
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.loal-pin.is-active .loal-pin__label {
-  color: var(--amber);
-}
-/* Хвостик к точке на карте — того же цвета, что табличка */
 .loal-pin__tail {
   position: absolute;
-  bottom: -5px;
-  left: 50%;
-  width: 12px;
-  height: 12px;
-  margin-left: -6px;
-  border-radius: 2px;
-  background: inherit;
+  top: 50px;
+  left: 25px;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--flame);
   transform: rotate(45deg);
 }
+.loal-pin__badge {
+  position: absolute;
+  top: -8px;
+  right: -14px;
+  padding: 3px 8px;
+  border: 2px solid var(--paper);
+  border-radius: 999px;
+  background: var(--graphite);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  animation: loal-pin-badge 160ms ease-out var(--delay) both;
+}
+/* Волна от острия — один раз при приземлении */
+.loal-pin__ripple {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  width: 22px;
+  height: 9px;
+  margin-left: -11px;
+  border: 2px solid var(--flame);
+  border-radius: 50%;
+  opacity: 0;
+  animation: loal-pin-ripple 300ms ease-out calc(var(--delay) + 80ms) both;
+}
+/* Выбранная точка дышит мягким ореолом */
+.loal-pin__halo {
+  position: absolute;
+  top: -6px;
+  left: -2px;
+  width: 68px;
+  height: 68px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgb(255 93 52 / 0.35), transparent 70%);
+  opacity: 0;
+}
+.loal-pin.is-active .loal-pin__halo {
+  animation: loal-pin-halo 1.8s ease-in-out infinite;
+}
+.loal-pin.is-active {
+  z-index: 5;
+}
+
 @keyframes loal-pin-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.9);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(5px) scale(1.08, 0.94);
+  }
+  78% {
+    transform: translateY(-3px) scale(0.98, 1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes loal-pin-glint {
+  to {
+    transform: translateX(120%);
+  }
+}
+@keyframes loal-pin-badge {
   from {
     opacity: 0;
-    transform: translateY(-10px) scale(0.85);
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes loal-pin-ripple {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(4.2);
+  }
+}
+@keyframes loal-pin-halo {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loal-pin__drop,
+  .loal-pin__badge,
+  .loal-pin__ripple,
+  .loal-pin__face::after,
+  .loal-pin.is-active .loal-pin__halo {
+    animation: none;
+  }
+  .loal-pin__ripple,
+  .loal-pin__face::after {
+    display: none;
   }
 }
 
@@ -265,10 +325,37 @@ img.loal-pin__img {
   display: none;
 }
 
-/* Несколько заведений рядом: тёмный кружок с числом, одно касание — и карта приближается */
+/*
+ * Слой для кружков и веера: MapLibre двигает корень точки, а мы — этот слой. Прячась в кружок,
+ * точка стягивается к его центру и тает; выходя — возвращается на место; веером — расходится.
+ */
+.loal-pin__spread {
+  position: absolute;
+  inset: 0;
+  transform: translate(var(--dx, 0px), var(--dy, 0px));
+  transform-origin: 50% 100%;
+  transition:
+    transform 180ms ease-out,
+    opacity 120ms ease;
+}
+.loal-pin.is-clustered {
+  pointer-events: none;
+}
+.loal-pin.is-clustered .loal-pin__spread {
+  opacity: 0;
+  transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(0.3);
+  transition:
+    transform 160ms ease-out,
+    opacity 100ms ease;
+}
+.loal-pin {
+  touch-action: none;
+}
+
+/* Несколько заведений рядом: одно касание — и карта приближается к ним */
 .loal-cluster {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   padding: 0;
   border: 0;
   background: none;
@@ -284,27 +371,23 @@ img.loal-pin__img {
   place-items: center;
   width: 100%;
   height: 100%;
-  border: 3px solid var(--paper);
+  border: 4px solid var(--paper);
   border-radius: 999px;
-  background: var(--graphite);
-  box-shadow:
-    0 0 0 5px rgb(22 21 21 / 0.12),
-    0 10px 24px rgb(22 21 21 / 0.28);
-  color: var(--paper);
+  background: conic-gradient(from 210deg, var(--coral), var(--flame), var(--amber), var(--peach), var(--coral));
+  box-shadow: 0 0 0 6px rgb(255 93 52 / 0.18), 0 10px 26px rgb(22 21 21 / 0.28);
+  color: #fff;
   /* Кружок появляется с пружинкой, при распаде — гаснет (класс is-leaving у корня) */
-  animation: loal-cluster-in 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: loal-cluster-in 180ms ease-out both;
   transition: scale 160ms ease;
 }
 .loal-cluster:hover .loal-cluster__body {
   scale: 1.08;
 }
 .loal-cluster:focus-visible .loal-cluster__body {
-  box-shadow:
-    0 0 0 4px var(--flame),
-    0 10px 24px rgb(22 21 21 / 0.28);
+  box-shadow: 0 0 0 4px var(--graphite), 0 10px 26px rgb(22 21 21 / 0.28);
 }
 .loal-cluster.is-leaving .loal-cluster__body {
-  animation: loal-cluster-out 220ms ease-in both;
+  animation: loal-cluster-out 120ms ease-in both;
 }
 @keyframes loal-cluster-in {
   from {
@@ -319,33 +402,30 @@ img.loal-pin__img {
   }
 }
 .loal-cluster__count {
-  font-family: var(--font-heading), sans-serif;
-  font-size: 1.125rem;
+  font-family: var(--font-display, inherit);
+  font-size: 1.25rem;
   font-weight: 800;
   line-height: 1;
 }
 .loal-cluster__badge {
   position: absolute;
-  bottom: -11px;
+  bottom: -12px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: 999px;
-  background: var(--flame);
-  color: #fff;
+  background: var(--graphite);
+  color: var(--paper);
   font-size: 0.6875rem;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
 }
 @media (prefers-reduced-motion: reduce) {
-  .loal-pin__drop,
   .loal-cluster__body,
-  .loal-cluster.is-leaving .loal-cluster__body {
-    animation: none;
-  }
+  .loal-cluster.is-leaving .loal-cluster__body,
   .loal-pin__spread,
-  .loal-pin.is-clustered .loal-pin__spread,
-  .loal-pin__lift {
+  .loal-pin.is-clustered .loal-pin__spread {
+    animation: none;
     transition: none;
   }
 }
@@ -378,20 +458,12 @@ img.loal-pin__img {
   .partners-map .maplibregl-ctrl-bottom-right {
     bottom: var(--sheet, 232px);
   }
-}
-
-/* Карточка выбранного места на карте: всплывает снизу, при смене места — заново */
-.place-card {
-  animation: place-card-in 220ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
-}
-@keyframes place-card-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
+  .loal-pin__ripple,
+  .loal-pin__face::after {
+    display: none;
   }
-}
-@media (prefers-reduced-motion: reduce) {
-  .place-card {
+  .loal-pin.is-active .loal-pin__halo {
     animation: none;
+    opacity: 0.6;
   }
 }
