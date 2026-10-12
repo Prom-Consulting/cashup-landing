@@ -17,7 +17,7 @@ import {
 } from "../../../_data/seo";
 import { CLIENT_APP_URL, SITE_URL } from "../../../_data/site";
 import { Breadcrumbs } from "../../breadcrumbs";
-import { PartnerCard, PartnerCover, PartnerLogo, PercentBadge } from "../../partner-card";
+import { LogoTile, PartnerCard, PartnerCover, PartnerLogo, PercentBadge } from "../../partner-card";
 
 /** Страница на каждое заведение: статическая, обновляется раз в минуту и после сохранения витрины. */
 export const revalidate = 60;
@@ -103,9 +103,16 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
 
           <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr] lg:gap-10">
             <div className="flex flex-col gap-3">
-              <div className="overflow-hidden rounded-[28px]">
-                <PartnerCover partner={partner} large className="aspect-[16/10] w-full" />
-              </div>
+              {partner.photos.length > 0 ? (
+                <div className="overflow-hidden rounded-[28px]">
+                  <PartnerCover partner={partner} large className="aspect-[16/10] w-full" />
+                </div>
+              ) : (
+                // Без фото — не пустой баннер, а сам логотип крупно: так выглядят карточки брендов
+                <div className="grid aspect-[16/10] place-items-center rounded-[28px] border border-smoke bg-[radial-gradient(circle_at_25%_15%,#fff_0,var(--cream)_75%)]">
+                  <LogoTile partner={partner} className="h-[64%]" />
+                </div>
+              )}
               {partner.photos.length > 1 && (
                 <ul className="no-scrollbar flex gap-3 overflow-x-auto">
                   {partner.photos.slice(1).map((photo, index) => (

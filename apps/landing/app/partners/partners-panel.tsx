@@ -24,10 +24,6 @@ function plural(count: number, one: string, few: string, many: string) {
   return many;
 }
 
-function phoneHref(phone: string) {
-  return `tel:+${phone.replace(/\D/g, "")}`;
-}
-
 function useDesktop() {
   const [desktop, setDesktop] = useState(false);
   useEffect(() => {
@@ -40,20 +36,11 @@ function useDesktop() {
   return desktop;
 }
 
-function Grip() {
-  return (
-    <svg viewBox="0 0 12 20" aria-hidden="true" className="h-5 w-3 shrink-0 text-slate">
-      {[3, 10, 17].flatMap((y) =>
-        [2, 9].map((x) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.6" fill="currentColor" />),
-      )}
-    </svg>
-  );
-}
-
+/** Логотип квадратной плиткой, как в справочниках: в круге логотипы теряют края. */
 function Avatar({ partner }: { partner: PublicPartner }) {
   const image = partnerAvatar(partner);
   return (
-    <span aria-hidden="true" className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-[conic-gradient(from_210deg,var(--coral),var(--flame),var(--amber),var(--peach),var(--coral))] p-[3px]">
+    <span aria-hidden="true" className="grid h-[52px] w-[52px] shrink-0 place-items-center overflow-hidden rounded-[14px] border border-smoke bg-white">
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -61,11 +48,11 @@ function Avatar({ partner }: { partner: PublicPartner }) {
           src={image}
           alt={`Логотип ${partner.name}`}
           crossOrigin="anonymous"
-          className="h-full w-full rounded-full border-2 border-paper bg-paper object-cover"
+          className="h-full w-full object-cover"
           loading="lazy"
         />
       ) : (
-        <span className="brand-gradient display grid h-full w-full place-items-center rounded-full border-2 border-paper text-lg text-white">
+        <span className="brand-gradient display grid h-full w-full place-items-center text-lg text-white">
           {monogram(partner.name)}
         </span>
       )}
@@ -74,9 +61,9 @@ function Avatar({ partner }: { partner: PublicPartner }) {
 }
 
 /**
- * Список заведений прямо на карте. На компьютере — плавающая панель: её можно утащить
- * за заголовок куда удобно и свернуть, место запоминается. На телефоне — шторка снизу,
- * её тянут вверх и вниз. Выбор в списке и на карте — одно и то же.
+ * Список заведений рядом с картой. На компьютере — колонка слева на всю высоту, как в
+ * справочниках; на телефоне — шторка снизу, её тянут вверх и вниз. Выбор в списке и на карте —
+ * одно и то же; подробности выбранного — в карточке места поверх карты.
  */
 export function PartnersPanel({
   partners,
@@ -84,15 +71,12 @@ export function PartnersPanel({
   onHover,
   onPick,
   onLayout,
-  onOpen,
 }: {
   partners: PublicPartner[];
   selectedId: string | null;
   onHover: (id: string | null) => void;
   onPick: (partner: PublicPartner) => void;
   onLayout: (layout: PanelLayout) => void;
-  /** Карточка заведения целиком — фото, описание, действия. */
-  onOpen: (partner: PublicPartner) => void;
 }) {
   const desktop = useDesktop();
   const panel = useRef<HTMLDivElement>(null);
@@ -240,7 +224,7 @@ export function PartnersPanel({
     const element = panel.current;
     if (!element) return;
     const update = () => {
-      if (desktop) onLayout({ kind: "side", right: collapsed ? 0 : position.x + element.offsetWidth });
+      if (desktop) onLayout({ kind: "side", right: element.offsetWidth });
       else onLayout({ kind: "sheet", height: element.offsetHeight });
     };
     update();
@@ -253,8 +237,8 @@ export function PartnersPanel({
   // Выбрали точку на карте — строка в списке выезжает в поле зрения, шторка приоткрывается
   useEffect(() => {
     if (!selectedId) return;
-    if (!desktop && (sheet ?? 0) < sheetStops().half) setSheet(sheetStops().half);
-    if (desktop && collapsed) setCollapsed(false);
+    // Телефон: шторка опускается — над ней карточка места и сама точка на карте
+    if (!desktop) setSheet(sheetStops().peek);
     const frame = requestAnimationFrame(() => {
       const element = list.current;
       const row = element?.querySelector<HTMLElement>(`[data-id="${selectedId}"]`);
@@ -265,7 +249,8 @@ export function PartnersPanel({
   }, [selectedId]);
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).closest("button, input, a")) return;
+    // Колонку на компьютере не таскают — тянется только шторка на телефоне
+    if (desktop || (event.target as HTMLElement).closest("button, input, a")) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = {
       px: event.clientX,
@@ -315,10 +300,10 @@ export function PartnersPanel({
     <div
       ref={panel}
       style={style}
-      className={`absolute inset-x-0 bottom-0 z-20 flex h-[var(--sheet-h)] max-h-[calc(100%-56px)] flex-col overflow-hidden rounded-t-[24px] bg-paper pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgb(22_21_21/0.14)] md:inset-auto md:top-0 md:left-0 md:h-auto md:max-h-[calc(100%-48px)] md:w-[400px] md:translate-x-[var(--x)] md:translate-y-[var(--y)] md:rounded-[28px] md:bg-paper/95 md:pb-0 md:shadow-[0_24px_60px_rgb(22_21_21/0.22)] md:backdrop-blur-xl ${
+      className={`absolute inset-x-0 bottom-0 z-20 flex h-[var(--sheet-h)] max-h-[calc(100%-56px)] flex-col overflow-hidden rounded-t-[24px] bg-paper pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgb(22_21_21/0.14)] md:inset-y-0 md:right-auto md:left-0 md:h-full md:max-h-none md:w-[400px] md:rounded-none md:border-r md:border-smoke md:pb-0 md:shadow-[8px_0_32px_rgb(22_21_21/0.08)] ${
         dragging
-          ? "select-none md:scale-[1.01] md:shadow-[0_32px_80px_rgb(22_21_21/0.3)]"
-          : "transition-[height] duration-180 ease-out motion-reduce:transition-none md:transition-shadow"
+          ? "select-none"
+          : "transition-[height] duration-180 ease-out motion-reduce:transition-none"
       }`}
     >
       <div
@@ -330,14 +315,9 @@ export function PartnersPanel({
       >
         <span aria-hidden="true" className="mx-auto mb-2 block h-1 w-11 rounded-full bg-smoke md:hidden" />
         <div className="flex items-start gap-3">
-          <span className="mt-2 hidden md:block">
-            <Grip />
-          </span>
           <div className="min-w-0 flex-1">
-            <h1 className="display text-[1.5rem] leading-[1.05] text-flame min-[400px]:text-[1.75rem] md:text-[2rem]">
-              Где тратить бонусы
-            </h1>
-            <p className="mt-1 text-base text-slate">
+            <h1 className="display text-[1.375rem] leading-[1.1] text-graphite md:text-[1.75rem]">Где тратить бонусы</h1>
+            <p className="mt-1 text-sm text-slate md:text-base">
               {partners.length > 0
                 ? `${partners.length} ${plural(partners.length, "заведение", "заведения", "заведений")} в Бишкеке`
                 : "Скоро здесь появятся заведения"}
@@ -356,7 +336,7 @@ export function PartnersPanel({
             }}
             aria-expanded={desktop ? !collapsed : (sheet ?? 0) > sheetStops().peek}
             aria-label={(desktop ? collapsed : (sheet ?? 0) <= sheetStops().peek) ? "Развернуть список" : "Свернуть список"}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-cream transition-colors outline-none hover:bg-graphite hover:text-paper focus-visible:ring-3 focus-visible:ring-flame"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-cream transition-colors outline-none hover:bg-graphite hover:text-paper focus-visible:ring-3 focus-visible:ring-flame md:hidden"
           >
             <svg
               viewBox="0 0 24 24"
@@ -429,97 +409,45 @@ export function PartnersPanel({
               const selected = partner.id === selectedId;
               const onMap = Boolean(coordsOf(partner));
               return (
-                <li key={partner.id} data-id={partner.id} className="py-1">
-                  <div
-                    className={`rounded-[22px] transition-colors ${selected ? "bg-white shadow-[0_8px_24px_rgb(22_21_21/0.1)] ring-2 ring-flame" : "hover:bg-white/70"}`}
+                <li key={partner.id} data-id={partner.id}>
+                  <button
+                    type="button"
+                    onMouseEnter={() => onHover(partner.id)}
+                    onMouseLeave={() => onHover(null)}
+                    onFocus={() => onHover(partner.id)}
+                    onBlur={() => onHover(null)}
+                    onClick={() => onPick(partner)}
+                    aria-pressed={selected}
+                    className={`relative flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-flame ${
+                      selected ? "bg-cream" : "hover:bg-cream/60"
+                    }`}
                   >
-                    <button
-                      type="button"
-                      onMouseEnter={() => onHover(partner.id)}
-                      onMouseLeave={() => onHover(null)}
-                      onFocus={() => onHover(partner.id)}
-                      onBlur={() => onHover(null)}
-                      onClick={() => onPick(partner)}
-                      aria-expanded={selected}
-                      className="flex w-full items-center gap-2 rounded-[22px] p-2 text-left outline-none focus-visible:ring-3 focus-visible:ring-flame sm:gap-3 sm:p-3"
-                    >
-                      <Avatar partner={partner} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-lg leading-tight font-bold">
-                          {highlight(partner.name, query).map((part, index) =>
-                            part.hit ? (
-                              <mark key={index} className="rounded bg-amber/40 px-0.5 text-inherit">
-                                {part.text}
-                              </mark>
-                            ) : (
-                              <span key={index}>{part.text}</span>
-                            ),
-                          )}
-                        </span>
-                        <span className="block truncate text-sm text-slate">
-                          {[
-                            partner.category,
-                            // OctōPAY + Loal: бонусы тратятся прямо при оплате по ссылке
-                            partner.tariff === "octopay" ? "оплата бонусами в OctōPAY" : null,
-                            onMap ? null : "без точки на карте",
-                          ]
-                            .filter(Boolean)
-                            .join(" · ") || "Бишкек"}
-                        </span>
-                      </span>
-                      {partner.maxCoveragePercent ? (
-                        <span className="shrink-0 rounded-full bg-flame px-2 py-1 text-xs font-bold text-white sm:px-3 sm:text-sm">
-                          до {partner.maxCoveragePercent}%
-                        </span>
-                      ) : null}
-                    </button>
-
-                    {selected && (
-                      <div className="flex flex-col gap-3 px-4 pb-4">
-                        {partner.description && (
-                          <p className="line-clamp-3 text-base leading-snug text-graphite/85">{partner.description}</p>
+                    {/* Выбранная строка — полоска слева, а не рамка: список остаётся спокойным */}
+                    {selected && <span aria-hidden="true" className="absolute top-3 bottom-3 left-0 w-1 rounded-full bg-flame" />}
+                    <Avatar partner={partner} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-base leading-tight font-bold">
+                        {highlight(partner.name, query).map((part, index) =>
+                          part.hit ? (
+                            <mark key={index} className="rounded bg-amber/40 px-0.5 text-inherit">
+                              {part.text}
+                            </mark>
+                          ) : (
+                            <span key={index}>{part.text}</span>
+                          ),
                         )}
-                        {partner.address && <p className="text-base leading-snug text-slate">{partner.address}</p>}
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-base">
-                          <button
-                            type="button"
-                            onClick={() => onOpen(partner)}
-                            className="rounded-full bg-graphite px-4 py-1.5 text-sm font-bold text-paper transition-colors hover:bg-flame"
-                          >
-                            Подробнее
-                          </button>
-                          {partner.contactPhone && (
-                            <a
-                              href={phoneHref(partner.contactPhone)}
-                              className="font-bold text-flame-ink underline-offset-4 hover:underline"
-                            >
-                              Позвонить
-                            </a>
-                          )}
-                          {partner.instagramUrl && (
-                            <a
-                              href={partner.instagramUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="underline-offset-4 hover:underline"
-                            >
-                              Instagram
-                            </a>
-                          )}
-                          {partner.twogisUrl && (
-                            <a
-                              href={partner.twogisUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="underline-offset-4 hover:underline"
-                            >
-                              Маршрут в 2ГИС
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                      </span>
+                      <span className="mt-0.5 block truncate text-sm text-slate">{partner.category ?? "Бишкек"}</span>
+                      <span className="block truncate text-[0.8125rem] text-slate/80">
+                        {partner.address ?? (onMap ? "Бишкек" : "Без точки на карте")}
+                      </span>
+                    </span>
+                    {partner.maxCoveragePercent ? (
+                      <span className="shrink-0 rounded-lg bg-flame/10 px-2 py-1 text-sm font-extrabold text-flame-ink tabular-nums">
+                        {partner.maxCoveragePercent}%
+                      </span>
+                    ) : null}
+                  </button>
                 </li>
               );
             })}

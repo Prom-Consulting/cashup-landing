@@ -49,20 +49,22 @@ function pinElement(partner: PublicPartner, index: number, onClick: () => void) 
     letters.textContent = monogram(partner.name);
     face.append(letters);
   }
-  lift.append(make("span", "loal-pin__halo"), make("span", "loal-pin__tail"), face);
+  // Табличка: логотип и процент, хвостик указывает на место
+  lift.append(face);
   if (partner.maxCoveragePercent) {
-    const badge = make("span", "loal-pin__badge");
-    badge.textContent = `${partner.maxCoveragePercent}%`;
-    lift.append(badge);
+    const label = make("span", "loal-pin__label");
+    label.textContent = `${partner.maxCoveragePercent}%`;
+    lift.append(label);
   }
-  drop.append(make("span", "loal-pin__ripple"), lift);
+  lift.append(make("span", "loal-pin__tail"));
+  drop.append(lift);
   spread.append(drop);
   root.append(spread);
   return root;
 }
 
-// Точка — 64×80 px: ближе этого по любой оси карточки налезают друг на друга
-const CLUSTER_PX = 78;
+// Табличка — до ~90×47 px: ближе этого таблички налезают друг на друга
+const CLUSTER_PX = 72;
 /** С этого приближения близкие точки больше не собираем — раскладываем веером. */
 const SPREAD_ZOOM = 17;
 

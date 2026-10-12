@@ -6,7 +6,10 @@ import { partnerPath } from "../_data/seo";
 import { monogram } from "../_data/partners-api";
 import { fitLogo } from "./logo-fit";
 
-/** Обложка: первое фото витрины. Без фото — фирменный градиент с крупной монограммой. */
+/**
+ * Обложка: первое фото витрины. Без фото — логотип крупной квадратной плиткой на светлом фоне:
+ * в круге на градиенте логотипы теряли края и выглядели заглушкой.
+ */
 export function PartnerCover({
   partner,
   className = "",
@@ -21,7 +24,21 @@ export function PartnerCover({
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={photo} alt={`${partner.name} — фото`} loading="lazy" decoding="async" className={`object-cover ${className}`} />;
   return (
-    <span aria-hidden="true" className={`brand-gradient relative grid place-items-center overflow-hidden ${className}`}>
+    <span
+      aria-hidden="true"
+      className={`relative grid place-items-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,#fff_0,var(--cream)_70%)] ${className}`}
+    >
+      <LogoTile partner={partner} className={large ? "h-[58%]" : "h-[62%]"} />
+    </span>
+  );
+}
+
+/** Логотип на белой квадратной плитке; без логотипа — монограмма на фирменном градиенте. */
+export function LogoTile({ partner, className = "" }: { partner: PublicPartner; className?: string }) {
+  return (
+    <span
+      className={`grid aspect-square place-items-center overflow-hidden rounded-[22%] border border-smoke bg-white shadow-[0_14px_36px_rgb(22_21_21/0.12)] ${className}`}
+    >
       {partner.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -29,10 +46,11 @@ export function PartnerCover({
           src={partner.logoUrl}
           alt={`Логотип ${partner.name}`}
           crossOrigin="anonymous"
-          className={`rounded-full border-4 border-paper/90 bg-paper object-cover shadow-xl ${large ? "h-32 w-32" : "h-16 w-16 sm:h-20 sm:w-20"}`}
+          loading="lazy"
+          className="h-full w-full object-contain p-[12%]"
         />
       ) : (
-        <span className={`display text-white/95 ${large ? "text-[5rem]" : "text-[3.25rem]"} leading-none`}>
+        <span className="brand-gradient display grid h-full w-full place-items-center text-[clamp(1.5rem,6vw,4rem)] text-white">
           {monogram(partner.name)}
         </span>
       )}
@@ -46,7 +64,7 @@ export function PartnerLogo({ partner, size = "md" }: { partner: PublicPartner; 
   return (
     <span
       aria-hidden="true"
-      className={`grid ${box} shrink-0 place-items-center overflow-hidden rounded-full bg-[conic-gradient(from_210deg,var(--coral),var(--flame),var(--amber),var(--peach),var(--coral))] p-[3px]`}
+      className={`grid ${box} shrink-0 place-items-center overflow-hidden rounded-[28%] border border-smoke bg-white`}
     >
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -56,10 +74,10 @@ export function PartnerLogo({ partner, size = "md" }: { partner: PublicPartner; 
           alt={`Логотип ${partner.name}`}
           crossOrigin="anonymous"
           loading="lazy"
-          className="h-full w-full rounded-full border-2 border-paper bg-paper object-cover"
+          className="h-full w-full object-cover"
         />
       ) : (
-        <span className="brand-gradient display grid h-full w-full place-items-center rounded-full border-2 border-paper text-base text-white">
+        <span className="brand-gradient display grid h-full w-full place-items-center text-base text-white">
           {monogram(partner.name)}
         </span>
       )}
@@ -94,7 +112,7 @@ export function PartnerCard({ partner }: { partner: PublicPartner }) {
         <span className="relative flex flex-1 items-start gap-3 px-3 pt-0 pb-3 sm:px-4 sm:pb-4">
           {/* Без фото логотип уже на обложке — второй раз не повторяем */}
           {partner.photos.length > 0 && (
-            <span className="-mt-6 hidden rounded-full ring-4 ring-paper sm:block">
+            <span className="-mt-6 hidden rounded-[30%] ring-4 ring-paper sm:block">
               <PartnerLogo partner={partner} />
             </span>
           )}
