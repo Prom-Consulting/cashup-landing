@@ -65,6 +65,8 @@ function pinElement(partner: PublicPartner, index: number, onClick: () => void) 
 const CLUSTER_PX = 78;
 /** С этого приближения близкие точки больше не собираем — раскладываем веером. */
 const SPREAD_ZOOM = 17;
+/** Веер вокруг выбранной точки — только вблизи, где соседей немного. */
+const SPREAD_NEAR_ZOOM = 14;
 
 /** Кружок «несколько заведений здесь»: число и лучший процент; клик приближает к ним. */
 function clusterElement(group: PublicPartner[], onClick: () => void) {
@@ -158,22 +160,38 @@ export function PartnerMap({
       .map((item) => ({ ...item, point: instance.project(item.coords) }));
     const used = new Set<string>();
     const wanted = new Set<string>();
+    // Выбранную точку в общий кружок не берём: на отдалении в одну группу попадал весь город,
+    // и «веер» вокруг выбранной разворачивал кольцо из всех заведений
+    const selected = items.find((item) => item.partner.id === selectedRef.current) ?? null;
+    const groups: (typeof items)[] = [];
     for (const item of items) {
-      if (used.has(item.partner.id)) continue;
+      if (item === selected || used.has(item.partner.id)) continue;
       used.add(item.partner.id);
       const group = [item];
       for (const other of items) {
-        if (used.has(other.partner.id)) continue;
+        if (other === selected || used.has(other.partner.id)) continue;
         if (Math.hypot(other.point.x - item.point.x, other.point.y - item.point.y) < CLUSTER_PX) {
           group.push(other);
           used.add(other.partner.id);
         }
       }
+      groups.push(group);
+    }
+    if (selected) {
+      // Вблизи и среди нескольких соседей выбранная раскладывается веером вместе с ними; иначе стоит отдельно
+      const near = groups.find(
+        (group) =>
+          group.length <= 5 &&
+          group.some((member) => Math.hypot(member.point.x - selected.point.x, member.point.y - selected.point.y) < CLUSTER_PX),
+      );
+      if (near && zoom >= SPREAD_NEAR_ZOOM) near.push(selected);
+      else groups.push([selected]);
+    }
+    for (const group of groups) {
 
       // Выбранное заведение не прячем в кружок: его группа раскрывается веером
       const spread =
-        group.length > 1 &&
-        (zoom >= SPREAD_ZOOM || group.some((member) => member.partner.id === selectedRef.current));
+        group.length > 1 && (zoom >= SPREAD_ZOOM || (selected !== null && group.includes(selected)));
       const lng = group.reduce((sum, member) => sum + member.coords[0], 0) / group.length;
       const lat = group.reduce((sum, member) => sum + member.coords[1], 0) / group.length;
       const center = instance.project([lng, lat]);
