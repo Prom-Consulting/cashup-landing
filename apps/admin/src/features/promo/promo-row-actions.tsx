@@ -35,8 +35,8 @@ export function CopyPromoLinkButton({ promo }: { promo: PromoCode }) {
   const [failed, setFailed] = useState(false);
   if (promo.audience !== "client" || promo.deletedAt) return null;
   const url = promoRegistrationUrl(CLIENT_APP_URL, promo.code);
-  return <div className="mt-1">
-    <Button variant="ghost" size="sm" onClick={async () => {
+  return <span className="inline-flex flex-col">
+    <Button variant="ghost" size="sm" title="Ссылка на регистрацию с этим кодом" onClick={async () => {
       try {
         await navigator.clipboard.writeText(url);
         setFailed(false);
@@ -45,10 +45,10 @@ export function CopyPromoLinkButton({ promo }: { promo: PromoCode }) {
       } catch { setFailed(true); }
     }}>
       <Icon icon={copied ? Tick02Icon : Copy01Icon} />
-      {copied ? "Ссылка скопирована" : "Скопировать ссылку"}
+      {copied ? "Скопирована" : "Ссылка"}
     </Button>
-    {failed && <p role="status" className="break-all text-sm">Скопируйте ссылку: <a href={url} className="underline">{url}</a></p>}
-  </div>;
+    {failed && <span role="status" className="break-all text-sm">Скопируйте ссылку: <a href={url} className="underline">{url}</a></span>}
+  </span>;
 }
 
 /** Выключенный код перестаёт применяться; включить обратно можно в любой момент. */

@@ -1,37 +1,75 @@
 import { ApiError, changePasswordInputSchema, type ChangePasswordInput, authApi } from "@loal/api";
-import { ProfileForm, useApi } from "@loal/app-kit";
+import { ProfileForm, useApi, useProfile } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
-import { Button, Input, PageHeader, PasswordInput } from "@loal/ui/shadcn";
-import { Card } from "@loal/ui/shadcn";
+import { Badge, Button, Card, PageHeader, PasswordInput } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useCurrentUser } from "../../entities/session/model";
 
 const initialValues: ChangePasswordInput = { currentPassword: "", newPassword: "", repeatPassword: "" };
 
-/** Профиль: кто вошёл, имя и почта, смена пароля. */
+function initials(name: string) {
+  return (
+    name
+      .split(/[\s@.]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase() || "L"
+  );
+}
+
+/** Кто вошёл: имя, почта, роль — и выход, одной карточкой над настройками. */
+function AccountCard() {
+  const profile = useProfile();
+  const { session, label, logout } = useCurrentUser();
+  const name = profile.data?.fullName || label || "Администратор";
+  const email = profile.data?.email ?? session?.email;
+  return (
+    <Card className="flex flex-col gap-5 sm:flex-row sm:items-center">
+      <span
+        aria-hidden="true"
+        className="brand-gradient display grid h-20 w-20 shrink-0 place-items-center rounded-full text-[1.75rem] text-white"
+      >
+        {initials(name)}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="display truncate text-[1.75rem] leading-tight">{name}</p>
+        {email && email !== name && <p className="mt-1 truncate text-base text-muted-foreground">{email}</p>}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Badge tone="neutral">
+            {session?.role === "super_admin" ? "Администратор платформы" : (session?.role ?? "—")}
+          </Badge>
+        </div>
+      </div>
+      <Button variant="outline" className="self-start sm:self-center" onClick={logout}>
+        Выйти
+      </Button>
+    </Card>
+  );
+}
+
+/** Профиль агентства: кто вошёл, имя и почта, пароль. Google здесь нет — он только у сотрудников магазинов. */
 export function ProfilePage() {
   const api = useApi();
-  const { session, label } = useCurrentUser();
 
   return (
-    <section className="flex max-w-[560px] flex-col gap-6">
-      <PageHeader title="Профиль" description={label} />
+    <section className="flex flex-col gap-6">
+      <PageHeader title="Профиль" description="Ваши данные и вход в админку." />
 
-      <Card>
-        <h2 className="text-xl font-bold">Доступ</h2>
-        <p className="mt-2 text-lg text-muted-foreground">
-          Роль: {session?.role === "super_admin" ? "администратор платформы" : (session?.role ?? "—")}
-        </p>
-      </Card>
+      <AccountCard />
 
-      <Card>
-        <h2 className="text-xl font-bold">Имя и почта</h2>
-        <ProfileForm />
-      </Card>
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <Card>
+          <h2 className="text-xl font-bold">Имя и почта</h2>
+          <p className="mt-1 text-base text-muted-foreground">Почтой вы входите в админку.</p>
+          <ProfileForm />
+        </Card>
 
-      <Card>
-        <h2 className="text-xl font-bold">Смена пароля</h2>
+        <Card>
+          <h2 className="text-xl font-bold">Пароль</h2>
+          <p className="mt-1 text-base text-muted-foreground">Для входа по почте. Не короче 8 символов.</p>
         <Formik
           initialValues={initialValues}
           validate={zodValidate(changePasswordInputSchema)}
@@ -102,7 +140,8 @@ export function ProfilePage() {
             </Form>
           )}
         </Formik>
-      </Card>
+        </Card>
+      </div>
     </section>
   );
 }
