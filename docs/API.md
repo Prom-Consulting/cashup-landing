@@ -1130,7 +1130,9 @@ POST /admin/v1/merchants/{merchantId}/subscription     { "months": 1 }
   период OctōPAY (`subscription.active: false` в `GET …/octopay-integration`) — магазин переходит на
   `loal` при живой связи и для бонусов ему нужна своя подписка Loal (или оплата OctōPAY). Раньше
   неоплаченный бизнес терял OctōPAY, но бесплатно сохранял бонусы Loal. OctōPAY, который ещё не
-  присылает `subscription`, пакет не отнимает.
+  присылает `subscription`, пакет не отнимает. «Истёк» без даты окончания (`active: false`, `endsAt: null`)
+  значит, что периода в OctōPAY не было вовсе — это сбой данных OctōPAY, пакет при нём тоже не снимается
+  (в «Деньгах» — `octopay_unknown`).
 
 
 ### Промокод магазина
