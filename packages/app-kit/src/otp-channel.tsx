@@ -83,7 +83,7 @@ export function OtpChannelPicker({
 
 export const otpSentText = (channel: OtpChannel, again = false) =>
   channel === "telegram"
-    ? `Код ${again ? "отправлен повторно" : "отправлен"} в Telegram — сообщение «Verification code»`
+    ? `Код ${again ? "отправлен повторно" : "отправлен"} в Telegram — личным сообщением от Loal`
     : `Код ${again ? "отправлен повторно" : "отправлен"} в WhatsApp`;
 
 /** Ошибки канала кода, общие для всех форм; null — не про код, пусть форма скажет своё. */

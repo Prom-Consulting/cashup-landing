@@ -237,8 +237,9 @@ Content-Type: application/json
 отвечает `GET /auth/otp/channels` → `{ "whatsapp": true, "telegram": true }` (без токена,
 не кэшировать): кнопку Telegram показываем, только если `telegram: true`.
 
-Код из Telegram приходит от Telegram Gateway (сообщение «Verification code» от Telegram),
-номер должен быть зарегистрирован в Telegram. Проверяется он тем же `/auth/login`,
+Код из Telegram приходит личным сообщением от аккаунта Loal (сервис otp-sender) или, если он не
+настроен, от Telegram Gateway (сообщение «Verification code»). Номер должен быть зарегистрирован в
+Telegram и не скрыт настройками приватности. Проверяется он тем же `/auth/login`,
 `/auth/register`, `/auth/password/reset` — канал повторно не передаётся, сервер помнит, куда
 отправил последний код. Новый код в любом канале отменяет прежний. `expiresInSeconds` у Telegram
 может быть чуть меньше 300 — показываем таймер по ответу. Ошибки те же, что у WhatsApp
