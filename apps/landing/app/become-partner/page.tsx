@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CorporateHero } from "../_components/business-section";
 import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
+import { ScrollToHash } from "../_components/scroll-to-hash";
 import { models } from "../_data/models";
 import { businessPrice } from "../_data/business-pricing";
 import { PAGE_SEO, openGraph } from "../_data/seo";
@@ -176,6 +177,7 @@ export default function BecomePartnerPage() {
           </div>
         </section>
 
+        <ScrollToHash id="form" />
         <section id="form" className="scroll-mt-6">
           <div className="mx-auto grid max-w-[1440px] gap-12 px-5 py-20 sm:px-10 lg:grid-cols-[1fr_1.2fr] lg:py-28">
             <div>

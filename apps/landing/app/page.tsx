@@ -437,7 +437,7 @@ export default function Home() {
         <div className="py-16 sm:py-24">
           <div className="flex flex-col gap-6">
             <ReferralStrip />
-            <BusinessLink href="/become-partner" />
+            <BusinessLink href="/become-partner#form" />
           </div>
         </div>
 
