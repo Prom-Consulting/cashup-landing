@@ -13,7 +13,7 @@ import { Form, Formik } from "formik";
 import { useState } from "react";
 import { loginErrorText, useCooldown } from "./login-form";
 import { OtpChannelPicker, otpSentText, useOtpChannel } from "./otp-channel";
-import { useLoginByPassword, useRequestOtp, useResetPassword, useSession } from "./session";
+import { useLoginByPassword, useRequestOtp, useResetPassword } from "./session";
 
 function resetErrorText(error: unknown): string {
   if (error instanceof ApiError) {
@@ -232,15 +232,10 @@ function ByCode({ phone, onDone, onBack }: { phone: string; onDone?: () => void;
  */
 export function BusinessLoginForm({ onDone }: { onDone?: () => void }) {
   const [mode, setMode] = useState<{ kind: "password" } | { kind: "code"; phone: string }>({ kind: "password" });
-  const { endedReason } = useSession();
-
+  // «Аккаунт открыт на другом устройстве» здесь не показываем: владелец заходит заново, а
+  // плашка рядом с объявлением о паролях только пугала (решение владельца продукта).
   return (
     <div className="flex flex-col gap-6">
-      {endedReason && (
-        <p role="alert" className="rounded-2xl bg-cream px-4 py-3 text-base">
-          {endedReason}
-        </p>
-      )}
       {mode.kind === "password" ? (
         <ByPassword onDone={onDone} onForgot={(phone) => setMode({ kind: "code", phone })} />
       ) : (
