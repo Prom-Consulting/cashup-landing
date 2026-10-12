@@ -107,6 +107,8 @@ ship_front() {
 set -euo pipefail
 cd "$APP_DIR"
 echo "Код: $SHA"
+# Коммит — release в Sentry: ошибки привязываются к выкатке
+export GIT_SHA="$SHA"
 git fetch --quiet origin main
 git reset --hard "$SHA"
 # По одному образу: пять сборок разом на небольшом сервере съедают всю память (было — OOM и падение Traefik)

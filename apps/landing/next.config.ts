@@ -1,4 +1,5 @@
 import path from "node:path";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 import { CLIENT_APP_URL } from "./app/_data/site";
 
@@ -24,4 +25,14 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "adilhan",
+  project: "loal",
+  // Исходники для читаемых стек-трейсов грузятся только при сборке с токеном (SENTRY_AUTH_TOKEN)
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  widenClientFileUpload: true,
+  // События идут через loal.kg/monitoring — блокировщики рекламы их не режут
+  tunnelRoute: "/monitoring",
+  silent: !process.env.CI,
+});
