@@ -40,7 +40,8 @@ export function loginErrorText(error: unknown): string {
   return error instanceof Error ? error.message : "Не удалось войти";
 }
 
-function ByPassword({ onDone }: { onDone?: () => void }) {
+/** Почта и пароль — прежние учётки владельцев и агентство. */
+export function EmailPasswordForm({ onDone }: { onDone?: () => void }) {
   const login = useLogin();
   const initialValues: LoginInput = { email: "", password: "" };
 
@@ -273,7 +274,7 @@ export function LoginForm({
         </div>
       )}
 
-      {mode === "password" ? <ByPassword onDone={onDone} /> : <ByPhone onDone={onDone} />}
+      {mode === "password" ? <EmailPasswordForm onDone={onDone} /> : <ByPhone onDone={onDone} />}
     </div>
   );
 }

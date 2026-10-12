@@ -11,7 +11,7 @@ import { Field } from "@loal/ui/field";
 import { Button, OtpInput, PasswordInput, PhoneInput, Spinner } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
 import { useState } from "react";
-import { loginErrorText, useCooldown } from "./login-form";
+import { EmailPasswordForm, loginErrorText, useCooldown } from "./login-form";
 import { OtpChannelPicker, otpSentText, useOtpChannel } from "./otp-channel";
 import { useLoginByPassword, useRequestPasswordCode, useResetPassword } from "./session";
 
@@ -236,14 +236,44 @@ function ByCode({ phone, onDone, onBack }: { phone: string; onDone?: () => void;
  * Вход в кабинет партнёра: номер и пароль. Нет пароля или забыли — код на номер и новый
  * пароль в той же форме, человек сразу внутри.
  */
+const tabClass = (active: boolean) =>
+  `rounded-full px-4 py-2 text-base transition-colors ${active ? "bg-graphite text-paper" : "text-slate hover:text-graphite"}`;
+
 export function BusinessLoginForm({ onDone }: { onDone?: () => void }) {
-  const [mode, setMode] = useState<{ kind: "password" } | { kind: "code"; phone: string }>({ kind: "password" });
+  const [mode, setMode] = useState<{ kind: "password" } | { kind: "email" } | { kind: "code"; phone: string }>({
+    kind: "password",
+  });
   // «Аккаунт открыт на другом устройстве» здесь не показываем: владелец заходит заново, а
   // плашка рядом с объявлением о паролях только пугала (решение владельца продукта).
   return (
     <div className="flex flex-col gap-6">
+      {mode.kind !== "code" && (
+        // Владельцы со старой учёткой входят почтой — у части из них номер без пароля
+        <div className="flex gap-1" role="tablist" aria-label="Способ входа">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode.kind === "password"}
+            className={tabClass(mode.kind === "password")}
+            onClick={() => setMode({ kind: "password" })}
+          >
+            По номеру
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode.kind === "email"}
+            className={tabClass(mode.kind === "email")}
+            onClick={() => setMode({ kind: "email" })}
+          >
+            По почте
+          </button>
+        </div>
+      )}
       {mode.kind === "password" ? (
         <ByPassword onDone={onDone} onForgot={(phone) => setMode({ kind: "code", phone })} />
+      ) : mode.kind === "email" ? (
+        <EmailPasswordForm onDone={onDone} />
       ) : (
         <>
           <p className="text-base text-slate">Пришлём код на номер — после него задайте пароль, и вы сразу в кабинете.</p>

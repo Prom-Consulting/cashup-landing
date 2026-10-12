@@ -14,7 +14,7 @@ export function LoginPage() {
         <p className="mt-2 text-lg text-slate">Вход для заведений, принимающих бонусы Loal.</p>
         {/* С октября 2026 вход владельцев и администраторов — по паролю; объясняем, откуда его взять */}
         <div className="mt-6 rounded-2xl bg-cream px-4 py-3 text-base leading-snug">
-          <p className="font-semibold">Теперь вход — по номеру и паролю</p>
+          <p className="font-semibold">Вход — по номеру или почте и паролю</p>
           <p className="mt-1 text-slate">
             Временный пароль мы прислали в WhatsApp. Нет пароля или забыли — войдите по коду и задайте свой.
           </p>
