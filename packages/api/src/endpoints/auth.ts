@@ -95,7 +95,18 @@ export const authApi = (api: ApiClient) => ({
     }),
 
   /**
-   * Нет пароля или забыли: код (обычный requestOtp) и новый пароль — и человек сразу внутри.
+   * Код для «нет пароля или забыли». Номер проверяется до отправки: 404 ACCOUNT_NOT_FOUND,
+   * 403 NOT_BUSINESS_ACCOUNT — код не уходит; 429 PHONE_CHECK_RATE_LIMITED — 10 в минуту с адреса.
+   */
+  requestPasswordCode: (input: OtpRequestInput) =>
+    api.request(otpRequestResultSchema, "/auth/password/code", {
+      method: "POST",
+      body: otpRequestInputSchema.parse(input),
+      anonymous: true,
+    }),
+
+  /**
+   * Нет пароля или забыли: код (requestPasswordCode) и новый пароль — и человек сразу внутри.
    * 404 ACCOUNT_NOT_FOUND, 403 NOT_BUSINESS_ACCOUNT; код при этом уже израсходован.
    */
   resetPassword: ({ phone, otp, newPassword }: PasswordResetInput) =>

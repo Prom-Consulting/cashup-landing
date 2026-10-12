@@ -405,9 +405,12 @@ POST /auth/password/reset
 → 200 { "accessToken", "expiresIn", "refreshToken", "refreshExpiresIn" }
 ```
 
-Код запрашивают обычным `/auth/otp/request` (WhatsApp или Telegram). Номер без аккаунта —
-`404 ACCOUNT_NOT_FOUND`, аккаунт не сотрудника магазина — `403 NOT_BUSINESS_ACCOUNT`; код при
-этом уже поглощён. `newPassword` — 8–72 символа (`400` с `issues`). Вход по коду без пароля
+Код для этого запрашивают через `POST /auth/password/code { phone, channel? }` — ответ как у
+`/auth/otp/request`, но номер проверяется **до** отправки: без аккаунта — `404 ACCOUNT_NOT_FOUND`,
+не сотрудник магазина — `403 NOT_BUSINESS_ACCOUNT`, и код не уходит. Ответ говорит, работает ли номер
+в заведении, поэтому лимит — 10 запросов в минуту с адреса (`429 PHONE_CHECK_RATE_LIMITED` + `retryAfter`).
+Те же ошибки на самом `/auth/password/reset` остаются — на случай, если номер изменился между шагами;
+код при этом уже поглощён. `newPassword` — 8–72 символа (`400` с `issues`). Вход по коду без пароля
 (`/auth/login { phone, otp }`) по-прежнему работает — его использует касса и мобильное приложение.
 
 Успешный вход возвращает `200 OK`. OTP поглощается этим запросом; повторно отправлять

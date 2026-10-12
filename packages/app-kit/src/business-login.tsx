@@ -13,7 +13,7 @@ import { Form, Formik } from "formik";
 import { useState } from "react";
 import { loginErrorText, useCooldown } from "./login-form";
 import { OtpChannelPicker, otpSentText, useOtpChannel } from "./otp-channel";
-import { useLoginByPassword, useRequestOtp, useResetPassword } from "./session";
+import { useLoginByPassword, useRequestPasswordCode, useResetPassword } from "./session";
 
 function resetErrorText(error: unknown): string {
   if (error instanceof ApiError) {
@@ -94,7 +94,7 @@ function ByPassword({ onDone, onForgot }: { onDone?: () => void; onForgot: (phon
 
 /** Код на номер и сразу свой пароль: так же входят в первый раз, если временный не дошёл. */
 function ByCode({ phone, onDone, onBack }: { phone: string; onDone?: () => void; onBack: () => void }) {
-  const requestOtp = useRequestOtp();
+  const requestOtp = useRequestPasswordCode();
   const reset = useResetPassword();
   const cooldown = useCooldown();
   const { channel, choose, telegramAvailable } = useOtpChannel();
@@ -119,7 +119,13 @@ function ByCode({ phone, onDone, onBack }: { phone: string; onDone?: () => void;
             onDone?.();
           }
         } catch (error) {
-          applyServerIssues(error, helpers, resetErrorText(error));
+          // Номер не из заведения — это про поле «Телефон», и код при этом не отправлен
+          if (error instanceof ApiError && (error.code === "ACCOUNT_NOT_FOUND" || error.code === "NOT_BUSINESS_ACCOUNT")) {
+            helpers.setFieldTouched("phone", true, false);
+            helpers.setFieldError("phone", resetErrorText(error));
+          } else {
+            applyServerIssues(error, helpers, resetErrorText(error));
+          }
         } finally {
           helpers.setSubmitting(false);
         }

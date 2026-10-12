@@ -221,6 +221,14 @@ export function useOtpChannels(): OtpChannels {
   return query.data ?? WHATSAPP_ONLY;
 }
 
+/** Код для пароля: сервер сначала проверяет, что номер — сотрудник заведения. */
+export function useRequestPasswordCode() {
+  const { api } = useSession();
+  return useMutation({
+    mutationFn: (input: { phone: string; channel?: OtpChannel }) => authApi(api).requestPasswordCode(input),
+  });
+}
+
 /** Кабинет партнёра: номер и пароль. */
 export function useLoginByPassword() {
   const { api, signIn } = useSession();
