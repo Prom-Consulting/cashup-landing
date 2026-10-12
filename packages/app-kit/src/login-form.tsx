@@ -12,7 +12,7 @@ import { Button, PhoneInput, Spinner, TextInput, OtpInput, PasswordInput } from 
 import { Form, Formik } from "formik";
 import { useEffect, useState } from "react";
 import { OtpChannelPicker, otpChannelErrorText, otpSentText, useOtpChannel } from "./otp-channel";
-import { useLogin, useLoginByOtp, useRequestOtp, useSession } from "./session";
+import { useLogin, useLoginByOtp, useRequestOtp } from "./session";
 
 /** Одно понятное сообщение вместо технической ошибки шлюза. */
 export function loginErrorText(error: unknown): string {
@@ -246,16 +246,9 @@ export function LoginForm({
   phoneOnly?: boolean;
 }) {
   const [mode, setMode] = useState(phoneOnly ? "phone" : defaultMode);
-  const { endedReason } = useSession();
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Сессию погасил вход с другого устройства — объясняем, а не молчим */}
-      {endedReason && (
-        <p role="alert" className="rounded-2xl bg-cream px-4 py-3 text-base">
-          {endedReason}
-        </p>
-      )}
 
       {!phoneOnly && (
         <div className="flex gap-1" role="tablist" aria-label="Способ входа">

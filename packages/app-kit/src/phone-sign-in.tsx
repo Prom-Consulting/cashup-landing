@@ -5,7 +5,7 @@ import { Button, OtpInput, PhoneInput, Spinner } from "@loal/ui/inputs";
 import { Form, Formik, type FormikHelpers } from "formik";
 import { useEffect, useState } from "react";
 import { OtpChannelPicker, otpChannelErrorText, useOtpChannel } from "./otp-channel";
-import { useCheckPhone, useLoginByOtp, useRegisterByPhone, useRequestOtp, useSession } from "./session";
+import { useCheckPhone, useLoginByOtp, useRegisterByPhone, useRequestOtp } from "./session";
 
 type Step = "phone" | "code";
 
@@ -73,7 +73,6 @@ export function PhoneSignInForm({
   const [known, setKnown] = useState<boolean | null>(null);
   const loginByOtp = useLoginByOtp();
   const registerByPhone = useRegisterByPhone();
-  const { endedReason } = useSession();
   const cooldown = useCooldown();
   const [step, setStep] = useState<Step>("phone");
   const [notice, setNotice] = useState<string | null>(null);
@@ -156,11 +155,6 @@ export function PhoneSignInForm({
       {(form) => (
         <Form className="flex flex-col gap-6" noValidate>
           <FocusFirstError form={form} />
-          {endedReason && (
-            <p role="alert" className="rounded-2xl bg-cream px-4 py-3 text-base">
-              {endedReason}
-            </p>
-          )}
 
           <Field
             label="Телефон"
