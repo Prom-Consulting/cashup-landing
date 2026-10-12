@@ -32,7 +32,10 @@ export function useOtpChannel() {
   return { channel, choose, telegramAvailable: channels.telegram };
 }
 
-/** «WhatsApp» / «Telegram» — только когда выбор действительно есть. */
+/**
+ * «WhatsApp» / «Telegram» — выбор виден всегда. Пока Telegram на сервере не включён, его кнопка
+ * неактивна с пометкой: человек видит, что такой способ есть.
+ */
 export function OtpChannelPicker({
   channel,
   onChange,
@@ -45,7 +48,7 @@ export function OtpChannelPicker({
   disabled?: boolean;
 }) {
   const labelId = useId();
-  if (!available) return null;
+  const hintId = useId();
   return (
     <div className="flex flex-col gap-2">
       <span id={labelId} className="text-base text-muted-foreground">
@@ -58,7 +61,8 @@ export function OtpChannelPicker({
             type="button"
             role="radio"
             aria-checked={channel === option}
-            disabled={disabled}
+            aria-describedby={option === "telegram" && !available ? hintId : undefined}
+            disabled={disabled || (option === "telegram" && !available)}
             onClick={() => onChange(option)}
             className={`rounded-full px-4 py-2.5 text-base font-semibold transition-colors disabled:opacity-60 ${
               channel === option ? "bg-graphite text-paper" : "text-slate hover:text-graphite"
@@ -68,6 +72,11 @@ export function OtpChannelPicker({
           </button>
         ))}
       </div>
+      {!available && (
+        <span id={hintId} className="text-sm text-muted-foreground">
+          Код в Telegram скоро — пока присылаем в WhatsApp.
+        </span>
+      )}
     </div>
   );
 }
