@@ -319,8 +319,13 @@ export const auditLogSchema = z.looseObject({
   id: z.string(),
   action: z.string().nullish(),
   entity: z.string().nullish(),
+  entityType: z.string().nullish(),
   entityId: z.string().nullish(),
   userId: z.string().nullish(),
+  diff: z.record(z.string(), z.unknown()).nullish(),
+  /** Заведение записи и кто сделал — у старого шлюза полей нет. */
+  merchantName: z.string().nullish(),
+  actorName: z.string().nullish(),
   createdAt: z.string().nullish(),
 });
 export type AuditLog = z.infer<typeof auditLogSchema>;

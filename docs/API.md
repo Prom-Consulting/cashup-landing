@@ -2471,10 +2471,15 @@ WhatsApp: сайт, логин (номер) и пароль. Повтор для
 ```
 GET /admin/v1/leads                  заявки с лендинга
 PUT /admin/v1/leads/{id}/status      { "status": "new" | "contacted" | "closed" }
-GET /admin/v1/audit-logs             что делало агентство
+GET /admin/v1/audit-logs             журнал: последние 200 записей
 GET   /admin/v1/platform-settings    { infoText, infoUrl, merchantAccessPriceKgs, cardSubscriptionPriceKgs }
 PATCH /admin/v1/platform-settings    любые из этих полей
 ```
+
+**Журнал** (`audit-logs`): `{ id, action, entityType, entityId, diff, actorUserId, merchantId, merchantName,
+actorName, createdAt }`. `action` — код вида `merchant.activated`, `promo_code.redeemed`; подписи по-русски
+делает фронт. `merchantName` — заведение записи (по `merchantId` или самой сущности), `actorName` — имя,
+иначе телефон или почта того, кто сделал (у применения промокода это клиент). Оба могут быть `null`.
 
 **Цены платформы**, целые сомы за месяц, меняет только агентство — это экран цен у
 супер-админа:
