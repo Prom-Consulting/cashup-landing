@@ -418,3 +418,42 @@ export function coordsFrom2gis(url: string | null | undefined): { lat: number; l
   }
   return null;
 }
+
+/**
+ * Анкета агентства (docs/API.md, «Новое заведение анкетой агентства»): та же, что на лендинге,
+ * но без кода — номер владельца подтверждает агентство. Владелец получает в WhatsApp логин и
+ * временный пароль (один для Loal и OctōPAY).
+ */
+export const AGENCY_PLANS = ["loyalty", "bundle", "octopay"] as const;
+export type AgencyPlan = (typeof AGENCY_PLANS)[number];
+
+export type AgencyRegistrationInput = {
+  phone: string;
+  requestId: string;
+  plan: AgencyPlan;
+  name: string;
+  contactName: string;
+  category: string;
+  comment: string;
+  storefront?: {
+    description: string | null;
+    address: string | null;
+    instagramUrl: string | null;
+    twogisUrl: string | null;
+    logoUrl: string | null;
+    photos: string[];
+    lat: number | null;
+    lng: number | null;
+  };
+};
+
+export const agencyRegistrationResultSchema = z.looseObject({
+  id: z.string(),
+  plan: z.string(),
+  state: z.string(),
+  /** null у «Только OctōPAY»: заведения Loal нет. */
+  merchantId: z.string().nullish(),
+  /** Дошёл ли WhatsApp с логином и паролем. false — отправьте пароль снова на «Пароли партнёров». */
+  ownerNotified: z.boolean(),
+});
+export type AgencyRegistrationResult = z.infer<typeof agencyRegistrationResultSchema>;

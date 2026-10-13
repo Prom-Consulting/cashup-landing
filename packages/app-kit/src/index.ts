@@ -22,3 +22,4 @@ export * from "./otp-channel";
 export * from "./business-login";
 export * from "./password-setup";
 export * from "./support";
+export * from "./contact-verify";

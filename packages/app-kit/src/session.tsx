@@ -8,6 +8,8 @@ import {
   type OtpChannel,
   type OtpChannels,
   type PasswordResetInput,
+  type ContactCodeInput,
+  type ContactVerifyInput,
   type Session,
 } from "@loal/api";
 import { rememberWelcome } from "./welcome";
@@ -207,7 +209,7 @@ export function useRequestOtp() {
   });
 }
 
-const WHATSAPP_ONLY: OtpChannels = { whatsapp: true, telegram: false };
+const WHATSAPP_ONLY: OtpChannels = { whatsapp: true, telegram: false, email: false };
 
 /** Какие каналы кода включены. Пока не знаем или шлюз старый — только WhatsApp, как раньше. */
 export function useOtpChannels(): OtpChannels {
@@ -286,5 +288,24 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: (input: { fullName: string; email: string }) => authApi(api).updateProfile(input),
     onSuccess: (tokens) => signIn(tokens),
+  });
+}
+
+/** Код для подтверждения номера (WhatsApp, Telegram) или почты. */
+export function useRequestContactCode() {
+  const { api } = useSession();
+  return useMutation({ mutationFn: (input: ContactCodeInput) => authApi(api).requestContactCode(input) });
+}
+
+/** Подтвердить контакт: новая пара токенов (почта лежит в токене) и свежий профиль. */
+export function useVerifyContact() {
+  const { api, signIn } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ContactVerifyInput) => authApi(api).verifyContact(input),
+    onSuccess: async (tokens) => {
+      await signIn(tokens);
+      await queryClient.invalidateQueries({ queryKey: ["session", "profile"] });
+    },
   });
 }

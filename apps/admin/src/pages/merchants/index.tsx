@@ -15,7 +15,7 @@ import { Badge, Button, Card, EmptyState, ErrorState, Icon, Input, Loading, Page
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useMerchantsWithApplications } from "../../entities/merchant/api";
-import { CreateMerchantForm } from "../../features/merchant/create-merchant-form";
+import { AgencyRegistrationForm } from "../../features/merchant/agency-registration-form";
 import { ApplicationInfo } from "../../features/merchant-lifecycle/application-info";
 import { RejectButton } from "../../features/merchant-lifecycle/reject-dialog";
 import { formatDate } from "../../shared/lib/format";
@@ -143,12 +143,8 @@ export function MerchantsPage() {
 
       {creating && (
         <Card>
-          <CreateMerchantForm
-            onCreated={(merchantId) => {
-              setCreating(false);
-              navigate(`/merchants/${merchantId}`);
-            }}
-          />
+          {/* Та же анкета, что на loal.kg: без кода, владельцу в WhatsApp — логин и временный пароль */}
+          <AgencyRegistrationForm onClose={() => setCreating(false)} />
         </Card>
       )}
 

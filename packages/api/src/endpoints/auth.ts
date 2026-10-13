@@ -22,6 +22,8 @@ import {
   phonePasswordLoginInputSchema,
   type PhonePasswordLoginInput,
   type PasswordResetInput,
+  type ContactCodeInput,
+  type ContactVerifyInput,
 } from "../schemas/auth";
 
 /**
@@ -122,6 +124,17 @@ export const authApi = (api: ApiClient) => ({
       method: "POST",
       body: { newPassword },
     }),
+
+  /**
+   * Код для подтверждения контакта: номер — в WhatsApp или Telegram, почта — письмом.
+   * 409 CONTACT_TAKEN — номер или почта у другого аккаунта, код не уходит; 503 EMAIL_UNAVAILABLE.
+   */
+  requestContactCode: (input: ContactCodeInput) =>
+    api.request(otpRequestResultSchema, "/auth/me/contact/code", { method: "POST", body: input }),
+
+  /** Подтвердить код: новый номер или почта заменяют прежние. Отдаёт новую пару токенов. */
+  verifyContact: (input: ContactVerifyInput) =>
+    api.request(authTokensSchema, "/auth/me/contact/verify", { method: "POST", body: input }),
 
   loginByOtp: (input: OtpLoginInput) =>
     api.request(authTokensSchema, "/auth/login", {

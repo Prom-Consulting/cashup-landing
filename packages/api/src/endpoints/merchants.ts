@@ -17,6 +17,8 @@ import {
   updateMerchantInputSchema,
   type CreateMerchantInput,
   type UpdateMerchantInput,
+  agencyRegistrationResultSchema,
+  type AgencyRegistrationInput,
 } from "../schemas/merchant";
 
 /** Пустое поле формы — «не указано»: сервер принимает null, но не пустую строку. */
@@ -51,6 +53,13 @@ export const merchantsApi = (api: ApiClient) => ({
       method: "POST",
       body: rejectInputSchema.parse(input),
     }),
+
+  /**
+   * Новое заведение анкетой, как на лендинге, без кода: сразу одобрено, владельцу в WhatsApp —
+   * логин и временный пароль. 409 PHONE_HAS_ACTIVE_MERCHANT / APPLICATION_IN_PROGRESS / APPLICATION_EXISTS.
+   */
+  register: (input: AgencyRegistrationInput) =>
+    api.request(agencyRegistrationResultSchema, "/admin/v1/partner-registrations", { method: "POST", body: input }),
 
   /** То же для заявки без заведения. 409 REGISTRATION_HAS_MERCHANT / REGISTRATION_COMPLETED. */
   rejectRegistration: (registrationId: string, input: RejectInput) =>

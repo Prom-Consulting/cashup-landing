@@ -234,7 +234,7 @@ Content-Type: application/json
 ```
 
 `channel` — `"whatsapp"` (по умолчанию, если поля нет) или `"telegram"`. Какие каналы включены,
-отвечает `GET /auth/otp/channels` → `{ "whatsapp": true, "telegram": true }` (без токена,
+отвечает `GET /auth/otp/channels` → `{ "whatsapp": true, "telegram": true, "email": false }` (без токена,
 не кэшировать): кнопку Telegram показываем, только если `telegram: true`.
 
 Код из Telegram приходит личным сообщением от аккаунта Loal (сервис otp-sender) или, если он не
@@ -2355,6 +2355,45 @@ GET /admin/v1/reports/settlements?month=2026-09&format=csv
 пакета `octopay` приходят в OctōPAY и здесь не считаются. Ручная выдача месяцев
 (`POST /admin/v1/merchants/{id}/subscription`) теперь пишется в журнал аудита с тем, кто выдал.
 
+### Новое заведение анкетой агентства
+
+`POST /admin/v1/partner-registrations` — только агентству. Та же анкета, что на лендинге
+(`/v1/public/partner-onboarding`), но без кода: номер владельца подтверждает агентство.
+
+```
+{ phone, requestId: UUID, plan: "loyalty" | "bundle" | "octopay", name, contactName,
+  category, comment?, storefront? }   // storefront — как на лендинге; у "octopay" его нет
+→ 200 { ...как ответ лендинга (id, plan, state, …), merchantId, ownerNotified }
+```
+
+Заведение сразу одобрено (`lifecycle: active`), у `bundle` тут же открывается OctōPAY, у `octopay` —
+только аккаунт OctōPAY. Владелец получает в WhatsApp логин (номер) и **временный пароль**, один и тот
+же для Loal и OctōPAY; в Loal он помечен временным (`password.mustChange`), кабинет при входе
+просит свой пароль. `ownerNotified: false` — сообщение не дошло, пароль можно отправить снова на
+экране «Пароли партнёров». Логотип и фото админка загружает после создания через
+`…/merchants/{merchantId}/profile-assets` и сохраняет витрину. Ошибки — как у лендинга:
+`409 PHONE_HAS_ACTIVE_MERCHANT`, `APPLICATION_IN_PROGRESS`, `APPLICATION_EXISTS`, `400` с `issues`.
+
+### Подтверждение номера или почты
+
+В `/auth/me/profile` есть `phoneVerified` и `emailVerified`. Номер подтверждён у всех, кто хоть раз
+входил по коду; у владельцев, заведённых агентством, — нет, и кабинет партнёра показывает
+«Подтвердите свою почту или номер телефона», пока оба `false`.
+
+```
+POST /auth/me/contact/code   { kind: "phone" | "email", value, channel?: "whatsapp" | "telegram" }
+→ 200 { ok, expiresInSeconds, channel }
+
+POST /auth/me/contact/verify { kind, value, code }
+→ 200 { accessToken, expiresIn, refreshToken, refreshExpiresIn }   // почта лежит в токене
+```
+
+Можно подтвердить текущий номер (почту) или указать новый — он заменит прежний. Номер, который
+уже принадлежит другому аккаунту, — `409 CONTACT_TAKEN`, код не уходит. Код номера — в WhatsApp или
+Telegram (`channel`), действует 5 минут; код почты приходит письмом, действует 10 минут. Почта
+доступна, если `GET /auth/otp/channels` вернул `email: true`; иначе `503 EMAIL_UNAVAILABLE`.
+Ошибки кода — общие `OTP_*`.
+
 ### Поддержка: вопросы магазинов
 
 Владелец и администратор филиала пишут агентству из кабинета партнёра; переписка — ветка
@@ -3025,7 +3064,9 @@ JavaScript-фронтенду токен не отдаётся в JSON. Он х�
 | POST | `/sessions` | `{sessionId: UUID, sessionToken, pointCode}` |
 | POST | `/state` | `{sessionToken}` |
 | POST | `/otp/request` | `{sessionToken, phone}` |
-| POST | `/otp/verify` | `{sessionToken, code}` |
+| POST | `/otp/verify` | `{sessionToken, code, devicePublicKey?}` → `{…, deviceId}` |
+| POST | `/device/verify` | `{sessionToken, deviceId, signature}` |
+| POST | `/device/forget` | `{deviceId, sessionId, signature}` → `{ok: true}` |
 | POST | `/quote` | `{sessionToken, amount}` |
 | POST | `/invoices` | `{sessionToken, amount, coveragePercent}` |
 | POST | `/reserve` | `{sessionToken, paymentId: UUID, operationId, amount: integer}` |
@@ -3034,6 +3075,21 @@ JavaScript-фронтенду токен не отдаётся в JSON. Он х�
 | GET | `/merchants/{merchantId}/settings` | — |
 | POST | `/merchants/{merchantId}/points` | `{name, branchId, coveragePercents}` |
 | POST | `/merchants/{merchantId}/points/{pointId}` | `{isActive}` |
+
+**Запомненное устройство (12.10.2026).** Чтобы покупатель не вводил код при каждой оплате, страница
+OctōPAY после первого подтверждения держит в браузере ключ ECDSA P-256, созданный WebCrypto как
+**неизвлекаемый** (`extractable: false`, хранится в IndexedDB). В `otp/verify` она передаёт открытую часть —
+`devicePublicKey`, SPKI в base64url (122 символа); в ответе `deviceId`. Неверный ключ — `400
+CHECKOUT_DEVICE_KEY_INVALID`, проверяется до того, как код будет израсходован.
+
+В новой сессии вместо телефона и кода — `device/verify`: `signature` — подпись ECDSA SHA-256 строки
+`loal-checkout-device:v1:{sessionId}` в формате WebCrypto (r‖s, 64 байта, base64url). Подпись годится только
+для своей сессии. Ответ как у `otp/verify` (`authenticated`, `maskedPhone`, `available`, `expiresAt`,
+`deviceId`), сессия подтверждена номером устройства. Неизвестное, отключённое, неиспользуемое больше
+180 дней устройство или неверная подпись — `401 CHECKOUT_DEVICE_INVALID`: страница забывает ключ и
+спрашивает номер. Нет карты — те же ошибки, что у `otp/verify`. На номер не больше 5 устройств: новое
+отключает самое давнее. `device/forget` («Это не мой номер») отключает устройство, если подпись над
+`sessionId` верна; ответ всегда `{ok: true}`. Удаление аккаунта клиента удаляет и его устройства.
 
 `GET /merchants/{merchantId}/settings` → `{ "maxCoveragePercent": 10 }` — потолок
 покрытия бонусами магазина, тот же, которым проверяется создание кассы. `null` значит

@@ -71,6 +71,9 @@ export const profileSchema = z.looseObject({
    * Старый шлюз поля не отдаёт — тогда ничего не требуем.
    */
   password: z.looseObject({ set: z.boolean(), mustChange: z.boolean() }).nullish(),
+  /** Подтверждены ли номер и почта кодом. Старый шлюз полей не отдаёт — тогда ничего не просим. */
+  phoneVerified: z.boolean().nullish(),
+  emailVerified: z.boolean().nullish(),
 });
 export type Profile = z.infer<typeof profileSchema>;
 
@@ -114,6 +117,8 @@ export const OTP_CHANNEL_LABELS: Record<OtpChannel, string> = { whatsapp: "Whats
 export const otpChannelsSchema = z.looseObject({
   whatsapp: z.boolean().default(true),
   telegram: z.boolean().default(false),
+  /** Код на почту (подтверждение контакта) — только если на сервере есть ключ писем. */
+  email: z.boolean().default(false),
 });
 export type OtpChannels = z.infer<typeof otpChannelsSchema>;
 
@@ -220,3 +225,9 @@ export type UpdateProfileInput = { fullName: string; email: string };
 export const googleLinkSchema = z.looseObject({
   google: z.looseObject({ email: z.string().nullish() }),
 });
+
+/** «Подтвердите почту или номер»: текущий или новый номер (WhatsApp, Telegram) либо почта. */
+export const CONTACT_KINDS = ["phone", "email"] as const;
+export type ContactKind = (typeof CONTACT_KINDS)[number];
+export type ContactCodeInput = { kind: ContactKind; value: string; channel?: OtpChannel };
+export type ContactVerifyInput = { kind: ContactKind; value: string; code: string };

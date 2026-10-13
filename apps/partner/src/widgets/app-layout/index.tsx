@@ -13,7 +13,7 @@ import {
   NfcIcon,
   CustomerSupportIcon,
 } from "@hugeicons/core-free-icons";
-import { WelcomeToast } from "@loal/app-kit";
+import { ContactVerifyBanner, WelcomeToast } from "@loal/app-kit";
 import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
 import { Icon, type IconSvg } from "@loal/ui/shadcn";
 import { Select } from "@loal/ui/select";
@@ -108,6 +108,8 @@ export function AppLayout() {
           </div>
         </div>
       )}
+      {/* Владелец, заведённый агентством с временным паролем, подтверждает номер или почту */}
+      <ContactVerifyBanner />
       <Outlet />
       <WelcomeToast />
     </AppShell>
