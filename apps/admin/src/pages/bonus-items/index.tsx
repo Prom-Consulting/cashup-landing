@@ -40,6 +40,7 @@ export function BonusItemsPage() {
   return (
     <section className="flex flex-col gap-6">
       <PageHeader
+        as="h2"
         title="Бонусные товары"
         description="Подарки на карте из прежней механики. Включаются в программе, во вкладке «Партнёрам»."
       />

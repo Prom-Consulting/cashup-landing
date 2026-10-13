@@ -2,11 +2,8 @@ import {
   Coupon01Icon,
   DoorIcon,
   Tag01Icon,
-  CreditCardIcon,
-  GiftIcon,
   Wallet01Icon,
   Settings02Icon,
-  ShieldKeyIcon,
   Store01Icon,
   UserCircleIcon,
   UserGroupIcon,
@@ -19,21 +16,20 @@ import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
 import { Icon, type IconSvg } from "@loal/ui/shadcn";
 import { Link, Outlet, useLocation } from "react-router";
 import { useCurrentUser } from "../../entities/session/model";
+import { CARD_SECTIONS } from "../card-suite";
 import { useSupportTickets } from "../../entities/support/api";
 
 const nav: (NavItem & { icon: IconSvg })[] = [
   { to: "/", label: "Заведения", icon: Store01Icon },
   { to: "/revenue", label: "Деньги", icon: MoneyBag02Icon },
   { to: "/customers", label: "Клиенты", icon: UserGroupIcon },
-  { to: "/templates", label: "Карты", icon: Wallet01Icon },
-  { to: "/programs", label: "Программы", icon: CreditCardIcon },
-  { to: "/bonus-items", label: "Бонусные товары", icon: GiftIcon },
+  // Карты, программы, бонусные товары и сертификаты — одна страница с вкладками
+  { to: "/templates", label: "Карта Loal", icon: Wallet01Icon },
   { to: "/promo-codes", label: "Промокоды", icon: Coupon01Icon },
   { to: "/leads", label: "Заявки", icon: WorkflowSquare02Icon },
   { to: "/support", label: "Поддержка", icon: CustomerSupportIcon },
   { to: "/exit-requests", label: "Выход партнёров", icon: DoorIcon },
   { to: "/business-passwords", label: "Пароли партнёров", icon: SquareLock02Icon },
-  { to: "/certificates", label: "Сертификаты", icon: ShieldKeyIcon },
   { to: "/tariffs", label: "Тарифы", icon: Tag01Icon },
   { to: "/settings", label: "Настройки", icon: Settings02Icon },
   { to: "/profile", label: "Профиль", icon: UserCircleIcon },
@@ -43,7 +39,12 @@ const nav: (NavItem & { icon: IconSvg })[] = [
 export function AppLayout() {
   const { label, logout } = useCurrentUser();
   const location = useLocation();
-  const isActive = (to: string) => (to === "/" ? location.pathname === "/" : location.pathname.startsWith(to));
+  const isActive = (to: string) =>
+    to === "/"
+      ? location.pathname === "/"
+      : to === "/templates"
+        ? CARD_SECTIONS.some((section) => location.pathname.startsWith(section.to))
+        : location.pathname.startsWith(to);
   // Сколько вопросов ждут ответа — число у пункта меню
   const waiting = useSupportTickets("open").data?.summary.open ?? 0;
 

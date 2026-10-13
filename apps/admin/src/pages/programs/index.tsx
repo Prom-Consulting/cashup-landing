@@ -189,6 +189,7 @@ export function ProgramsPage() {
   return (
     <section className="flex flex-col gap-6">
       <PageHeader
+        as="h2"
         title="Программы"
         description="Программа решает, сколько бонусов даёт месяц подписки. Как выглядит карта — в разделе «Карты»."
       />

@@ -11,15 +11,19 @@ export function PageHeader({
   title,
   description,
   action,
+  as = "h1",
 }: {
   title: string;
   description?: ReactNode;
   action?: ReactNode;
+  /** h2 — раздел внутри страницы с общим заголовком (вкладки), он мельче. */
+  as?: "h1" | "h2";
 }) {
+  const Heading = as;
   return (
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 className="display text-[clamp(1.75rem,3vw,2.5rem)]">{title}</h1>
+        <Heading className={as === "h1" ? "display text-[clamp(1.75rem,3vw,2.5rem)]" : "text-2xl font-bold"}>{title}</Heading>
         {description && <p className="mt-2 max-w-[70ch] text-lg text-muted-foreground">{description}</p>}
       </div>
       {action}

@@ -49,6 +49,7 @@ export function CertificatesPage() {
   return (
     <section className="flex flex-col gap-6">
       <PageHeader
+        as="h2"
         title="Сертификаты"
         description="Ими подписываются карты в Apple и Google Wallet. Пока Apple не вернул pass.cer, запись подписывать не может."
         action={<IssueCertificateDialog />}
