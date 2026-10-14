@@ -10,14 +10,29 @@ const money = new Intl.NumberFormat("ru-RU");
 
 /** Что значит цена каждого тарифа — коротко, для агентства. */
 const ABOUT: Record<string, { title: string; text: string; free: string }> = {
+  cashback: {
+    title: "Больше клиентов",
+    text: "Оранжевый стикер: клиент только получает кэшбэк. Участвует в акции первых мест.",
+    free: "0 — тариф бесплатный для всех, не только по акции.",
+  },
+  redeem: {
+    title: "Ещё больше клиентов",
+    text: "Чёрный стикер: оплата части чека бонусами. Участвует в акции первых мест.",
+    free: "0 — тариф бесплатный для всех, не только по акции.",
+  },
+  full: {
+    title: "Очень много клиентов",
+    text: "Белый стикер: списание и кэшбэк, выделение в каталоге и день видимости раз в неделю.",
+    free: "0 — тариф бесплатный для всех.",
+  },
   loal: {
-    title: "Только Loal",
-    text: "Счёт магазину выставляет Loal по этой цене за месяц.",
+    title: "Только Loal (старый)",
+    text: "Для заведений, подключённых до новой сетки: по этой цене Loal выставляет им счёт.",
     free: "Пока 0 — подписка не нужна: магазин принимает бонусы и виден в каталоге без оплаты, а кнопка счёта отвечает «доступ бесплатный».",
   },
   loal_octopay: {
-    title: "Loal + OctōPAY",
-    text: "Эту цену читает OctōPAY и сам ведёт подписку своих партнёров. Пока связь включена, Loal пускает магазин без подписки.",
+    title: "Loal + OctōPAY (старый)",
+    text: "Эту цену читает OctōPAY и сам ведёт подписку своих партнёров, подключённых до новой сетки.",
     free: "0 — OctōPAY не выставляет счёт.",
   },
 };
@@ -32,7 +47,7 @@ export function TariffPriceForm({ tariff }: { tariff: MerchantTariffPlan }) {
     <Card className="flex flex-col">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="display text-[1.6rem] leading-tight">{tariff.name ?? about?.title ?? tariff.code}</h2>
+          <h2 className="display text-[1.6rem] leading-tight">{about?.title ?? tariff.name ?? tariff.code}</h2>
           <p className="mt-1 font-mono text-sm text-muted-foreground">{tariff.code}</p>
         </div>
         <Badge tone={tariff.priceKgs === 0 ? "good" : "neutral"}>

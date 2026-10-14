@@ -12,8 +12,8 @@ import { StorefrontImages } from "./storefront-images";
 import type { Point } from "./location-picker";
 import { toPhoneDigits, coordsFrom2gis, merchantProfileFormSchema } from "@loal/api";
 import { categories } from "../_data/categories";
-import { businessPrice } from "../_data/business-pricing";
-import { API_URL, EMAIL, PARTNER_APP_URL, PHONE, PHONE_HREF } from "../_data/site";
+import { businessPrice, LAUNCH_OFFER, type BusinessTariff } from "../_data/business-pricing";
+import { API_URL, EMAIL, OCTOPAY_URL, PARTNER_APP_URL, PHONE, PHONE_HREF } from "../_data/site";
 
 gsap.registerPlugin(useGSAP);
 
@@ -23,14 +23,20 @@ const LocationPicker = dynamic(() => import("./location-picker"), {
   loading: () => <div className="h-[300px] animate-pulse rounded-2xl bg-cream sm:h-[340px]" />,
 });
 
-const plans = [
-  { id: "loyalty", label: "Только лояльность", note: `${businessPrice("loyalty")}/мес` },
-  { id: "bundle", label: "OctōPAY + лояльность", note: `${businessPrice("bundle")}/мес` },
-  { id: "octopay", label: "Только OctōPAY", note: "комиссия с оборота" },
+// Доп. №5: три тарифа Loal. «Только OctōPAY» больше не оформляется здесь — ссылка на octopay.click.
+const offerNote = (tariff: BusinessTariff) =>
+  LAUNCH_OFFER.tariffs.includes(tariff)
+    ? `0 сом ${LAUNCH_OFFER.months} мес. — первым ${LAUNCH_OFFER.seats}, потом ${businessPrice(tariff)}/мес`
+    : `${businessPrice(tariff)}/мес`;
+const tariffs = [
+  { id: "cashback", label: "Больше клиентов", note: offerNote("cashback") },
+  { id: "redeem", label: "Ещё больше клиентов", note: offerNote("redeem") },
+  { id: "full", label: "Очень много клиентов", note: offerNote("full") },
 ] as const;
-const PLAN_LABEL: Record<PlanId, string> = { loyalty: plans[0].label, bundle: plans[1].label, octopay: plans[2].label };
+const TARIFF_LABEL: Record<BusinessTariff, string> = { cashback: tariffs[0].label, redeem: tariffs[1].label, full: tariffs[2].label };
+const isTariff = (value: unknown): value is BusinessTariff => tariffs.some((item) => item.id === value);
 
-type PlanId = (typeof plans)[number]["id"];
+type PlanId = "loyalty" | "bundle" | "octopay";
 type FieldName = "name" | "category" | "contact" | "phone" | "comment" | "description" | "address" | "instagramUrl" | "twogisUrl";
 
 const empty = { name: "", category: "", contact: "", phone: "", comment: "", description: "", address: "", instagramUrl: "", twogisUrl: "" };
@@ -79,6 +85,8 @@ const order: FieldName[] = ["name", "category", "contact", "phone", "description
 const resultSchema = z.object({
   id: z.string().uuid(),
   plan: z.enum(["loyalty", "bundle", "octopay"]),
+  tariff: z.string().nullish(),
+  freeMonths: z.number().nullish(),
   state: z.enum(["processing", "pending_payment", "ready", "action_required"]),
   requiresOctopayPassword: z.boolean().optional(),
   verificationStatus: z.enum(["pending", "verified"]).nullable().optional(),
@@ -129,7 +137,7 @@ async function call(path: string, body?: unknown, token?: string) {
  */
 const DRAFT_KEY = "loal.partner-onboarding";
 const TOKEN_TTL = 29 * 60_000;
-type Draft = { plan: PlanId; values: Values; requestId: string | null; token: string | null; tokenUntil: number; point?: Point | null };
+type Draft = { tariff?: BusinessTariff; values: Values; requestId: string | null; token: string | null; tokenUntil: number; point?: Point | null };
 
 function readDraft(): Partial<Draft> {
   try {
@@ -160,7 +168,9 @@ export function PartnerForm() {
   const [uploadProgress, setUploadProgress] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [plan, setPlan] = useState<PlanId>("bundle");
+  // Новые заявки — всегда модель «loyalty» с тарифом; OctōPAY подключают в кабинете по желанию
+  const plan = "loyalty" as PlanId;
+  const [tariff, setTariff] = useState<BusinessTariff>("redeem");
   const [values, setValues] = useState<Values>(empty);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [step, setStep] = useState<Step>("details");
@@ -182,21 +192,21 @@ export function PartnerForm() {
     const draft = readDraft();
     if (draft.values) setValues({ ...empty, ...draft.values });
     if (draft.point && typeof draft.point.lat === "number" && typeof draft.point.lng === "number") setPoint(draft.point);
-    if (draft.plan && plans.some((item) => item.id === draft.plan)) setPlan(draft.plan);
+    if (isTariff(draft.tariff)) setTariff(draft.tariff);
     requestId.current = draft.requestId ?? null;
     if (draft.token && (draft.tokenUntil ?? 0) > Date.now()) {
       setToken(draft.token);
       setTokenUntil(draft.tokenUntil ?? 0);
     }
-    const selected = new URLSearchParams(window.location.search).get("plan");
-    if (plans.some((item) => item.id === selected)) setPlan(selected as PlanId);
+    const selected = new URLSearchParams(window.location.search).get("tariff");
+    if (isTariff(selected)) setTariff(selected);
     restored.current = true;
   }, []);
 
   useEffect(() => {
     if (!restored.current) return;
-    writeDraft({ plan, values, requestId: requestId.current, token, tokenUntil, point });
-  }, [plan, values, token, tokenUntil, sent, point]);
+    writeDraft({ tariff, values, requestId: requestId.current, token, tokenUntil, point });
+  }, [tariff, values, token, tokenUntil, sent, point]);
 
   // Вставили ссылку 2ГИС с координатами — сразу ставим по ним точку на карте
   // Перешли к проверке статуса — курсор сразу в телефон (поле появляется после отрисовки)
@@ -367,6 +377,7 @@ export function PartnerForm() {
       {
         requestId: requestId.current,
         plan,
+        tariff,
         name: values.name.trim(),
         contactName: values.contact.trim(),
         category: values.category,
@@ -494,7 +505,7 @@ export function PartnerForm() {
 
           {!recovering && (
             <div className="flex flex-col rounded-2xl bg-cream px-4 py-3 text-base">
-              <span className="font-bold">{PLAN_LABEL[plan]}</span>
+              <span className="font-bold">{TARIFF_LABEL[tariff]}</span>
               <span className="min-w-0 truncate">{values.name.trim()}</span>
             </div>
           )}
@@ -518,7 +529,7 @@ export function PartnerForm() {
           <div className="flex flex-wrap items-center gap-3">
             <Button type="button" disabled={sending || otp.length < 6} onClick={() => void submitCode(otp)} className="gap-3">
               {sending && <Spinner />}
-              {sending ? "Проверяем…" : recovering ? "Показать заявку" : plan === "loyalty" ? "Перейти к оплате" : "Подключить"}
+              {sending ? "Проверяем…" : recovering ? "Показать заявку" : "Подключить"}
             </Button>
             <Button
               type="button"
@@ -553,16 +564,24 @@ export function PartnerForm() {
                 </p>
               </div>
             ) : (
-              <ChoiceCards
-                name="plan"
-                legend="Тариф"
-                value={plan}
-                onChange={(next) => {
-                  setPlan(next);
-                  freshAttempt();
-                }}
-                options={[...plans]}
-              />
+              <div className="flex flex-col gap-3">
+                <ChoiceCards
+                  name="tariff"
+                  legend="Тариф"
+                  value={tariff}
+                  onChange={(next) => {
+                    setTariff(next);
+                    freshAttempt();
+                  }}
+                  options={[...tariffs]}
+                />
+                <p className="text-base">
+                  Нужны только платежи без программы лояльности?{" "}
+                  <a href={OCTOPAY_URL} className="text-flame-ink underline underline-offset-4">
+                    Подключите OctōPAY
+                  </a>
+                </p>
+              </div>
             )}
 
             {!recovering && (
@@ -681,9 +700,9 @@ export function PartnerForm() {
               </Button>
               {!recovering && (
                 <p className="max-w-[52ch] text-sm leading-relaxed opacity-75">
-                  {plan === "loyalty"
-                    ? "После кода — оплата первого месяца. Заведение в LOAL начнёт работу после проверки супер-админа."
-                    : "После кода создадим аккаунты без оплаты. Для работы в LOAL нужна проверка супер-админа."}
+                  {LAUNCH_OFFER.tariffs.includes(tariff)
+                    ? `После кода создадим кабинет. Пока есть места по акции, первые ${LAUNCH_OFFER.months} месяцев — без оплаты. Заведение начнёт работу после проверки Loal.`
+                    : "После кода создадим кабинет, подписку оплатите в нём. Заведение начнёт работу после проверки Loal."}
                 </p>
               )}
               <button
@@ -853,11 +872,15 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
       )}
       {sent.state === "ready" && (
         <p className="rounded-2xl bg-cream px-4 py-3 text-base leading-relaxed">
-          {sent.plan === "loyalty"
-            ? `Подписка «Только лояльность» — ${businessPrice("loyalty")}/мес. Оплатите её в кабинете Loal, чтобы принимать бонусы после проверки заведения.`
-            : sent.plan === "bundle"
-              ? `Подписка «OctōPAY + лояльность» — ${businessPrice("bundle")}/мес, оплата — в OctōPAY. Для приёма платежей подключите банковский счёт в кабинете OctōPAY.`
-              : "Абонентской платы нет — только комиссия с платежей. Чтобы принимать оплату, подключите банковский счёт в кабинете OctōPAY."}
+          {isTariff(sent.tariff)
+            ? sent.freeMonths
+              ? `Тариф «${TARIFF_LABEL[sent.tariff]}»: первые ${sent.freeMonths} мес. бесплатно — вы получили место по акции. Потом — ${businessPrice(sent.tariff)}/мес.`
+              : `Тариф «${TARIFF_LABEL[sent.tariff]}» — ${businessPrice(sent.tariff)}/мес. Оплатите подписку в кабинете Loal, чтобы принимать бонусы после проверки заведения.`
+            : sent.plan === "loyalty"
+              ? "Оплатите подписку в кабинете Loal, чтобы принимать бонусы после проверки заведения."
+              : sent.plan === "bundle"
+                ? "Подписку пакета оплачивают в OctōPAY. Для приёма платежей подключите банковский счёт в кабинете OctōPAY."
+                : "Абонентской платы нет — только комиссия с платежей. Чтобы принимать оплату, подключите банковский счёт в кабинете OctōPAY."}
         </p>
       )}
       {sent.state === "pending_payment" && (

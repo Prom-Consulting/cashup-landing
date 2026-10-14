@@ -4,10 +4,11 @@ import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
 import { ScrollToHash } from "../_components/scroll-to-hash";
 import { models } from "../_data/models";
-import { businessPrice } from "../_data/business-pricing";
+import { LAUNCH_OFFER } from "../_data/business-pricing";
 import { PAGE_SEO, openGraph } from "../_data/seo";
 import { CITY, EMAIL, OCTOPAY_URL, PARTNER_MAIL, PHONE, PHONE_HREF } from "../_data/site";
 import { PartnerForm } from "./partner-form";
+import { TariffPrice } from "./tariff-price";
 
 export const metadata: Metadata = {
   title: { absolute: PAGE_SEO.business.title },
@@ -19,11 +20,11 @@ export const metadata: Metadata = {
 const steps = [
   {
     title: "Оставляете заявку",
-    text: "Рассказываете о заведении и выбираете модель подключения. Подтверждаете номер телефона кодом из WhatsApp.",
+    text: "Рассказываете о заведении и выбираете тариф. Подтверждаете номер телефона кодом из WhatsApp.",
   },
   {
     title: "Получаете кабинет",
-    text: `Регистрация бесплатная на всех трёх моделях. Подписка «Только лояльность» — ${businessPrice("loyalty")} в месяц, «OctōPAY + лояльность» — ${businessPrice("bundle")} в месяц.`,
+    text: `Регистрация бесплатная. Первым ${LAUNCH_OFFER.seats} заведениям на тарифах «Больше клиентов» и «Ещё больше клиентов» — ${LAUNCH_OFFER.months} месяцев без оплаты.`,
   },
   {
     title: "Настраиваете процент",
@@ -31,7 +32,7 @@ const steps = [
   },
   {
     title: "Принимаете гостей",
-    text: "Заведение появляется в каталоге. Кассир сканирует QR карты, а в пакете с OctōPAY бонусы списываются сами.",
+    text: "Заведение появляется в каталоге. На кассе — NFC-стикер вашего тарифа: клиент прикладывает телефон, остальное проходит само.",
   },
 ];
 
@@ -57,7 +58,15 @@ const gains = [
 const faq = [
   {
     q: "Когда заведение появится в каталоге?",
-    a: "После проверки заведения: на тарифе «Только лояльность» — при оплаченной подписке, в пакете — при включённой связи с OctōPAY. Подписку на пакет оплачивают в OctōPAY. Если подписка «Только лояльность» не продлена, заведение скрывается из каталога до оплаты.",
+    a: "После проверки заведения и при оплаченной подписке. Заведения, получившие место по акции, работают бесплатно весь срок акции. Если подписка не продлена, заведение скрывается из каталога до оплаты.",
+  },
+  {
+    q: "Чем тарифы отличаются друг от друга?",
+    a: "Цветом стикера на кассе и тем, что он делает. Оранжевый — клиент только получает кэшбэк. Чёрный — клиент оплачивает часть чека бонусами. Белый — и то и другое, плюс выделение в каталоге и день повышенной видимости раз в неделю.",
+  },
+  {
+    q: "Нужен ли OctōPAY?",
+    a: "Приём платежей OctōPAY доступен всем заведениям Loal по желанию. Если нужны только платежи без программы лояльности, подключайтесь напрямую на octopay.click.",
   },
   {
     q: "Кто платит за бонусы клиента?",
@@ -110,7 +119,10 @@ export default function BecomePartnerPage() {
 
         <section className="bg-graphite text-paper">
           <div className="mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-24">
-            <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)]">Выберите модель</h2>
+            <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)]">Выберите тариф</h2>
+            <p className="mt-4 max-w-[60ch] text-lg opacity-85">
+              Первые {LAUNCH_OFFER.seats} заведений на двух первых тарифах работают {LAUNCH_OFFER.months} месяцев бесплатно.
+            </p>
             <div className="mt-12 grid gap-5 xl:grid-cols-3 xl:items-stretch">
               {models("#form").map((m) => (
                 <article
@@ -119,21 +131,17 @@ export default function BecomePartnerPage() {
                     m.featured ? "bg-flame-ink text-paper xl:-my-4 xl:py-14" : "bg-paper text-graphite"
                   }`}
                 >
-                  {m.featured && (
+                  {m.launchOffer && (
                     <p className="absolute -top-4 left-8 rotate-[-3deg] rounded-full bg-amber px-4 py-1.5 text-sm font-bold text-graphite sm:left-10">
-                      Выгоднее всего
+                      {LAUNCH_OFFER.months} мес. бесплатно
                     </p>
                   )}
                   <h3 className="display text-[clamp(1.57rem,2.36vw,2.07rem)]">{m.title}</h3>
-                  <p
-                    className={`display mt-6 text-[clamp(2.25rem,4.17vw,4.14rem)] whitespace-nowrap ${
-                      m.featured ? "text-paper" : "text-flame"
-                    }`}
-                  >
-                    {m.price}
-                  </p>
-                  <p className="mt-2 font-medium">{m.priceNote}</p>
-                  <ul className="mt-8 flex flex-1 flex-col gap-3">
+                  <p className="mt-1 font-medium opacity-75">{m.sticker}</p>
+                  <TariffPrice tariff={m.key} priceKgs={m.priceKgs} launchOffer={m.launchOffer} featured={m.featured} />
+                  <p className="mt-6 leading-relaxed">{m.benefit}</p>
+                  {m.better && <p className="mt-3 font-bold leading-snug">{m.better}</p>}
+                  <ul className="mt-6 flex flex-1 flex-col gap-3">
                     {m.points.map((pt) => (
                       <li key={pt} className="flex gap-3">
                         <span
@@ -168,11 +176,34 @@ export default function BecomePartnerPage() {
                 </article>
               ))}
             </div>
+            <div className="mt-10 grid gap-5 md:grid-cols-2">
+              <div className="flex flex-col justify-between gap-5 rounded-[28px] border-2 border-paper/20 p-6 sm:flex-row sm:items-center sm:p-8">
+                <div>
+                  <h3 className="text-xl font-bold">Только OctōPAY</h3>
+                  <p className="mt-1 opacity-80">Нужны только платежи без программы лояльности.</p>
+                </div>
+                <a
+                  href={OCTOPAY_URL}
+                  className="shrink-0 rounded-full bg-paper px-6 py-3 text-center font-bold text-graphite"
+                >
+                  Перейти на octopay.click
+                </a>
+              </div>
+              <div className="flex flex-col justify-between gap-5 rounded-[28px] border-2 border-paper/20 p-6 sm:flex-row sm:items-center sm:p-8">
+                <div>
+                  <h3 className="text-xl font-bold">Enterprise</h3>
+                  <p className="mt-1 opacity-80">Сеть заведений или особые условия — по договору.</p>
+                </div>
+                <a href={PARTNER_MAIL} className="shrink-0 rounded-full bg-paper px-6 py-3 text-center font-bold text-graphite">
+                  Написать нам
+                </a>
+              </div>
+            </div>
             <p className="mt-8 max-w-[64ch] text-sm opacity-75">
-              Подписка «Только лояльность» оплачивается в кабинете Loal через{" "}
+              Подписка оплачивается в кабинете Loal через{" "}
               <a href={OCTOPAY_URL} className="underline underline-offset-4 hover:no-underline">
                 OctōPAY
-              </a>. Подписку на пакет «OctōPAY + лояльность» оплачивают в OctōPAY.
+              </a>. Приём платежей OctōPAY доступен на всех тарифах по желанию.
             </p>
           </div>
         </section>
@@ -183,7 +214,7 @@ export default function BecomePartnerPage() {
             <div>
               <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)] brand-gradient-text">Заявка</h2>
               <p className="mt-6 max-w-[42ch] text-lg leading-relaxed">
-                Выберите тариф и подтвердите телефон — регистрация бесплатная. Подписку «Только лояльность» оплачивают в кабинете Loal, пакет — в OctōPAY. Если нужна помощь, напишите нам.
+                Выберите тариф и подтвердите телефон — регистрация бесплатная. Подписку оплачивают в кабинете Loal, а первым {LAUNCH_OFFER.seats} заведениям на двух первых тарифах она не нужна {LAUNCH_OFFER.months} месяцев. Если нужна помощь, напишите нам.
               </p>
               <ul className="mt-8 flex flex-col gap-3 text-lg">
                 <li>

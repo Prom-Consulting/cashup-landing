@@ -1,11 +1,10 @@
 import { Search01Icon } from "@hugeicons/core-free-icons";
 import {
   MERCHANT_LIFECYCLE_LABELS,
-  TARIFF_LABELS,
+  merchantTariffBadge,
   WORKFLOW_STATUS_LABELS,
   WORKFLOW_STATUS_ORDER,
   lifecycleOf,
-  tariffOf,
   type ApplicationListItem,
   type Merchant,
   type MerchantListItem,
@@ -60,9 +59,7 @@ function MerchantCard({ merchant }: { merchant: Merchant }) {
       </div>
       <p className="flex flex-wrap items-center gap-2 text-base text-muted-foreground">
         {merchant.slug}
-        <Badge tone={tariffOf(merchant.tariff) === "octopay" ? "good" : "quiet"}>
-          {TARIFF_LABELS[tariffOf(merchant.tariff)].short}
-        </Badge>
+        <TariffBadge merchant={merchant} />
       </p>
       {state === "deleted" && merchant.restorableUntil && (
         <p className="text-base">Удалён {formatDate(merchant.deletedAt)} · можно вернуть до {formatDate(merchant.restorableUntil)}</p>
@@ -203,5 +200,15 @@ export function MerchantsPage() {
         )}
       </div>
     </section>
+  );
+}
+
+function TariffBadge({ merchant }: { merchant: Parameters<typeof merchantTariffBadge>[0] }) {
+  const badge = merchantTariffBadge(merchant);
+  return (
+    <>
+      <Badge tone={badge.good ? "good" : "quiet"}>{badge.label}</Badge>
+      {badge.free ? <Badge tone="good">{badge.free} мес. бесплатно</Badge> : null}
+    </>
   );
 }

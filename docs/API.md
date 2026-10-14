@@ -2493,25 +2493,49 @@ actorName, createdAt }`. `action` — код вида `merchant.activated`, `pro
 цены пишется в журнал (`GET /admin/v1/audit-logs`, действие `platform.prices_updated`
 с ценами «до» и «после»). Неизвестное поле в теле — `400`.
 
-**Тарифы бизнеса** — цены двух тарифов, которые продаёт Loal. Экран «Тарифы» в админке,
-только агентство:
+**Тарифы бизнеса** (Доп. №5 с 14.10.2026) — три тарифа по тому, что получает бизнес, плюс два
+старых для подключённых раньше. Экран «Тарифы» в админке, только агентство:
 
 ```
 GET   /admin/v1/tariffs
-→ [{ "code": "loal", "name": "Только Loal", "priceKgs": 8750, "updatedAt": "…" },
-   { "code": "loal_octopay", "name": "Loal + OctoPAY", "priceKgs": 9470, "updatedAt": "…" }]
+→ [{ "code": "cashback", "name": "Больше клиентов", "priceKgs": 300, "current": true, "launchOffer": true, "updatedAt": "…" },
+   { "code": "redeem", "name": "Ещё больше клиентов", "priceKgs": 8750, "current": true, "launchOffer": true, … },
+   { "code": "full", "name": "Очень много клиентов", "priceKgs": 15700, "current": true, "launchOffer": false, … },
+   { "code": "loal", "name": "Только Loal", "priceKgs": 8750, "current": false, … },
+   { "code": "loal_octopay", "name": "Loal + OctoPAY", "priceKgs": 9470, "current": false, … }]
 
 PATCH /admin/v1/tariffs/{code}      { "priceKgs": 8750 }      // целые сомы за месяц, 0 — бесплатно
 → тариф в том же виде
+
+GET   /admin/v1/tariffs/launch-offer
+→ { "months": 36, "seats": 200, "taken": 3, "left": 197, "tariffs": ["cashback", "redeem"] }
+PATCH /admin/v1/tariffs/launch-offer  { "months"?: 0…120, "seats"?: 0…100000 }   // хотя бы одно поле
+→ акция в том же виде
 ```
 
-- Утверждённые месячные цены с 08.10.2026: `loal` — **8 750 сом**, `loal_octopay` — **9 470 сом**.
-  Миграция core `0043` обновляет тарифы; уже выставленные счета сохраняют свою сумму.
-- `loal` — счёт выставляет Cashup (`POST /admin/v1/merchants/{id}/payments`) по этой цене.
-- `loal_octopay` — цену читает OctoPay и сам ведёт подписку своих партнёров. Пока связь
-  включена, отдельная подписка Loal такому магазину не нужна.
-- «Только OctoPAY» и Enterprise в Cashup не хранятся: первый целиком у OctoPay, второй — по
-  договору.
+- `cashback` — оранжевый стикер, только кэшбэк; `redeem` — чёрный, оплата бонусами; `full` — белый,
+  и то и другое плюс видимость. `current: false` — старые `loal` / `loal_octopay`: новым заведениям не
+  предлагаются, OctoPay по-прежнему читает `loal_octopay` для своих пакетных партнёров.
+- Заведение платит цену **своего** тарифа (`merchant.businessTariff`); без него — цену `loal`.
+  Цена своего тарифа `0` — подписка не нужна. Связь с OctoPay даёт бесплатный Loal только старым
+  пакетным заведениям (без `businessTariff`).
+- **Акция первых мест:** заведение на тарифе из `tariffs` при регистрации (лендинг или анкета
+  агентства) получает `months` бесплатных месяцев подписки, пока `left > 0`. Место занимает живое
+  заведение; удалённое или отклонённое освобождает его. `months: 0` выключает акцию; смена `months`
+  не трогает уже выданные. Смена пишется в журнал как `tariff.launch_offer_updated`.
+- «Только OctoPAY» и Enterprise в Loal не хранятся: первый — на octopay.click, второй — по договору.
+
+Для лендинга, без входа (кэш 30 с):
+
+```
+GET /v1/public/tariffs
+→ { "tariffs": [{ "code": "cashback", "name": "Больше клиентов", "priceKgs": 300, "launchOffer": true }, …],
+    "launchOffer": { "months": 36, "seats": 200, "left": 197, "tariffs": ["cashback", "redeem"] } }
+```
+
+Анкета (`POST /v1/public/partner-onboarding`, `POST /admin/v1/partner-registrations`) принимает
+`"tariff": "cashback" | "redeem" | "full"` вместе с `"plan": "loyalty"`; ответ — `tariff` и `freeMonths`
+(`null` — места не досталось). Заведение отдаёт `businessTariff` и `launchOfferMonths`.
 
 Отрицательная цена или неизвестный `code` — `400`. Смена цены пишется в журнал как
 `tariff.price_updated` с `{ code, before, after }`.

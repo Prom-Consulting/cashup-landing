@@ -95,7 +95,13 @@ function OwnerDashboard() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <TariffCard merchantId={merchantId ?? ""} tariff={tariff} subscription={subscription.data ?? null} />
+        <TariffCard
+          merchantId={merchantId ?? ""}
+          tariff={tariff}
+          businessTariff={merchant.data?.businessTariff ?? null}
+          freeMonths={merchant.data?.launchOfferMonths ?? null}
+          subscription={subscription.data ?? null}
+        />
 
         <Card>
           <h2 className="text-xl font-bold">Последние списания</h2>

@@ -1,5 +1,12 @@
 import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
-import { TARIFF_LABELS, isOctopayIntegrationReady, type MerchantSubscription, type MerchantTariff } from "@loal/api";
+import {
+  BUSINESS_TARIFF_LABELS,
+  TARIFF_LABELS,
+  isBusinessTariff,
+  isOctopayIntegrationReady,
+  type MerchantSubscription,
+  type MerchantTariff,
+} from "@loal/api";
 import { Badge, Button, Card, Icon } from "@loal/ui/shadcn";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -14,17 +21,29 @@ const BUNDLE_PERKS = [
   "«Счёт клиенту»: кассир вводит только сумму",
 ];
 
+/** Что даёт тариф Доп. №5 — одной строкой под названием. */
+const BUSINESS_ABOUT = {
+  cashback: "Оранжевый стикер: клиенты получают у вас кэшбэк и тратят бонусы в сети.",
+  redeem: "Чёрный стикер: клиенты оплачивают часть чека бонусами, списание проходит само.",
+  full: "Белый стикер: списание и кэшбэк, выделение в каталоге и день видимости раз в неделю.",
+} as const;
+
 /**
- * Тариф магазина — следует из связи с OctōPAY, его не выбирают. На «Только Loal» показываем
- * срок подписки; на «OctōPAY + Loal» — оплату пакета через OctōPAY.
+ * Тариф магазина. У заведений по Доп. №5 — выбранный при регистрации (с бесплатными месяцами
+ * акции, если досталось место), OctōPAY к нему подключают по желанию. У подключённых раньше —
+ * по связи с OctōPAY: на «Только Loal» срок подписки, на «OctōPAY + Loal» — оплата пакета в OctōPAY.
  */
 export function TariffCard({
   merchantId,
   tariff,
+  businessTariff,
+  freeMonths,
   subscription,
 }: {
   merchantId: string;
   tariff: MerchantTariff;
+  businessTariff?: string | null;
+  freeMonths?: number | null;
   subscription: MerchantSubscription | null;
 }) {
   const queryClient = useQueryClient();
@@ -39,6 +58,36 @@ export function TariffCard({
     void queryClient.invalidateQueries({ queryKey: merchantKeys.detail(merchantId), exact: true });
     void queryClient.invalidateQueries({ queryKey: merchantKeys.subscription(merchantId), exact: true });
   }, [linked, tariff, merchantId, queryClient]);
+
+  if (isBusinessTariff(businessTariff))
+    return (
+      <Card className="flex flex-col">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-base text-muted-foreground">Тариф</p>
+            <h2 className="display mt-1 text-[1.6rem] leading-tight">{BUSINESS_TARIFF_LABELS[businessTariff].title}</h2>
+          </div>
+          <Badge tone={paidActive ? "good" : "warn"}>
+            {paidActive
+              ? `${freeMonths ? "бесплатно" : "оплачено"} до ${formatDate(subscription?.expiresAt)}`
+              : "не оплачено"}
+          </Badge>
+        </div>
+        <p className="mt-2 max-w-[56ch] text-base leading-snug text-muted-foreground">{BUSINESS_ABOUT[businessTariff]}</p>
+        {freeMonths ? (
+          <p className="mt-2 text-base">Вы получили место по акции: {freeMonths} мес. без оплаты.</p>
+        ) : null}
+        {!paidActive && (
+          <div className="mt-4">
+            <Button asChild>
+              <Link to="/billing">Оплатить подписку</Link>
+            </Button>
+          </div>
+        )}
+        <p className="mt-5 text-base font-bold">Приём платежей OctōPAY — по желанию</p>
+        <OctopayIntegration key={merchantId} merchantId={merchantId} />
+      </Card>
+    );
 
   return (
     <Card className="flex flex-col">

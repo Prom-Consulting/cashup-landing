@@ -1,6 +1,14 @@
 import { z } from "zod";
 import type { ApiClient } from "../http";
-import { merchantTariffPlanSchema, tariffPriceInputSchema, type TariffPriceInput } from "../schemas/tariffs";
+import {
+  launchOfferInputSchema,
+  launchOfferSchema,
+  merchantTariffPlanSchema,
+  publicTariffsSchema,
+  tariffPriceInputSchema,
+  type LaunchOfferInput,
+  type TariffPriceInput,
+} from "../schemas/tariffs";
 
 /** Цены тарифов бизнеса — только агентству. Смена пишется в журнал как tariff.price_updated. */
 export const tariffsApi = (api: ApiClient) => ({
@@ -11,4 +19,16 @@ export const tariffsApi = (api: ApiClient) => ({
       method: "PATCH",
       body: tariffPriceInputSchema.parse(input),
     }),
+
+  /** Акция запуска: места, сколько занято и бесплатные месяцы. */
+  launchOffer: () => api.request(launchOfferSchema, "/admin/v1/tariffs/launch-offer"),
+
+  setLaunchOffer: (input: LaunchOfferInput) =>
+    api.request(launchOfferSchema, "/admin/v1/tariffs/launch-offer", {
+      method: "PATCH",
+      body: launchOfferInputSchema.parse(input),
+    }),
+
+  /** Цены и свободные места для лендинга — без входа. */
+  publicList: () => api.request(publicTariffsSchema, "/v1/public/tariffs", { anonymous: true }),
 });

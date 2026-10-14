@@ -88,6 +88,10 @@ export const merchantSchema = z.looseObject({
   logoUrl: z.string().nullish(),
   /** octopay — OctōPAY + Loal, loal — только Loal (см. tariffOf). */
   tariff: z.string().nullish(),
+  /** Тариф по Доп. №5 (`cashback` | `redeem` | `full`); null — заведение подключено раньше. */
+  businessTariff: z.string().nullish(),
+  /** Бесплатные месяцы по акции первых мест; null — места не досталось. */
+  launchOfferMonths: z.number().nullish(),
   createdAt: z.string(),
   /** Архив: магазин удалён агентством, его можно только смотреть. */
   deletedAt: z.string().nullish(),
@@ -431,6 +435,8 @@ export type AgencyRegistrationInput = {
   phone: string;
   requestId: string;
   plan: AgencyPlan;
+  /** Тариф по Доп. №5; без него — прежняя модель. */
+  tariff?: "cashback" | "redeem" | "full";
   name: string;
   contactName: string;
   category: string;
@@ -453,7 +459,24 @@ export const agencyRegistrationResultSchema = z.looseObject({
   state: z.string(),
   /** null у «Только OctōPAY»: заведения Loal нет. */
   merchantId: z.string().nullish(),
+  /** Тариф по Доп. №5 и бесплатные месяцы акции (null — места не досталось). */
+  tariff: z.string().nullish(),
+  freeMonths: z.number().nullish(),
   /** Дошёл ли WhatsApp с логином и паролем. false — отправьте пароль снова на «Пароли партнёров». */
   ownerNotified: z.boolean(),
 });
 export type AgencyRegistrationResult = z.infer<typeof agencyRegistrationResultSchema>;
+
+/**
+ * Подпись тарифа заведения: тариф Доп. №5, если выбран, иначе прежний по связи с OctōPAY.
+ * `free` — бесплатные месяцы акции первых мест.
+ */
+export function merchantTariffBadge(merchant: { tariff?: string | null; businessTariff?: string | null; launchOfferMonths?: number | null }) {
+  const business = merchant.businessTariff;
+  if (business === "cashback" || business === "redeem" || business === "full") {
+    const titles = { cashback: "Больше клиентов", redeem: "Ещё больше клиентов", full: "Очень много клиентов" } as const;
+    return { label: titles[business], good: true, free: merchant.launchOfferMonths ?? null };
+  }
+  const tariff = tariffOf(merchant.tariff);
+  return { label: TARIFF_LABELS[tariff].short, good: tariff === "octopay", free: null };
+}

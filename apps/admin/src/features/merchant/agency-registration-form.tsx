@@ -6,8 +6,12 @@ import {
   merchantProfileFormSchema,
   merchantsApi,
   toPhoneDigits,
+  BUSINESS_TARIFF_LABELS,
+  BUSINESS_TARIFFS,
+  isBusinessTariff,
   type AgencyPlan,
   type AgencyRegistrationResult,
+  type BusinessTariff,
 } from "@loal/api";
 import { useApi } from "@loal/app-kit";
 import { Field } from "@loal/ui/field";
@@ -20,16 +24,32 @@ import { useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, useRef, useState } from "react";
 import { Link } from "react-router";
 import { merchantKeys } from "../../entities/merchant/api";
+import { tariffKeys, useLaunchOffer, useTariffs } from "../../entities/platform/api";
 
 // Карта тяжёлая — грузим её, только когда открыли анкету
 const LocationPicker = lazy(() => import("@loal/ui/location-picker"));
 
 const money = new Intl.NumberFormat("ru-RU");
-const plans: { id: AgencyPlan; label: string; note: string }[] = [
-  { id: "loyalty", label: "Только лояльность", note: `${money.format(8750)} сом/мес` },
-  { id: "bundle", label: "OctōPAY + лояльность", note: `${money.format(9470)} сом/мес` },
-  { id: "octopay", label: "Только OctōPAY", note: "комиссия с оборота" },
-];
+
+/** Выбор в анкете: три тарифа Loal (Доп. №5) или «Только OctōPAY» — аккаунт только в OctōPAY. */
+type Choice = BusinessTariff | "octopay";
+
+/** Подписи с живыми ценами и местами акции — как на лендинге. */
+function useChoices(): { id: Choice; label: string; note: string }[] {
+  const tariffs = useTariffs();
+  const offer = useLaunchOffer();
+  const price = (code: BusinessTariff) => tariffs.data?.find((t) => t.code === code)?.priceKgs;
+  const note = (code: BusinessTariff) => {
+    const kgs = price(code);
+    const monthly = kgs === undefined ? "" : `${money.format(kgs)} сом/мес`;
+    const free = offer.data && offer.data.tariffs.includes(code) && offer.data.months > 0 && offer.data.left > 0;
+    return free ? `0 сом ${offer.data!.months} мес. (мест: ${offer.data!.left}), потом ${monthly}` : monthly;
+  };
+  return [
+    ...BUSINESS_TARIFFS.map((code) => ({ id: code, label: BUSINESS_TARIFF_LABELS[code].title, note: note(code) })),
+    { id: "octopay" as const, label: "Только OctōPAY", note: "без Loal, комиссия с оборота" },
+  ];
+}
 
 type FieldName = "name" | "category" | "contact" | "phone" | "comment" | "description" | "address" | "instagramUrl" | "twogisUrl";
 const empty = { name: "", category: "", contact: "", phone: "", comment: "", description: "", address: "", instagramUrl: "", twogisUrl: "" };
@@ -95,7 +115,9 @@ function errorText(error: unknown): { phone?: string; general?: string } {
 export function AgencyRegistrationForm({ onClose }: { onClose?: () => void }) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const [plan, setPlan] = useState<AgencyPlan>("loyalty");
+  const choices = useChoices();
+  const [choice, setChoice] = useState<Choice>("redeem");
+  const plan: AgencyPlan = choice === "octopay" ? "octopay" : "loyalty";
   const [values, setValues] = useState<Values>(empty);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [point, setPoint] = useState<Point | null>(null);
@@ -178,6 +200,7 @@ export function AgencyRegistrationForm({ onClose }: { onClose?: () => void }) {
         phone,
         requestId: requestId.current,
         plan,
+        ...(isBusinessTariff(choice) ? { tariff: choice } : {}),
         name: values.name.trim(),
         contactName: values.contact.trim(),
         category: values.category,
@@ -207,6 +230,8 @@ export function AgencyRegistrationForm({ onClose }: { onClose?: () => void }) {
         }
       }
       void queryClient.invalidateQueries({ queryKey: merchantKeys.all });
+      // Место по акции могло уйти этому заведению
+      void queryClient.invalidateQueries({ queryKey: tariffKeys.launchOffer });
       setCreated({ ...result, phone, name: values.name.trim(), storefrontError });
       root.current?.scrollIntoView({ block: "start", behavior: "smooth" });
     } catch (error) {
@@ -236,6 +261,12 @@ export function AgencyRegistrationForm({ onClose }: { onClose?: () => void }) {
               «Пароли партнёров»
             </Link>
             .
+          </p>
+        )}
+        {isBusinessTariff(created.tariff) && (
+          <p className="text-base">
+            Тариф «{BUSINESS_TARIFF_LABELS[created.tariff].title}»
+            {created.freeMonths ? `: ${created.freeMonths} мес. бесплатно по акции первых мест.` : "."}
           </p>
         )}
         {created.state !== "ready" && (
@@ -278,12 +309,12 @@ export function AgencyRegistrationForm({ onClose }: { onClose?: () => void }) {
       <ChoiceCards
         name="agency-plan"
         legend="Тариф"
-        value={plan}
+        value={choice}
         onChange={(next) => {
-          setPlan(next);
+          setChoice(next);
           requestId.current = null;
         }}
-        options={plans}
+        options={choices}
       />
 
       <div className="grid gap-6 md:grid-cols-2">

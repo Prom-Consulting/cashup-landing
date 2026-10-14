@@ -6,7 +6,7 @@ import {
   invoiceState,
   type BuyMonthsInput,
   MERCHANT_LIFECYCLE_LABELS,
-  TARIFF_LABELS,
+  merchantTariffBadge,
   lifecycleOf,
   tariffOf,
   type Merchant,
@@ -135,9 +135,7 @@ export function MerchantDetailsPage() {
         description={`${merchant.data.slug} · создан ${formatDate(merchant.data.createdAt)}`}
         action={
           <span className="flex flex-wrap gap-2">
-            <Badge tone={tariffOf(merchant.data.tariff) === "octopay" ? "good" : "quiet"}>
-              {TARIFF_LABELS[tariffOf(merchant.data.tariff)].short}
-            </Badge>
+            <TariffBadge merchant={merchant.data} />
             <LifecycleBadge merchant={merchant.data} />
           </span>
         }
@@ -558,5 +556,15 @@ function ArchivedMerchant({ merchant }: { merchant: Merchant }) {
         </ul>
       </Card>
     </section>
+  );
+}
+
+function TariffBadge({ merchant }: { merchant: Parameters<typeof merchantTariffBadge>[0] }) {
+  const badge = merchantTariffBadge(merchant);
+  return (
+    <>
+      <Badge tone={badge.good ? "good" : "quiet"}>{badge.label}</Badge>
+      {badge.free ? <Badge tone="good">{badge.free} мес. бесплатно</Badge> : null}
+    </>
   );
 }
