@@ -15,17 +15,14 @@ import { SearchField, Suggestions, type SearchOption } from "./smart-search";
  * просто самое выгодное. Порядок остальных — как отдал сервер.
  */
 /**
- * Крупная карточка сверху. Пока нет платного продвижения, она случайная при каждом заходе —
- * среди заведений с фото, чтобы наверху не стояло всегда одно и то же. `roll` — число 0…1,
- * выбранное в браузере; без него (HTML с сервера) — заведение с наибольшим процентом.
+ * Крупная карточка сверху. Пока нет платного продвижения — случайное заведение из всех при
+ * каждом заходе. `roll` — число 0…1, выбранное в браузере; без него (HTML с сервера) — заведение
+ * с наибольшим процентом.
  */
 function pickPrime(partners: PublicPartner[], roll: number | null) {
-  const pool = partners.some((partner) => partner.photos.length > 0)
-    ? partners.filter((partner) => partner.photos.length > 0)
-    : partners;
-  if (pool.length === 0) return null;
-  if (roll !== null) return pool[Math.floor(roll * pool.length)] ?? pool[0]!;
-  return pool.reduce((top, partner) => ((partner.maxCoveragePercent ?? 0) > (top.maxCoveragePercent ?? 0) ? partner : top));
+  if (partners.length === 0) return null;
+  if (roll !== null) return partners[Math.floor(roll * partners.length)] ?? partners[0]!;
+  return partners.reduce((top, partner) => ((partner.maxCoveragePercent ?? 0) > (top.maxCoveragePercent ?? 0) ? partner : top));
 }
 
 /**

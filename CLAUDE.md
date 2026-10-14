@@ -169,7 +169,7 @@ app → pages → widgets → features → entities → shared
   Касса по тарифу (`tariffAbilities`) — одна страница `/redeem`: «Больше клиентов» — только «Дать кэшбэк» (`CashbackForm`,
   `POST /v1/cashback`, журнал «Начисления» — `/admin/v1/merchants/{id}/cashback`), списание — `409 TARIFF_NO_REDEEM`;
   «Ещё больше» — только списание; «Очень много» — оба, переключатель `?mode=cashback`. В меню партнёра — только «Обзор»,
-  касса, «Счёт клиенту» и «Настройки»; остальные разделы собраны в «Настройках» (`shared/config/settings-sections`). Процент кэшбэка и дневной предел на клиента — у агентства (`/admin/v1/tariffs/cashback`);
+  касса, «Счёт клиенту» и «Настройки»; остальные разделы собраны в «Настройках» (`shared/config/settings-sections`) с собственным боковым меню (`SettingsAside`). Процент кэшбэка и дневной предел на клиента — у агентства (`/admin/v1/tariffs/cashback`);
 - у заведений без `businessTariff` тариф (`tariff`: `octopay` | `loal`, `tariffOf`, `TARIFF_LABELS`) следует из связи с
   OctōPAY: связь подключена и включена → «OctōPAY + Loal» (пакет оплачивается в OctōPAY, отдельная
   подписка Loal не нужна, есть «Счёт клиенту»), иначе «Только Loal» (помесячная подписка, бонусы — касса). Приходит у магазина,

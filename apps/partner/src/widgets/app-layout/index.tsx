@@ -11,6 +11,7 @@ import { useSupportTickets } from "../../entities/support/api";
 import { useCurrentMerchant } from "../../entities/session/model";
 import { CASHIER_APP_URL } from "../../shared/config/env";
 import { isSettingsPath } from "../../shared/config/settings-sections";
+import { SettingsAside } from "./settings-aside";
 
 type Item = NavItem & { icon: IconSvg; tariff?: MerchantTariff };
 
@@ -91,12 +92,16 @@ export function AppLayout() {
       )}
       {/* Владелец, заведённый агентством с временным паролем, подтверждает номер или почту */}
       <ContactVerifyBanner />
-      {inSettings && location.pathname !== "/settings" && (
-        <Link to="/settings" className="mb-4 inline-flex items-center gap-1 text-base font-semibold text-muted-foreground hover:text-foreground">
-          ← Настройки
-        </Link>
+      {inSettings ? (
+        <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
+          <SettingsAside />
+          <div className="min-w-0">
+            <Outlet />
+          </div>
+        </div>
+      ) : (
+        <Outlet />
       )}
-      <Outlet />
       <WelcomeToast />
     </AppShell>
   );
