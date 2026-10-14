@@ -12,7 +12,7 @@ import { StorefrontImages } from "./storefront-images";
 import type { Point } from "./location-picker";
 import { toPhoneDigits, coordsFrom2gis, merchantProfileFormSchema } from "@loal/api";
 import { categories } from "../_data/categories";
-import { businessPrice, LAUNCH_OFFER, type BusinessTariff } from "../_data/business-pricing";
+import { businessPrice, type BusinessTariff } from "../_data/business-pricing";
 import { API_URL, EMAIL, OCTOPAY_URL, PARTNER_APP_URL, PHONE, PHONE_HREF } from "../_data/site";
 
 gsap.registerPlugin(useGSAP);
@@ -24,10 +24,7 @@ const LocationPicker = dynamic(() => import("./location-picker"), {
 });
 
 // Доп. №5: три тарифа Loal. «Только OctōPAY» больше не оформляется здесь — ссылка на octopay.click.
-const offerNote = (tariff: BusinessTariff) =>
-  LAUNCH_OFFER.tariffs.includes(tariff)
-    ? `0 сом ${LAUNCH_OFFER.months} мес. — первым ${LAUNCH_OFFER.seats}, потом ${businessPrice(tariff)}/мес`
-    : `${businessPrice(tariff)}/мес`;
+const offerNote = (tariff: BusinessTariff) => `${businessPrice(tariff)}/мес`;
 const tariffs = [
   { id: "more_clients", label: "Больше клиентов", note: offerNote("more_clients") },
   { id: "even_more_clients", label: "Ещё больше клиентов", note: offerNote("even_more_clients") },
@@ -703,9 +700,7 @@ export function PartnerForm() {
               </Button>
               {!recovering && (
                 <p className="max-w-[52ch] text-sm leading-relaxed opacity-75">
-                  {LAUNCH_OFFER.tariffs.includes(tariff)
-                    ? `После кода создадим кабинет. Первым ${LAUNCH_OFFER.seats} заведениям ${LAUNCH_OFFER.months} месяцев — без оплаты. Заведение начнёт работу после проверки Loal.`
-                    : "После кода создадим кабинет, подписку оплатите в нём. Заведение начнёт работу после проверки Loal."}
+                  {"После кода создадим кабинет, подписку оплатите в нём. Заведение начнёт работу после проверки Loal."}
                 </p>
               )}
               <button
@@ -876,9 +871,7 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
       {sent.state === "ready" && (
         <p className="rounded-2xl bg-cream px-4 py-3 text-base leading-relaxed">
           {isTariff(sent.tariff)
-            ? LAUNCH_OFFER.tariffs.includes(sent.tariff)
-              ? `Тариф «${TARIFF_LABEL[sent.tariff]}». Если вы среди первых ${LAUNCH_OFFER.seats} заведений, ${LAUNCH_OFFER.months} месяцев Loal включит бесплатно после проверки; иначе — ${businessPrice(sent.tariff)}/мес в кабинете.`
-              : `Тариф «${TARIFF_LABEL[sent.tariff]}» — ${businessPrice(sent.tariff)}/мес. Оплатите подписку в кабинете Loal, чтобы принимать бонусы после проверки заведения.`
+            ? `Тариф «${TARIFF_LABEL[sent.tariff]}» — ${businessPrice(sent.tariff)}/мес. Оплатите подписку в кабинете Loal, чтобы принимать бонусы после проверки заведения.`
             : sent.plan === "loyalty"
               ? "Оплатите подписку в кабинете Loal, чтобы принимать бонусы после проверки заведения."
               : sent.plan === "bundle"
