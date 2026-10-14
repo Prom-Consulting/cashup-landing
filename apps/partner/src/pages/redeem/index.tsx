@@ -1,17 +1,22 @@
 import { RedeemForm, useCoverageLimit } from "@loal/app-kit";
 import { ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
-import { useBranches } from "../../entities/merchant/api";
+import { Navigate } from "react-router";
+import { useBranches, useTariff } from "../../entities/merchant/api";
 import { useCurrentMerchant } from "../../entities/session/model";
 
 /** Списание бонусов за покупку прямо из браузера — то же, что делает приложение кассы. */
 export function RedeemPage() {
   const { merchantId, memberships, isBranchAdmin, branchIds } = useCurrentMerchant();
   const limit = useCoverageLimit(merchantId ?? "");
+  const { abilities, isPending } = useTariff(merchantId ?? "");
   const branches = useBranches(merchantId ?? "");
   // Администратор нескольких филиалов выбирает, на какой записать операцию; владельцу филиал не нужен
   const workBranches = isBranchAdmin
     ? (branches.data ?? []).filter((branch) => !branch.archivedAt && branchIds.includes(branch.id))
     : undefined;
+
+  // «Больше клиентов» бонусы не списывает — только начисляет кэшбэк
+  if (!isPending && !abilities.redeem) return <Navigate to="/cashback" replace />;
 
   return (
     <section className="flex flex-col gap-6">

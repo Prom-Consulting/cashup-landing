@@ -9,6 +9,7 @@ import { PosPage } from "../pages/pos";
 import { ProfilePage } from "../pages/profile";
 import { StorefrontPage } from "../pages/storefront";
 import { RedeemPage } from "../pages/redeem";
+import { CashbackPage } from "../pages/cashback";
 import { CashierOnly } from "../widgets/cashier-only";
 import { AppLayout } from "../widgets/app-layout";
 
@@ -30,6 +31,7 @@ export function AppRouter() {
       >
         <Route index element={<OverviewPage />} />
         <Route path="redeem" element={<RedeemPage />} />
+        <Route path="cashback" element={<CashbackPage />} />
         <Route path="client-payments" element={<ClientPaymentsPage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="storefront" element={<StorefrontPage />} />

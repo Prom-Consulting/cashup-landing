@@ -29,15 +29,17 @@ import { CASHIER_APP_URL } from "../../shared/config/env";
  * Кто видит раздел: все, владелец и администратор филиала, или только владелец.
  * tariff — раздел есть только на этом тарифе («Счёт клиенту» — на OctōPAY + Loal).
  */
-type Item = NavItem & { icon: IconSvg; access?: "branch" | "owner"; tariff?: MerchantTariff };
+type Item = NavItem & { icon: IconSvg; access?: "branch" | "owner"; tariff?: MerchantTariff; ability?: "redeem" | "cashback" };
 
 const nav: Item[] = [
   { to: "/", label: "Обзор", icon: Chart01Icon },
-  { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
+  { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon, ability: "redeem" },
+  { to: "/cashback", label: "Начислить кэшбэк", icon: CoinsSwapIcon, ability: "cashback" },
   { to: "/client-payments", label: "Счёт клиенту", icon: Wallet01Icon, tariff: "octopay" },
   { to: "/checkout-points", label: "NFC-кассы", icon: NfcIcon, access: "owner", tariff: "octopay" },
   { to: "/storefront", label: "Витрина", icon: Store01Icon },
-  { to: "/deductions", label: "Списания", icon: CreditCardIcon, access: "branch" },
+  { to: "/deductions", label: "Списания", icon: CreditCardIcon, access: "branch", ability: "redeem" },
+  { to: "/accruals", label: "Начисления", icon: CreditCardIcon, access: "branch", ability: "cashback" },
   { to: "/team", label: "Команда", icon: UserGroupIcon, access: "branch" },
   { to: "/billing", label: "Оплата", icon: Invoice01Icon, access: "owner" },
   { to: "/pos", label: "Касса", icon: CashierIcon },
@@ -50,11 +52,12 @@ const nav: Item[] = [
 
 export function AppLayout() {
   const { label, logout, memberships, merchantId, selectMerchant, canManage, canRunBranch } = useCurrentMerchant();
-  const { tariff } = useTariff(merchantId ?? "");
+  const { tariff, abilities } = useTariff(merchantId ?? "");
   const items = nav.filter(
     (item) =>
       (!item.access || (item.access === "owner" ? canManage : canRunBranch)) &&
-      (!item.tariff || item.tariff === tariff),
+      (!item.tariff || item.tariff === tariff) &&
+      (!item.ability || abilities[item.ability]),
   );
   const location = useLocation();
   const selectId = useId();

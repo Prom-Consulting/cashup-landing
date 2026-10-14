@@ -1,7 +1,7 @@
-import { MERCHANT_ROLE_LABELS, tariffOf } from "@loal/api";
+import { MERCHANT_ROLE_LABELS, tariffAbilities, tariffOf } from "@loal/api";
 import { Badge, Card, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Link } from "react-router";
-import { useDeductions, useMerchant, useSubscription } from "../../entities/merchant/api";
+import { useCashbackJournal, useDeductions, useMerchant, useSubscription } from "../../entities/merchant/api";
 import { useCurrentMerchant } from "../../entities/session/model";
 import { TariffCard } from "../../features/billing/tariff-card";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
@@ -16,6 +16,7 @@ function TeamDashboard() {
   const { merchantId, role } = useCurrentMerchant();
   const merchant = useMerchant(merchantId ?? "");
   const who = role ? MERCHANT_ROLE_LABELS[role] : undefined;
+  const abilities = tariffAbilities(merchant.data?.businessTariff);
 
   return (
     <section className="flex flex-col gap-6">
@@ -24,14 +25,30 @@ function TeamDashboard() {
         <Card className="brand-gradient flex flex-col gap-4 text-white">
           <h2 className="display text-[clamp(1.8rem,3vw,2.4rem)] leading-tight">Клиент с картой Loal?</h2>
           <p className="max-w-[46ch] text-lg leading-snug text-white/90">
-            Отсканируйте QR с его карты, добавьте покупку — бонусы закроют часть цены.
+            {abilities.redeem && abilities.cashback
+              ? "Отсканируйте QR с его карты: бонусы закроют часть цены, а за покупку деньгами придёт кэшбэк."
+              : abilities.cashback
+                ? "Отсканируйте QR с его карты и введите сумму покупки — клиент получит кэшбэк бонусами."
+                : "Отсканируйте QR с его карты, добавьте покупку — бонусы закроют часть цены."}
           </p>
-          <Link
-            to="/redeem"
-            className="inline-flex w-fit items-center rounded-full bg-graphite px-7 py-4 text-lg font-bold text-white transition-colors hover:bg-white hover:text-graphite"
-          >
-            Списать бонусы
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            {abilities.cashback && (
+              <Link
+                to="/cashback"
+                className="inline-flex w-fit items-center rounded-full bg-graphite px-7 py-4 text-lg font-bold text-white transition-colors hover:bg-white hover:text-graphite"
+              >
+                Начислить кэшбэк
+              </Link>
+            )}
+            {abilities.redeem && (
+              <Link
+                to="/redeem"
+                className="inline-flex w-fit items-center rounded-full bg-graphite px-7 py-4 text-lg font-bold text-white transition-colors hover:bg-white hover:text-graphite"
+              >
+                Списать бонусы
+              </Link>
+            )}
+          </div>
         </Card>
         <Card className="flex flex-col gap-3">
           <h2 className="text-xl font-bold">Что вам доступно</h2>
@@ -57,7 +74,9 @@ function OwnerDashboard() {
   const merchant = useMerchant(merchantId ?? "");
   const subscription = useSubscription(merchantId ?? "");
   const tariff = tariffOf(merchant.data?.tariff);
-  const recent = useDeductions(merchantId ?? "", { page: 1, pageSize: 5 });
+  const abilities = tariffAbilities(merchant.data?.businessTariff);
+  const recent = useDeductions(abilities.redeem ? (merchantId ?? "") : "", { page: 1, pageSize: 5 });
+  const recentCashback = useCashbackJournal(abilities.cashback ? (merchantId ?? "") : "", 1, 5);
 
   if (subscription.isPending || merchant.isPending) return <Loading />;
   if (subscription.isError) return <ErrorState error={subscription.error} onRetry={() => subscription.refetch()} />;
@@ -70,11 +89,21 @@ function OwnerDashboard() {
       <PageHeader
         title={merchant.data?.name ?? "Кабинет магазина"}
         description={
-          pendingVerification ? "Заведение ожидает обязательной проверки супер-админа LOAL." : tariff === "octopay"
-            ? "Тариф OctōPAY + Loal: бонусы принимаются, абонентской платы за Loal нет."
-            : "Пока подписка активна, касса и 1С могут списывать бонусы клиентов."
+          pendingVerification
+            ? "Заведение ожидает обязательной проверки супер-админа LOAL."
+            : !abilities.redeem
+              ? "Пока подписка активна, касса начисляет клиентам кэшбэк бонусами."
+              : abilities.cashback
+                ? "Пока подписка активна, касса списывает бонусы и начисляет кэшбэк."
+                : tariff === "octopay" && !merchant.data?.businessTariff
+                  ? "Тариф OctōPAY + Loal: бонусы принимаются, абонентской платы за Loal нет."
+                  : "Пока подписка активна, касса и 1С могут списывать бонусы клиентов."
         }
-        action={<Badge tone={active ? "good" : "warn"}>{active ? "Бонусы принимаются" : "Приём остановлен"}</Badge>}
+        action={
+          <Badge tone={active ? "good" : "warn"}>
+            {!active ? "Приём остановлен" : abilities.redeem ? "Бонусы принимаются" : "Кэшбэк начисляется"}
+          </Badge>
+        }
       />
 
       {pendingVerification && <Card className="border-2 border-flame"><h2 className="text-xl font-bold">Ожидает проверки супер-админа</h2><p className="mt-2 text-lg">Кабинет создан. Проверьте данные заведения в настройках. После одобрения заведение появится в каталоге и сможет принимать бонусы.</p></Card>}
@@ -85,8 +114,9 @@ function OwnerDashboard() {
             {subscription.data ? "Подписка закончилась" : "Loal ещё не оплачен"}
           </h2>
           <p className="mt-2 max-w-[70ch] text-lg">
-            Списания не проходят ни через приложение, ни через 1С. Оплатите подписку Loal или подключите платный пакет
-            OctōPAY + Loal.
+            {abilities.redeem
+              ? "Списания не проходят ни через приложение, ни через 1С. Оплатите подписку Loal."
+              : "Кэшбэк на кассе не начисляется. Оплатите подписку Loal."}
           </p>
           <Link to="/billing" className="mt-4 inline-block text-lg text-destructive underline underline-offset-4">
             Перейти к оплате
@@ -103,28 +133,54 @@ function OwnerDashboard() {
           subscription={subscription.data ?? null}
         />
 
-        <Card>
-          <h2 className="text-xl font-bold">Последние списания</h2>
-          {recent.isPending && <Loading />}
-          {recent.isSuccess && recent.data.items.length === 0 && (
-            <p className="mt-3 text-lg text-muted-foreground">Списаний пока не было.</p>
-          )}
-          <ul className="mt-3 flex flex-col gap-3">
-            {(recent.data?.items ?? []).map((row) => (
-              <li
-                key={row.id}
-                className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-3"
-              >
-                <span className="text-lg">{row.productName ?? "Покупка"}</span>
-                <span className="text-lg tabular-nums">−{money.format(row.points)}</span>
-                <span className="basis-full text-base text-muted-foreground">{formatDateTime(row.createdAt)}</span>
-              </li>
-            ))}
-          </ul>
-          <Link to="/deductions" className="mt-4 inline-block text-base text-destructive underline underline-offset-4">
-            Весь журнал
-          </Link>
-        </Card>
+        {abilities.cashback && (
+          <Card>
+            <h2 className="text-xl font-bold">Последние начисления</h2>
+            {recentCashback.isPending && <Loading />}
+            {recentCashback.isSuccess && recentCashback.data.items.length === 0 && (
+              <p className="mt-3 text-lg text-muted-foreground">Кэшбэка пока не начисляли.</p>
+            )}
+            <ul className="mt-3 flex flex-col gap-3">
+              {(recentCashback.data?.items ?? []).map((row) => (
+                <li key={row.id} className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-3">
+                  <span className="text-lg">{row.customerName}</span>
+                  <span className="text-lg tabular-nums">+{money.format(row.points)}</span>
+                  <span className="basis-full text-base text-muted-foreground">
+                    Покупка {money.format(row.purchaseAmount)} сом · {formatDateTime(row.createdAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Link to="/accruals" className="mt-4 inline-block text-base text-destructive underline underline-offset-4">
+              Все начисления
+            </Link>
+          </Card>
+        )}
+
+        {abilities.redeem && (
+          <Card>
+            <h2 className="text-xl font-bold">Последние списания</h2>
+            {recent.isPending && <Loading />}
+            {recent.isSuccess && recent.data.items.length === 0 && (
+              <p className="mt-3 text-lg text-muted-foreground">Списаний пока не было.</p>
+            )}
+            <ul className="mt-3 flex flex-col gap-3">
+              {(recent.data?.items ?? []).map((row) => (
+                <li
+                  key={row.id}
+                  className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-3"
+                >
+                  <span className="text-lg">{row.productName ?? "Покупка"}</span>
+                  <span className="text-lg tabular-nums">−{money.format(row.points)}</span>
+                  <span className="basis-full text-base text-muted-foreground">{formatDateTime(row.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+            <Link to="/deductions" className="mt-4 inline-block text-base text-destructive underline underline-offset-4">
+              Весь журнал
+            </Link>
+          </Card>
+        )}
       </div>
     </section>
   );

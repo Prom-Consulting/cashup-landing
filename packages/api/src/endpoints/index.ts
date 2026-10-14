@@ -10,6 +10,7 @@ export * from "./passes";
 export * from "./platform";
 export * from "./promo";
 export * from "./redemptions";
+export * from "./cashback";
 export * from "./referrals";
 export * from "./subscription";
 export * from "./cashier";

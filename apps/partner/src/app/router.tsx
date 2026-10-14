@@ -12,6 +12,8 @@ import { OnecPage } from "../pages/onec";
 import { ProfilePage } from "../pages/profile";
 import { PosPage } from "../pages/pos";
 import { RedeemPage } from "../pages/redeem";
+import { CashbackPage } from "../pages/cashback";
+import { CashbackJournalPage } from "../pages/cashback-journal";
 import { StorefrontPage } from "../pages/storefront";
 import { SupportPage } from "../pages/support";
 import { TeamPage } from "../pages/team";
@@ -40,6 +42,15 @@ export function AppRouter() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="redeem" element={<RedeemPage />} />
+        <Route path="cashback" element={<CashbackPage />} />
+        <Route
+          path="accruals"
+          element={
+            <OwnerOnly title="Начисления" allowBranch>
+              <CashbackJournalPage />
+            </OwnerOnly>
+          }
+        />
         <Route path="client-payments" element={<ClientPaymentsPage />} />
         <Route
           path="checkout-points"

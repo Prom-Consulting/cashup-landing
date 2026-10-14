@@ -14,6 +14,8 @@ import {
   type CreateWebhookInput,
   type DeductionQuery,
   type RedeemPromoInput,
+  cashbackApi,
+  tariffAbilities,
 } from "@loal/api";
 import { refetchWhilePending, useApi } from "@loal/app-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +25,7 @@ export const merchantKeys = {
   subscription: (id: string) => ["merchant", id, "subscription"] as const,
   octopay: (id: string) => ["merchant", id, "octopay"] as const,
   deductions: (id: string, query: DeductionQuery) => ["merchant", id, "deductions", query] as const,
+  cashback: (id: string, page: number) => ["merchant", id, "cashback", page] as const,
   invoices: (id: string) => ["merchant", id, "invoices"] as const,
   onec: (id: string) => ["merchant", id, "onec"] as const,
   branches: (id: string, archived = false) => ["merchant", id, "branches", archived] as const,
@@ -177,10 +180,17 @@ export function useSubscription(merchantId: string) {
   });
 }
 
-/** Тариф магазина: OctōPAY + Loal или только Loal — по связи с OctōPAY (tariffOf). */
+/**
+ * Тариф магазина: OctōPAY + Loal или только Loal — по связи с OctōPAY (tariffOf). `abilities` —
+ * что разрешает тариф Доп. №5 на кассе: «Больше клиентов» — только кэшбэк, «Очень много» — оба.
+ */
 export function useTariff(merchantId: string) {
   const merchant = useMerchant(merchantId);
-  return { tariff: tariffOf(merchant.data?.tariff), isPending: merchant.isPending };
+  return {
+    tariff: tariffOf(merchant.data?.tariff),
+    abilities: tariffAbilities(merchant.data?.businessTariff),
+    isPending: merchant.isPending,
+  };
 }
 
 /** Связь с OctōPAY меняет тариф: перечитываем магазин и подписку. */
@@ -248,6 +258,17 @@ export function useDeductions(merchantId: string, query: DeductionQuery) {
   return useQuery({
     queryKey: merchantKeys.deductions(merchantId, query),
     queryFn: () => merchantCabinetApi(api).deductions(merchantId, query),
+    enabled: Boolean(merchantId),
+    placeholderData: (previous) => previous,
+  });
+}
+
+/** Журнал кэшбэка, начисленного кассой (тарифы «Больше клиентов» и «Очень много клиентов»). */
+export function useCashbackJournal(merchantId: string, page: number, pageSize = 50) {
+  const api = useApi();
+  return useQuery({
+    queryKey: merchantKeys.cashback(merchantId, page),
+    queryFn: () => cashbackApi(api).journal(merchantId, { page, pageSize }),
     enabled: Boolean(merchantId),
     placeholderData: (previous) => previous,
   });

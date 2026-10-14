@@ -25,7 +25,10 @@ export const cashierOverviewSchema = z.looseObject({
       free: z.boolean().nullish(),
     })
     .nullish(),
-  permissions: z.looseObject({ redeem: z.boolean().nullish() }).nullish(),
+  /** Тариф по Доп. №5; null — заведение подключено раньше. */
+  businessTariff: z.string().nullish(),
+  /** `redeem` — можно списывать, `cashback` — начислять кэшбэк (по тарифу и наличию филиала). */
+  permissions: z.looseObject({ redeem: z.boolean().nullish(), cashback: z.boolean().nullish() }).nullish(),
   /** octopay — есть «Счёт клиенту» через OctōPAY; loal — только касса. */
   tariff: z.string().nullish(),
 });

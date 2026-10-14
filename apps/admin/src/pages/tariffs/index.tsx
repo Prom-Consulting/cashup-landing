@@ -1,5 +1,6 @@
 import { EmptyState, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
-import { useLaunchOffer, useTariffs } from "../../entities/platform/api";
+import { useCashbackSettings, useLaunchOffer, useTariffs } from "../../entities/platform/api";
+import { CashbackSettingsForm } from "../../features/tariff/cashback-settings-form";
 import { LaunchOfferForm } from "../../features/tariff/launch-offer-form";
 import { TariffPriceForm } from "../../features/tariff/tariff-price-form";
 
@@ -11,6 +12,7 @@ import { TariffPriceForm } from "../../features/tariff/tariff-price-form";
 export function TariffsPage() {
   const tariffs = useTariffs();
   const offer = useLaunchOffer();
+  const cashback = useCashbackSettings();
   // Старый шлюз не знает поля current: тогда всё считаем текущим
   const current = (tariffs.data ?? []).filter((tariff) => tariff.current !== false);
   const legacy = (tariffs.data ?? []).filter((tariff) => tariff.current === false);
@@ -35,6 +37,9 @@ export function TariffsPage() {
       {offer.isPending && <Loading rows={1} />}
       {offer.isError && <ErrorState error={offer.error} onRetry={() => offer.refetch()} />}
       {offer.isSuccess && <LaunchOfferForm offer={offer.data} />}
+
+      {cashback.isError && <ErrorState error={cashback.error} onRetry={() => cashback.refetch()} />}
+      {cashback.isSuccess && <CashbackSettingsForm settings={cashback.data} />}
 
       {legacy.length > 0 && (
         <>

@@ -12,6 +12,7 @@ export * from "./client-payment";
 export * from "./platform";
 export * from "./promo";
 export * from "./redemption";
+export * from "./cashback";
 export * from "./template";
 export * from "./categories";
 export { DEFAULT_PHONE_COUNTRY, toPhoneDigits } from "./phone";

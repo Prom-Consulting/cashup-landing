@@ -2533,6 +2533,30 @@ GET /v1/public/tariffs
     "launchOffer": { "months": 36, "seats": 200, "left": 197, "tariffs": ["cashback", "redeem"] } }
 ```
 
+**Кэшбэк на кассе и что разрешает тариф.** «Больше клиентов» (`cashback`) только начисляет кэшбэк:
+списание (`POST /v1/redemptions`, в том числе 1С) отвечает `409 TARIFF_NO_REDEEM`. «Ещё больше клиентов»
+(`redeem`) только списывает. «Очень много клиентов» (`full`) — и то и другое. Заведения без
+`businessTariff` списывают, как раньше, и кэшбэк на кассе не начисляют.
+
+```
+POST /v1/cashback        { cardSerialNumber, amount, operationId, merchantId?, branchId? }   // кассир, владелец, адм. филиала
+→ { points, balance, capped }
+GET  /admin/v1/merchants/{id}/cashback?page&pageSize     // журнал: владелец — всё, адм. филиала — свои филиалы
+→ { items: [{ id, customerName, cashierName, purchaseAmount, percent, points, capped, createdAt }], total, page, pageSize }
+GET  /admin/v1/tariffs/cashback                          // агентство
+PATCH /admin/v1/tariffs/cashback  { percent?: 0.01…100, dailyCap?: 1… }   // хотя бы одно поле
+→ { percent: 5, dailyCap: 1000 }
+```
+
+- `amount` — сумма покупки деньгами (до двух знаков), клиент получает `floor(amount × percent / 100)`
+  бонусов, не больше `dailyCap` за день (Бишкек) в одном заведении: сверх предела — урезано, `capped: true`;
+  предел уже выбран — `409 CASHBACK_DAILY_LIMIT`. Меньше одного бонуса — `400 AMOUNT_TOO_SMALL`.
+- Как и кэшбэк OctōPAY: только при действующей подписке (`409 NO_ACTIVE_SUBSCRIPTION`, замороженная карта —
+  `CARD_FROZEN`), живёт 90 дней, в истории клиента — `kind: "cashback"`. Карты нет — `404 CARD_NOT_FOUND`.
+- `operationId` — UUID попытки: повтор с ним возвращает первый ответ и ничего не начисляет.
+- Не тот тариф — `409 TARIFF_NO_CASHBACK`. Филиал выбирается, как у списания (`400 BRANCH_REQUIRED`).
+- В `/v1/cashier/overview`: `businessTariff`, `permissions.redeem`, `permissions.cashback`.
+
 Анкета (`POST /v1/public/partner-onboarding`, `POST /admin/v1/partner-registrations`) принимает
 `"tariff": "cashback" | "redeem" | "full"` вместе с `"plan": "loyalty"`; ответ — `tariff` и `freeMonths`
 (`null` — места не досталось). Заведение отдаёт `businessTariff` и `launchOfferMonths`.

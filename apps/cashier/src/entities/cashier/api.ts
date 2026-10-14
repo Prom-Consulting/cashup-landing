@@ -1,4 +1,4 @@
-import { cashierApi, merchantCabinetApi, merchantsApi, type CashierRedemptionQuery } from "@loal/api";
+import { cashierApi, merchantCabinetApi, merchantsApi, type CashierRedemptionQuery, tariffAbilities } from "@loal/api";
 import { useApi, useSession } from "@loal/app-kit";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -75,4 +75,16 @@ export function useRefreshAfterRedeem() {
   return () => {
     void queryClient.invalidateQueries({ queryKey: ["cashier"] });
   };
+}
+
+/**
+ * Что разрешает тариф на кассе (Доп. №5): «Больше клиентов» — только кэшбэк, «Очень много
+ * клиентов» — и кэшбэк, и списание. Кассир филиала знает тариф из обзора, кассир магазина — из заведения.
+ */
+export function useCashierAbilities() {
+  const { kind, merchantId } = useCashierSession();
+  const overview = useCashierOverview(kind === "branch");
+  const merchant = useCashierMerchant(kind === "merchant" ? merchantId : "");
+  const businessTariff = kind === "branch" ? overview.data?.businessTariff : merchant.data?.businessTariff;
+  return { ...tariffAbilities(businessTariff), isPending: kind === "branch" ? overview.isPending : merchant.isPending };
 }
