@@ -175,7 +175,7 @@ export default function BecomePartnerPage() {
                 </article>
               ))}
             </div>
-            <div className="mt-10 grid gap-5 md:grid-cols-2">
+            <div className="mt-10">
               <div className="flex flex-col justify-between gap-5 rounded-[28px] border-2 border-paper/20 p-6 sm:flex-row sm:items-center sm:p-8">
                 <div>
                   <h3 className="text-xl font-bold">Только OctōPAY</h3>
@@ -186,15 +186,6 @@ export default function BecomePartnerPage() {
                   className="shrink-0 rounded-full bg-paper px-6 py-3 text-center font-bold text-graphite"
                 >
                   Перейти на octopay.click
-                </a>
-              </div>
-              <div className="flex flex-col justify-between gap-5 rounded-[28px] border-2 border-paper/20 p-6 sm:flex-row sm:items-center sm:p-8">
-                <div>
-                  <h3 className="text-xl font-bold">Enterprise</h3>
-                  <p className="mt-1 opacity-80">Сеть заведений или особые условия — по договору.</p>
-                </div>
-                <a href={PARTNER_MAIL} className="shrink-0 rounded-full bg-paper px-6 py-3 text-center font-bold text-graphite">
-                  Написать нам
                 </a>
               </div>
             </div>
