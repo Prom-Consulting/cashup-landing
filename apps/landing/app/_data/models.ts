@@ -23,20 +23,20 @@ export function models(formUrl: string): Model[] {
   const free = (tariff: BusinessTariff) => LAUNCH_OFFER.tariffs.includes(tariff);
   return [
     {
-      key: "cashback",
+      key: "more_clients",
       title: "Больше клиентов",
-      priceKgs: BUSINESS_MONTHLY_PRICES.cashback,
-      launchOffer: free("cashback"),
+      priceKgs: BUSINESS_MONTHLY_PRICES.more_clients,
+      launchOffer: free("more_clients"),
       benefit:
         "Подключаетесь к потоку держателей Loal без скидки с чека. Клиенты получают у вас кэшбэк и возвращаются тратить бонусы в сети — точку узнают больше людей.",
       points: ["Клиенту — кэшбэк бонусами за покупку", "Место в каталоге и на карте Loal"],
-      cta: { label: "Подключить", href: href("cashback") },
+      cta: { label: "Подключить", href: href("more_clients") },
     },
     {
-      key: "redeem",
+      key: "even_more_clients",
       title: "Ещё больше клиентов",
-      priceKgs: BUSINESS_MONTHLY_PRICES.redeem,
-      launchOffer: free("redeem"),
+      priceKgs: BUSINESS_MONTHLY_PRICES.even_more_clients,
+      launchOffer: free("even_more_clients"),
       benefit:
         "Клиент с картой может оплатить часть покупки бонусами — ниже барьер зайти, выше шанс закрыть чек. Бонусы списываются сами.",
       better: "Чем лучше «Больше клиентов»: бонусы тратят у вас, а не только получают кэшбэк.",
@@ -45,13 +45,13 @@ export function models(formUrl: string): Model[] {
         "Процент оплаты бонусами задаёте сами",
         "Место в каталоге и на карте Loal",
       ],
-      cta: { label: "Подключить", href: href("redeem") },
+      cta: { label: "Подключить", href: href("even_more_clients") },
     },
     {
-      key: "full",
+      key: "very_many_clients",
       title: "Очень много клиентов",
-      priceKgs: BUSINESS_MONTHLY_PRICES.full,
-      launchOffer: free("full"),
+      priceKgs: BUSINESS_MONTHLY_PRICES.very_many_clients,
+      launchOffer: free("very_many_clients"),
       benefit:
         "Полный цикл: у вас и тратят бонусы, и получают кэшбэк. Заведение выделено в каталоге и на карте, а раз в неделю — целый день повышенной видимости.",
       better: "Чем лучше «Ещё больше клиентов»: кэшбэк у вас и продвижение внутри Loal.",
@@ -61,7 +61,7 @@ export function models(formUrl: string): Model[] {
         "Раз в неделю — плашка в каталоге и топ своей категории",
       ],
       featured: true,
-      cta: { label: "Подключить", href: href("full") },
+      cta: { label: "Подключить", href: href("very_many_clients") },
     },
   ];
 }

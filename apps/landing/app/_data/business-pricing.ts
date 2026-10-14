@@ -1,18 +1,21 @@
-// Тарифы бизнеса по Доп. №5. Держать равными core.merchant_tariffs: цены здесь — для
-// статической страницы, счётчик мест и актуальные цены страница дочитывает с сервера.
+// Тарифы бизнеса по ТЗ №5 (коды — как loalTariff на сервере). Держать равными экрану «Тарифы»
+// в админке: публичного адреса цен нет, страница статическая.
 export const BUSINESS_MONTHLY_PRICES = {
-  cashback: 300,
-  redeem: 8750,
-  full: 15700,
+  more_clients: 300,
+  even_more_clients: 8750,
+  very_many_clients: 15700,
 } as const;
 
 export type BusinessTariff = keyof typeof BUSINESS_MONTHLY_PRICES;
 
-/** Акция запуска: первые места на двух нижних тарифах бесплатны. Сервер отдаёт живые числа. */
+/**
+ * Акция запуска: первым местам на двух нижних тарифах — бесплатные месяцы. Сервер её не считает:
+ * месяцы выдаёт агентство («Подписка заведения» в карточке), поэтому мест здесь не показываем.
+ */
 export const LAUNCH_OFFER = {
   seats: 200,
   months: 36,
-  tariffs: ["cashback", "redeem"] as BusinessTariff[],
+  tariffs: ["more_clients", "even_more_clients"] as BusinessTariff[],
 };
 
 const money = new Intl.NumberFormat("ru-RU");

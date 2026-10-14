@@ -1,9 +1,6 @@
 import {
   platformApi,
   tariffsApi,
-  cashbackApi,
-  type CashbackSettingsInput,
-  type LaunchOfferInput,
   type TariffPriceInput,
   type AppleRelevanceInput,
   type BonusItemInput,
@@ -414,11 +411,7 @@ export function useCertificateHealthQuery(certificateId: string | null) {
 
 // ── Тарифы бизнеса ───────────────────────────────────────────────────────────
 
-export const tariffKeys = {
-  all: ["tariffs"] as const,
-  launchOffer: ["tariffs", "launch-offer"] as const,
-  cashback: ["tariffs", "cashback"] as const,
-};
+export const tariffKeys = { all: ["tariffs"] as const };
 
 export function useTariffs() {
   const api = useApi();
@@ -434,40 +427,6 @@ export function useSetTariffPrice() {
       void queryClient.invalidateQueries({ queryKey: tariffKeys.all });
       // Цена «Только Loal» видна и в настройках платформы, а смена — в журнале
       void queryClient.invalidateQueries({ queryKey: platformKeys.settings });
-      void queryClient.invalidateQueries({ queryKey: platformKeys.audit });
-    },
-  });
-}
-
-export function useLaunchOffer() {
-  const api = useApi();
-  return useQuery({ queryKey: tariffKeys.launchOffer, queryFn: () => tariffsApi(api).launchOffer() });
-}
-
-export function useSetLaunchOffer() {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: LaunchOfferInput) => tariffsApi(api).setLaunchOffer(input),
-    onSuccess: (offer) => {
-      queryClient.setQueryData(tariffKeys.launchOffer, offer);
-      void queryClient.invalidateQueries({ queryKey: platformKeys.audit });
-    },
-  });
-}
-
-export function useCashbackSettings() {
-  const api = useApi();
-  return useQuery({ queryKey: tariffKeys.cashback, queryFn: () => cashbackApi(api).settings() });
-}
-
-export function useSetCashbackSettings() {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: CashbackSettingsInput) => cashbackApi(api).setSettings(input),
-    onSuccess: (settings) => {
-      queryClient.setQueryData(tariffKeys.cashback, settings);
       void queryClient.invalidateQueries({ queryKey: platformKeys.audit });
     },
   });

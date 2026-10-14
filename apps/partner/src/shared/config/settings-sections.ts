@@ -49,15 +49,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     access: "branch",
     ability: "redeem",
   },
-  {
-    to: "/accruals",
-    label: "Начисления",
-    about: "Журнал кэшбэка, начисленного кассой",
-    icon: CreditCardIcon,
-    group: "Журналы и команда",
-    access: "branch",
-    ability: "cashback",
-  },
+
   { to: "/team", label: "Команда", about: "Сотрудники, филиалы и роли", icon: UserGroupIcon, group: "Журналы и команда", access: "branch" },
   { to: "/pos", label: "Касса", about: "Настройки кассы", icon: CashierIcon, group: "Касса и интеграции" },
   { to: "/webhooks", label: "Вебхуки", about: "Уведомления о событиях в ваши системы", icon: LinkSquare02Icon, group: "Касса и интеграции", access: "owner" },

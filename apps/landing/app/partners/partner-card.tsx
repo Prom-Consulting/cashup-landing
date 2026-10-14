@@ -85,7 +85,17 @@ export function PartnerLogo({ partner, size = "md" }: { partner: PublicPartner; 
   );
 }
 
+/** «Больше клиентов»: бонусы здесь только копят — тратить нельзя (acceptsBonuses: false). */
+export const onlyEarns = (partner: PublicPartner) => partner.acceptsBonuses === false;
+
 export function PercentBadge({ partner, className = "" }: { partner: PublicPartner; className?: string }) {
+  // Здесь не тратят — показываем кэшбэк, иначе клиент придёт платить бонусами и получит отказ
+  if (onlyEarns(partner))
+    return (
+      <span className={`shrink-0 rounded-full bg-graphite px-3 py-1 text-sm font-bold whitespace-nowrap text-white ${className}`}>
+        {partner.cashbackPercent ? `кэшбэк ${partner.cashbackPercent}%` : "только кэшбэк"}
+      </span>
+    );
   if (!partner.maxCoveragePercent) return null;
   return (
     <span className={`shrink-0 rounded-full bg-flame px-3 py-1 text-sm font-bold whitespace-nowrap text-white ${className}`}>
@@ -154,7 +164,17 @@ export function PrimeCard({ partner, label }: { partner: PublicPartner; label: s
             <span className="mt-1 block truncate text-base text-paper/70">{subtitle(partner)}</span>
           </span>
         </span>
-        {partner.maxCoveragePercent ? (
+        {onlyEarns(partner) ? (
+          <span className="flex flex-col gap-1">
+            {partner.cashbackPercent ? (
+              <span className="flex items-baseline gap-2">
+                <span className="display text-[3.5rem] leading-none text-amber sm:text-[4.25rem]">{partner.cashbackPercent}%</span>
+                <span className="text-base leading-snug text-paper/80">кэшбэк бонусами за оплату деньгами</span>
+              </span>
+            ) : null}
+            <span className="text-base text-paper/70">Бонусы здесь не тратят — только копят.</span>
+          </span>
+        ) : partner.maxCoveragePercent ? (
           <span className="flex items-baseline gap-2">
             <span className="display text-[3.5rem] leading-none text-amber sm:text-[4.25rem]">
               {partner.maxCoveragePercent}%

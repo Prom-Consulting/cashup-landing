@@ -137,6 +137,10 @@ export const merchantsApi = (api: ApiClient) => ({
       })(),
     }),
 
+  /** Сменить тариф Loal без оплаты — только агентство; срок подписки не меняется. */
+  setLoalTariff: (merchantId: string, loalTariff: string) =>
+    api.request(merchantSchema, `/admin/v1/merchants/${merchantId}`, { method: "PATCH", body: { loalTariff } }),
+
   /**
    * В архив: магазин, филиалы и все членства закрываются, сессии сотрудников гаснут, номера людей
    * сразу свободны. Аккаунты, карты, подписки и балансы клиентов остаются. Вернуть можно 30 дней.

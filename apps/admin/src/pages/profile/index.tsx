@@ -1,5 +1,5 @@
 import { ApiError, changePasswordInputSchema, type ChangePasswordInput, authApi } from "@loal/api";
-import { ProfileForm, useApi, useProfile } from "@loal/app-kit";
+import { ProfileForm, useApi, useProfile, NotificationChannelCard } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Badge, Button, Card, PageHeader, PasswordInput } from "@loal/ui/shadcn";
@@ -59,6 +59,9 @@ export function ProfilePage() {
       <PageHeader title="Профиль" description="Ваши данные и вход в админку." />
 
       <AccountCard />
+
+      {/* Супер-админам приходят уведомления о смене тарифа заведением (замена стикера) */}
+      <NotificationChannelCard />
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card>

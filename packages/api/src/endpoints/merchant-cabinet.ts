@@ -13,6 +13,8 @@ import {
   connectOctopayInputSchema,
   createInvoiceInputSchema,
   invoiceSchema,
+  tariffChangeInputSchema,
+  type TariffChangeInput,
   merchantSubscriptionSchema,
   octopayIntegrationSchema,
   onecIntegrationSchema,
@@ -99,6 +101,13 @@ export const merchantCabinetApi = (api: ApiClient) => ({
     }),
 
   invoices: (merchantId: string) => api.request(z.array(invoiceSchema), `/admin/v1/merchants/${merchantId}/payments`),
+
+  /** Сменить тариф оплатой: счёт (`paymentUrl`) или сразу `{ loalTariff }`, если новый тариф бесплатный. */
+  changeTariff: (merchantId: string, input: TariffChangeInput) =>
+    api.request(z.union([z.looseObject({ loalTariff: z.string() }), invoiceSchema]), `/admin/v1/merchants/${merchantId}/tariff-change`, {
+      method: "POST",
+      body: tariffChangeInputSchema.parse(input),
+    }),
 
   createInvoice: (merchantId: string, input: CreateInvoiceInput) =>
     api.request(invoiceSchema, `/admin/v1/merchants/${merchantId}/payments`, {

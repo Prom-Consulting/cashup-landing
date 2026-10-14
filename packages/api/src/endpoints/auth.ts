@@ -17,7 +17,7 @@ import {
   type OtpRequestInput,
   type PhoneRegisterInput,
   type RegisterInput,
-  type UpdateProfileInput, phoneCheckResultSchema, googleLinkSchema,
+  type UpdateProfileInput, phoneCheckResultSchema, googleLinkSchema, notificationSettingsSchema,
   otpChannelsSchema,
   phonePasswordLoginInputSchema,
   type PhonePasswordLoginInput,
@@ -156,6 +156,10 @@ export const authApi = (api: ApiClient) => ({
     }),
 
   /** Привязать Google к тому, кто вошёл. 409 IDENTITY_TAKEN — Google чужой или у человека уже другой. */
+  /** Канал уведомлений: whatsapp | telegram. Почта, если есть, получает их всегда. */
+  setNotificationChannel: (channel: "whatsapp" | "telegram") =>
+    api.request(notificationSettingsSchema, "/auth/me/notifications", { method: "PATCH", body: { channel } }),
+
   linkGoogle: (idToken: string) =>
     api.request(googleLinkSchema, "/auth/me/google", { method: "POST", body: { idToken } }),
 

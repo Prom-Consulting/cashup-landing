@@ -71,6 +71,8 @@ export const profileSchema = z.looseObject({
    * Старый шлюз поля не отдаёт — тогда ничего не требуем.
    */
   password: z.looseObject({ set: z.boolean(), mustChange: z.boolean() }).nullish(),
+  /** Куда слать уведомления о событиях (не коды входа): мессенджер на выбор, почта — всегда дополнительно. */
+  notifications: z.looseObject({ channel: z.string(), email: z.string().nullish() }).nullish(),
   /** Подтверждены ли номер и почта кодом. Старый шлюз полей не отдаёт — тогда ничего не просим. */
   phoneVerified: z.boolean().nullish(),
   emailVerified: z.boolean().nullish(),
@@ -231,3 +233,6 @@ export const CONTACT_KINDS = ["phone", "email"] as const;
 export type ContactKind = (typeof CONTACT_KINDS)[number];
 export type ContactCodeInput = { kind: ContactKind; value: string; channel?: OtpChannel };
 export type ContactVerifyInput = { kind: ContactKind; value: string; code: string };
+
+export const notificationSettingsSchema = z.looseObject({ channel: z.string(), email: z.string().nullish() });
+export type NotificationSettings = z.infer<typeof notificationSettingsSchema>;

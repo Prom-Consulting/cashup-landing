@@ -1,38 +1,35 @@
 import type { ApiClient } from "../http";
 import {
-  cashbackJournalPageSchema,
-  cashbackSettingsInputSchema,
-  cashbackSettingsSchema,
+  cashbackPercentInputSchema,
+  cashbackPercentSchema,
   tillCashbackInputSchema,
   tillCashbackResultSchema,
-  type CashbackSettingsInput,
+  type CashbackPercentInput,
   type TillCashbackForm,
 } from "../schemas/cashback";
 
-/**
- * Кэшбэк на кассе. Заведение, как и при списании, сервер берёт из токена: `merchantId` —
- * только если человек работает в нескольких, `branchId` — выбранный филиал. Отказы:
- * 404 CARD_NOT_FOUND, 409 NO_ACTIVE_SUBSCRIPTION / CARD_FROZEN / CASHBACK_DAILY_LIMIT /
- * TARIFF_NO_CASHBACK, 400 AMOUNT_TOO_SMALL.
- */
 export const cashbackApi = (api: ApiClient) => ({
-  accrue: (input: TillCashbackForm & { merchantId?: string; branchId?: string }) => {
-    const { merchantId, branchId, ...form } = input;
-    return api.request(tillCashbackResultSchema, "/v1/cashback", {
+  /**
+   * Кэшбэк за покупку деньгами. Магазин и кассира сервер берёт из токена; `branchId` — выбранный
+   * филиал, если их несколько. Отказы: 403 TARIFF_NO_CASHBACK / MERCHANT_ACCESS_INACTIVE,
+   * 404 — карты нет, 409 CARD_FROZEN.
+   */
+  accrue: (input: TillCashbackForm & { branchId?: string }) => {
+    const form = tillCashbackInputSchema.parse(input);
+    return api.request(tillCashbackResultSchema, `/v1/cards/${encodeURIComponent(form.cardSerialNumber)}/scan-confirm`, {
       method: "POST",
-      body: { ...tillCashbackInputSchema.parse(form), ...(merchantId ? { merchantId } : {}), ...(branchId ? { branchId } : {}) },
+      body: { purchaseAmount: form.amount, ...(input.branchId ? { branchId: input.branchId } : {}) },
     });
   },
 
-  /** Журнал начислений заведения: владельцу — всё, администратору филиала — его филиалы. */
-  journal: (merchantId: string, query: { page: number; pageSize: number }) =>
-    api.request(cashbackJournalPageSchema, `/admin/v1/merchants/${encodeURIComponent(merchantId)}/cashback`, { query }),
-
-  /** Только агентству. */
-  settings: () => api.request(cashbackSettingsSchema, "/admin/v1/tariffs/cashback"),
-  setSettings: (input: CashbackSettingsInput) =>
-    api.request(cashbackSettingsSchema, "/admin/v1/tariffs/cashback", {
-      method: "PATCH",
-      body: cashbackSettingsInputSchema.parse(input),
-    }),
+  /** Процент кэшбэка партнёра — только агентству. */
+  percent: (merchantId: string) =>
+    api.request(cashbackPercentSchema, `/admin/v1/merchants/${encodeURIComponent(merchantId)}/cashback-percent`),
+  setPercent: (merchantId: string, input: CashbackPercentInput) => {
+    const { percent } = cashbackPercentInputSchema.parse(input);
+    return api.request(cashbackPercentSchema, `/admin/v1/merchants/${encodeURIComponent(merchantId)}/cashback-percent`, {
+      method: "PUT",
+      body: { percent: percent === "" ? null : percent },
+    });
+  },
 });

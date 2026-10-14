@@ -5,7 +5,7 @@ import {
   type ChangePasswordInput,
   authApi,
 } from "@loal/api";
-import { GoogleLink, PasswordSetupForm, ProfileForm, useApi, useProfile } from "@loal/app-kit";
+import { GoogleLink, NotificationChannelCard, PasswordSetupForm, ProfileForm, useApi, useProfile } from "@loal/app-kit";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { PasswordInput, formatPhone } from "@loal/ui/inputs";
@@ -171,6 +171,7 @@ export function ProfilePage() {
   return (
     <section className="flex flex-col gap-6">
       <PageHeader title="Профиль" description="Как вы входите в кабинет, ваши данные и доступ." />
+      <NotificationChannelCard />
 
       <AccountCard />
 

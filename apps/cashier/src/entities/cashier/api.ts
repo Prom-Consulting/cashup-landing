@@ -85,6 +85,11 @@ export function useCashierAbilities() {
   const { kind, merchantId } = useCashierSession();
   const overview = useCashierOverview(kind === "branch");
   const merchant = useCashierMerchant(kind === "merchant" ? merchantId : "");
-  const businessTariff = kind === "branch" ? overview.data?.businessTariff : merchant.data?.businessTariff;
-  return { ...tariffAbilities(businessTariff), isPending: kind === "branch" ? overview.isPending : merchant.isPending };
+  const loalTariff = kind === "branch" ? overview.data?.loalTariff : merchant.data?.loalTariff;
+  const cashbackPercent = kind === "branch" ? overview.data?.cashbackPercent : merchant.data?.cashbackPercent;
+  return {
+    ...tariffAbilities(loalTariff),
+    cashbackPercent: cashbackPercent ?? null,
+    isPending: kind === "branch" ? overview.isPending : merchant.isPending,
+  };
 }

@@ -137,7 +137,7 @@ export default function BecomePartnerPage() {
                     </p>
                   )}
                   <h3 className="display text-[clamp(1.57rem,2.36vw,2.07rem)]">{m.title}</h3>
-                  <TariffPrice tariff={m.key} priceKgs={m.priceKgs} launchOffer={m.launchOffer} featured={m.featured} />
+                  <TariffPrice priceKgs={m.priceKgs} launchOffer={m.launchOffer} featured={m.featured} />
                   <p className="mt-6 leading-relaxed">{m.benefit}</p>
                   {m.better && <p className="mt-3 font-bold leading-snug">{m.better}</p>}
                   <ul className="mt-6 flex flex-1 flex-col gap-3">

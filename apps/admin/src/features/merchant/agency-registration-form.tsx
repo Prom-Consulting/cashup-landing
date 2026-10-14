@@ -6,12 +6,12 @@ import {
   merchantProfileFormSchema,
   merchantsApi,
   toPhoneDigits,
-  BUSINESS_TARIFF_LABELS,
-  BUSINESS_TARIFFS,
-  isBusinessTariff,
+  LOAL_TARIFF_LABELS,
+  LOAL_TARIFFS,
+  isLoalTariff,
   type AgencyPlan,
   type AgencyRegistrationResult,
-  type BusinessTariff,
+  type LoalTariff,
 } from "@loal/api";
 import { useApi } from "@loal/app-kit";
 import { Field } from "@loal/ui/field";
@@ -24,29 +24,25 @@ import { useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, useRef, useState } from "react";
 import { Link } from "react-router";
 import { merchantKeys } from "../../entities/merchant/api";
-import { tariffKeys, useLaunchOffer, useTariffs } from "../../entities/platform/api";
+import { useTariffs } from "../../entities/platform/api";
 
 // Карта тяжёлая — грузим её, только когда открыли анкету
 const LocationPicker = lazy(() => import("@loal/ui/location-picker"));
 
 const money = new Intl.NumberFormat("ru-RU");
 
-/** Выбор в анкете: три тарифа Loal (Доп. №5) или «Только OctōPAY» — аккаунт только в OctōPAY. */
-type Choice = BusinessTariff | "octopay";
+/** Выбор в анкете: три тарифа Loal (ТЗ №5) или «Только OctōPAY» — аккаунт только в OctōPAY. */
+type Choice = LoalTariff | "octopay";
 
-/** Подписи с живыми ценами и местами акции — как на лендинге. */
+/** Подписи с живыми ценами — как на лендинге. */
 function useChoices(): { id: Choice; label: string; note: string }[] {
   const tariffs = useTariffs();
-  const offer = useLaunchOffer();
-  const price = (code: BusinessTariff) => tariffs.data?.find((t) => t.code === code)?.priceKgs;
-  const note = (code: BusinessTariff) => {
-    const kgs = price(code);
-    const monthly = kgs === undefined ? "" : `${money.format(kgs)} сом/мес`;
-    const free = offer.data && offer.data.tariffs.includes(code) && offer.data.months > 0 && offer.data.left > 0;
-    return free ? `0 сом ${offer.data!.months} мес. (мест: ${offer.data!.left}), потом ${monthly}` : monthly;
+  const note = (code: LoalTariff) => {
+    const kgs = tariffs.data?.find((t) => t.code === code)?.priceKgs;
+    return kgs === undefined ? "" : kgs === 0 ? "бесплатно" : `${money.format(kgs)} сом/мес`;
   };
   return [
-    ...BUSINESS_TARIFFS.map((code) => ({ id: code, label: BUSINESS_TARIFF_LABELS[code].title, note: note(code) })),
+    ...LOAL_TARIFFS.map((code) => ({ id: code, label: LOAL_TARIFF_LABELS[code].title, note: note(code) })),
     { id: "octopay" as const, label: "Только OctōPAY", note: "без Loal, комиссия с оборота" },
   ];
 }
@@ -116,7 +112,7 @@ export function AgencyRegistrationForm({ onClose }: { onClose?: () => void }) {
   const api = useApi();
   const queryClient = useQueryClient();
   const choices = useChoices();
-  const [choice, setChoice] = useState<Choice>("redeem");
+  const [choice, setChoice] = useState<Choice>("very_many_clients");
   const plan: AgencyPlan = choice === "octopay" ? "octopay" : "loyalty";
   const [values, setValues] = useState<Values>(empty);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
@@ -200,7 +196,7 @@ export function AgencyRegistrationForm({ onClose }: { onClose?: () => void }) {
         phone,
         requestId: requestId.current,
         plan,
-        ...(isBusinessTariff(choice) ? { tariff: choice } : {}),
+        ...(isLoalTariff(choice) ? { tariff: choice } : {}),
         name: values.name.trim(),
         contactName: values.contact.trim(),
         category: values.category,
@@ -230,8 +226,6 @@ export function AgencyRegistrationForm({ onClose }: { onClose?: () => void }) {
         }
       }
       void queryClient.invalidateQueries({ queryKey: merchantKeys.all });
-      // Место по акции могло уйти этому заведению
-      void queryClient.invalidateQueries({ queryKey: tariffKeys.launchOffer });
       setCreated({ ...result, phone, name: values.name.trim(), storefrontError });
       root.current?.scrollIntoView({ block: "start", behavior: "smooth" });
     } catch (error) {
@@ -261,12 +255,6 @@ export function AgencyRegistrationForm({ onClose }: { onClose?: () => void }) {
               «Пароли партнёров»
             </Link>
             .
-          </p>
-        )}
-        {isBusinessTariff(created.tariff) && (
-          <p className="text-base">
-            Тариф «{BUSINESS_TARIFF_LABELS[created.tariff].title}»
-            {created.freeMonths ? `: ${created.freeMonths} мес. бесплатно по акции первых мест.` : "."}
           </p>
         )}
         {created.state !== "ready" && (

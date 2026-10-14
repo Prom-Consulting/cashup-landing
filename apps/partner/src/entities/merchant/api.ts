@@ -14,7 +14,7 @@ import {
   type CreateWebhookInput,
   type DeductionQuery,
   type RedeemPromoInput,
-  cashbackApi,
+  type TariffChangeInput,
   tariffAbilities,
 } from "@loal/api";
 import { refetchWhilePending, useApi } from "@loal/app-kit";
@@ -25,7 +25,6 @@ export const merchantKeys = {
   subscription: (id: string) => ["merchant", id, "subscription"] as const,
   octopay: (id: string) => ["merchant", id, "octopay"] as const,
   deductions: (id: string, query: DeductionQuery) => ["merchant", id, "deductions", query] as const,
-  cashback: (id: string, page: number) => ["merchant", id, "cashback", page] as const,
   invoices: (id: string) => ["merchant", id, "invoices"] as const,
   onec: (id: string) => ["merchant", id, "onec"] as const,
   branches: (id: string, archived = false) => ["merchant", id, "branches", archived] as const,
@@ -188,7 +187,9 @@ export function useTariff(merchantId: string) {
   const merchant = useMerchant(merchantId);
   return {
     tariff: tariffOf(merchant.data?.tariff),
-    abilities: tariffAbilities(merchant.data?.businessTariff),
+    abilities: tariffAbilities(merchant.data?.loalTariff),
+    loalTariff: merchant.data?.loalTariff ?? null,
+    cashbackPercent: merchant.data?.cashbackPercent ?? null,
     isPending: merchant.isPending,
   };
 }
@@ -263,17 +264,6 @@ export function useDeductions(merchantId: string, query: DeductionQuery) {
   });
 }
 
-/** Журнал кэшбэка, начисленного кассой (тарифы «Больше клиентов» и «Очень много клиентов»). */
-export function useCashbackJournal(merchantId: string, page: number, pageSize = 50) {
-  const api = useApi();
-  return useQuery({
-    queryKey: merchantKeys.cashback(merchantId, page),
-    queryFn: () => cashbackApi(api).journal(merchantId, { page, pageSize }),
-    enabled: Boolean(merchantId),
-    placeholderData: (previous) => previous,
-  });
-}
-
 export function useInvoices(merchantId: string) {
   const api = useApi();
   return useQuery({
@@ -289,6 +279,19 @@ export function useCreateInvoice(merchantId: string) {
   return useMutation({
     mutationFn: (input: CreateInvoiceInput) => merchantCabinetApi(api).createInvoice(merchantId, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.invoices(merchantId) }),
+  });
+}
+
+/** Смена тарифа оплатой: счёт или сразу новый тариф, если он бесплатный. */
+export function useChangeTariff(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: TariffChangeInput) => merchantCabinetApi(api).changeTariff(merchantId, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: merchantKeys.invoices(merchantId) });
+      refreshTariff(queryClient, merchantId);
+    },
   });
 }
 

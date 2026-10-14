@@ -64,6 +64,7 @@ import { RejectButton } from "../../features/merchant-lifecycle/reject-dialog";
 import { RestorePanel, RestoreResultNotice } from "../../features/merchant-lifecycle/restore-panel";
 import { SITE_URL } from "../../shared/config/env";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
+import { LoalTariffCard } from "../../features/merchant/loal-tariff-card";
 
 const money = new Intl.NumberFormat("ru-RU");
 
@@ -204,6 +205,8 @@ export function MerchantDetailsPage() {
         </div>
       </Card>
 
+      <LoalTariffCard merchantId={merchantId} loalTariff={merchant.data.loalTariff} />
+
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h2 className="text-xl font-bold">Подписка заведения</h2>
@@ -212,7 +215,7 @@ export function MerchantDetailsPage() {
               {subscription.data.expiresAt && (subscription.data.paidActive ?? subscription.data.isActive)
                 ? `оплачена до ${formatDate(subscription.data.expiresAt)}`
                 : subscription.data.isActive
-                  ? "OctōPAY + Loal — без оплаты"
+                  ? "доступ бесплатный"
                   : "не активна"}
             </Badge>
           )}
@@ -564,7 +567,6 @@ function TariffBadge({ merchant }: { merchant: Parameters<typeof merchantTariffB
   return (
     <>
       <Badge tone={badge.good ? "good" : "quiet"}>{badge.label}</Badge>
-      {badge.free ? <Badge tone="good">{badge.free} мес. бесплатно</Badge> : null}
     </>
   );
 }

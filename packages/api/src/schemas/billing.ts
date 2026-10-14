@@ -16,6 +16,8 @@ export const merchantSubscriptionSchema = z.looseObject({
   /** Активна ли именно оплаченная подписка. Старый шлюз поля не присылает — считаем по isActive. */
   paidActive: z.boolean().nullish(),
   tariff: z.string().nullish(),
+  /** Тариф Loal (ТЗ №5), по цене которого идёт продление. */
+  loalTariff: z.string().nullish(),
 });
 export type MerchantSubscription = z.infer<typeof merchantSubscriptionSchema>;
 
@@ -182,3 +184,22 @@ export const onecIntegrationSchema = z.looseObject({
   createdAt: z.string().nullish(),
 });
 export type OnecIntegration = z.infer<typeof onecIntegrationSchema>;
+
+/**
+ * Смена тарифа владельцем — только оплатой нового (`POST …/tariff-change`). Оплата сразу включает
+ * тариф и считает срок заново, оплаченный остаток старого сгорает: без `confirmForfeit` при остатке —
+ * `409 TARIFF_CHANGE_FORFEITS { currentTariff, expiresAt, daysLeft }`. Тот же тариф — `400 TARIFF_UNCHANGED`.
+ */
+export const tariffChangeInputSchema = z.object({
+  tariff: z.enum(["more_clients", "even_more_clients", "very_many_clients"], { error: "Выберите тариф" }),
+  months: z.coerce.number().int("Целое число месяцев").min(1, "Минимум месяц").max(24, "Не больше двух лет"),
+  confirmForfeit: z.boolean().optional(),
+});
+export type TariffChangeInput = { tariff: string; months: number | string; confirmForfeit?: boolean };
+
+/** 409 TARIFF_CHANGE_FORFEITS — что сгорит, если сменить тариф. */
+export const tariffForfeitSchema = z.looseObject({
+  currentTariff: z.string().nullish(),
+  expiresAt: z.string().nullish(),
+  daysLeft: z.number().nullish(),
+});

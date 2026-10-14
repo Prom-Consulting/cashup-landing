@@ -16,16 +16,13 @@ function cashbackErrorText(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === "BRANCH_REQUIRED") return "Выберите филиал, где вы сейчас работаете. Ничего не начислено.";
     if (error.code === "CARD_NOT_FOUND" || error.status === 404) return "Карты с таким номером нет. Ничего не начислено.";
-    if (error.code === "NO_ACTIVE_SUBSCRIPTION")
-      return "У клиента нет действующей подписки Loal — кэшбэк получают только подписчики. Ничего не начислено.";
     if (error.code === "CARD_FROZEN")
       return "Карта клиента заморожена: подписка закончилась. Пусть продлит её в кабинете Loal. Ничего не начислено.";
-    if (error.code === "CASHBACK_DAILY_LIMIT") return `${error.message}. Ничего не начислено.`;
-    if (error.code === "AMOUNT_TOO_SMALL") return "Сумма слишком мала: кэшбэк меньше одного бонуса.";
     if (error.code === "TARIFF_NO_CASHBACK")
-      return "Кэшбэк начисляют на тарифах «Больше клиентов» и «Очень много клиентов». Ничего не начислено.";
+      return "На тарифе «Ещё больше клиентов» касса кэшбэк не начисляет. Ничего не начислено.";
+    if (error.code === "MERCHANT_ACCESS_INACTIVE")
+      return "Доступ заведения к Loal не оплачен — начислять кэшбэк сейчас нельзя. Ничего не начислено.";
     if (error.status === 403 && /филиал/i.test(error.message)) return `${error.message}. Ничего не начислено.`;
-    if (error.status === 403) return "Подписка заведения неактивна — начислять кэшбэк сейчас нельзя. Ничего не начислено.";
     return `${error.message}. Ничего не начислено.`;
   }
   return "Не удалось начислить. Ничего не начислено — можно повторить.";
@@ -35,15 +32,16 @@ const panel = "rounded-[24px] bg-surface p-5 shadow-[0_0.75rem_2rem_rgb(22_21_21
 
 /**
  * Кэшбэк на кассе (тарифы «Больше клиентов» и «Очень много клиентов»): сканер карты, сумма
- * покупки деньгами — клиент получает процент бонусами. Сколько — считает сервер (процент и
- * дневной предел у агентства), касса показывает итог. Общая для кабинета заведения и кассира.
+ * покупки деньгами — клиент получает процент бонусами. Сколько — считает сервер по проценту
+ * магазина (`percent` — показать заранее, если знаем). Общая для кабинета заведения и кассира.
  */
 export function CashbackForm({
-  merchantId,
+  percent,
   branches,
   onDone,
 }: {
-  merchantId?: string;
+  /** Процент кэшбэка магазина — для подсказки «клиент получит ≈ N». */
+  percent?: number | null;
   /** Филиалы, где человек может работать: при нескольких касса спросит, на какой записать операцию. */
   branches?: WorkBranch[];
   onDone?: () => void;
@@ -55,10 +53,10 @@ export function CashbackForm({
   const [manualCard, setManualCard] = useState(false);
   const cardId = useId();
   const amountId = useId();
-  const work = useWorkBranch(branches, merchantId ?? "default");
+  const work = useWorkBranch(branches, "default");
   const [branchMissing, setBranchMissing] = useState(false);
 
-  const fresh = (): TillCashbackForm => ({ cardSerialNumber: "", amount: "", operationId: crypto.randomUUID() });
+  const fresh = (): TillCashbackForm => ({ cardSerialNumber: "", amount: "" });
 
   return (
     <Formik
@@ -72,8 +70,7 @@ export function CashbackForm({
           return helpers.setSubmitting(false);
         }
         try {
-          // Тот же operationId при повторе после сбоя — сервер не начислит второй раз
-          const done = await accrue.mutateAsync({ ...values, merchantId, branchId: work.canSwitch ? work.branch?.id : undefined });
+          const done = await accrue.mutateAsync({ ...values, branchId: work.canSwitch ? work.branch?.id : undefined });
           setResult(done);
           helpers.resetForm({ values: fresh() });
           setManualCard(false);
@@ -100,14 +97,12 @@ export function CashbackForm({
                 <div className="min-w-0 flex-1">
                   <p className="text-base text-slate-soft">Кэшбэк начислен</p>
                   <p className="display text-[2.4rem] leading-none tabular-nums">
-                    +{money.format(result.points)} <span className="text-xl font-bold">бонусов</span>
+                    +{money.format(result.transaction.amount)} <span className="text-xl font-bold">бонусов</span>
                   </p>
                   <p className="mt-2 text-base text-slate-soft">
-                    На карте теперь <span className="font-bold text-white tabular-nums">{money.format(result.balance)}</span>
+                    На карте теперь{" "}
+                    <span className="font-bold text-white tabular-nums">{money.format(result.transaction.balanceAfter)}</span>
                   </p>
-                  {result.capped && (
-                    <p className="mt-2 text-base text-amber">Начислено меньше: клиент достиг дневного предела в этом заведении.</p>
-                  )}
                 </div>
                 <button
                   type="button"
@@ -190,7 +185,13 @@ export function CashbackForm({
               <label htmlFor={amountId} className="text-lg font-bold">
                 Сумма покупки
               </label>
-              <p className="mt-0.5 text-sm text-muted-foreground">Сколько клиент заплатил деньгами. Кэшбэк посчитаем сами.</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Сколько клиент заплатил деньгами.
+                {percent ? ` Кэшбэк — ${percent}%` : " Кэшбэк посчитаем сами"}
+                {percent && Number(form.values.amount) > 0
+                  ? `: клиент получит ${money.format(Math.floor((Number(form.values.amount) * percent) / 100))} бонусов.`
+                  : "."}
+              </p>
               <div className="relative mt-3">
                 <Input
                   id={amountId}

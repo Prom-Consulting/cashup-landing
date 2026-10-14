@@ -8,7 +8,7 @@ const DESCRIPTION =
 
 /** Кэшбэк на кассе — тарифы «Больше клиентов» и «Очень много клиентов». */
 export function CashbackPage() {
-  const { kind, merchantId, manyPlaces } = useCashierSession();
+  const { kind } = useCashierSession();
   const abilities = useCashierAbilities();
   const overview = useCashierOverview(kind === "branch");
   const refresh = useRefreshAfterRedeem();
@@ -22,7 +22,7 @@ export function CashbackPage() {
       {kind === "branch" && overview.isError && <ErrorState error={overview.error} onRetry={() => overview.refetch()} />}
       {(kind !== "branch" || overview.isSuccess) && (
         <CashbackForm
-          merchantId={manyPlaces ? merchantId : undefined}
+          percent={abilities.cashbackPercent}
           branches={kind === "branch" ? overview.data?.branches : undefined}
           onDone={refresh}
         />

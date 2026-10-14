@@ -29,11 +29,15 @@ const offerNote = (tariff: BusinessTariff) =>
     ? `0 сом ${LAUNCH_OFFER.months} мес. — первым ${LAUNCH_OFFER.seats}, потом ${businessPrice(tariff)}/мес`
     : `${businessPrice(tariff)}/мес`;
 const tariffs = [
-  { id: "cashback", label: "Больше клиентов", note: offerNote("cashback") },
-  { id: "redeem", label: "Ещё больше клиентов", note: offerNote("redeem") },
-  { id: "full", label: "Очень много клиентов", note: offerNote("full") },
+  { id: "more_clients", label: "Больше клиентов", note: offerNote("more_clients") },
+  { id: "even_more_clients", label: "Ещё больше клиентов", note: offerNote("even_more_clients") },
+  { id: "very_many_clients", label: "Очень много клиентов", note: offerNote("very_many_clients") },
 ] as const;
-const TARIFF_LABEL: Record<BusinessTariff, string> = { cashback: tariffs[0].label, redeem: tariffs[1].label, full: tariffs[2].label };
+const TARIFF_LABEL: Record<BusinessTariff, string> = {
+  more_clients: tariffs[0].label,
+  even_more_clients: tariffs[1].label,
+  very_many_clients: tariffs[2].label,
+};
 const isTariff = (value: unknown): value is BusinessTariff => tariffs.some((item) => item.id === value);
 
 type PlanId = "loyalty" | "bundle" | "octopay";
@@ -86,7 +90,6 @@ const resultSchema = z.object({
   id: z.string().uuid(),
   plan: z.enum(["loyalty", "bundle", "octopay"]),
   tariff: z.string().nullish(),
-  freeMonths: z.number().nullish(),
   state: z.enum(["processing", "pending_payment", "ready", "action_required"]),
   requiresOctopayPassword: z.boolean().optional(),
   verificationStatus: z.enum(["pending", "verified"]).nullable().optional(),
@@ -170,7 +173,7 @@ export function PartnerForm() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   // Новые заявки — всегда модель «loyalty» с тарифом; OctōPAY подключают в кабинете по желанию
   const plan = "loyalty" as PlanId;
-  const [tariff, setTariff] = useState<BusinessTariff>("redeem");
+  const [tariff, setTariff] = useState<BusinessTariff>("even_more_clients");
   const [values, setValues] = useState<Values>(empty);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [step, setStep] = useState<Step>("details");
@@ -701,7 +704,7 @@ export function PartnerForm() {
               {!recovering && (
                 <p className="max-w-[52ch] text-sm leading-relaxed opacity-75">
                   {LAUNCH_OFFER.tariffs.includes(tariff)
-                    ? `После кода создадим кабинет. Пока есть места по акции, первые ${LAUNCH_OFFER.months} месяцев — без оплаты. Заведение начнёт работу после проверки Loal.`
+                    ? `После кода создадим кабинет. Первым ${LAUNCH_OFFER.seats} заведениям ${LAUNCH_OFFER.months} месяцев — без оплаты. Заведение начнёт работу после проверки Loal.`
                     : "После кода создадим кабинет, подписку оплатите в нём. Заведение начнёт работу после проверки Loal."}
                 </p>
               )}
@@ -873,8 +876,8 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
       {sent.state === "ready" && (
         <p className="rounded-2xl bg-cream px-4 py-3 text-base leading-relaxed">
           {isTariff(sent.tariff)
-            ? sent.freeMonths
-              ? `Тариф «${TARIFF_LABEL[sent.tariff]}»: первые ${sent.freeMonths} мес. бесплатно — вы получили место по акции. Потом — ${businessPrice(sent.tariff)}/мес.`
+            ? LAUNCH_OFFER.tariffs.includes(sent.tariff)
+              ? `Тариф «${TARIFF_LABEL[sent.tariff]}». Если вы среди первых ${LAUNCH_OFFER.seats} заведений, ${LAUNCH_OFFER.months} месяцев Loal включит бесплатно после проверки; иначе — ${businessPrice(sent.tariff)}/мес в кабинете.`
               : `Тариф «${TARIFF_LABEL[sent.tariff]}» — ${businessPrice(sent.tariff)}/мес. Оплатите подписку в кабинете Loal, чтобы принимать бонусы после проверки заведения.`
             : sent.plan === "loyalty"
               ? "Оплатите подписку в кабинете Loal, чтобы принимать бонусы после проверки заведения."

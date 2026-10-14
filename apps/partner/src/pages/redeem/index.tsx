@@ -27,7 +27,7 @@ const tab = (active: boolean) =>
  */
 export function RedeemPage() {
   const { merchantId, memberships, isBranchAdmin, branchIds } = useCurrentMerchant();
-  const { abilities, isPending } = useTariff(merchantId ?? "");
+  const { abilities, cashbackPercent, isPending } = useTariff(merchantId ?? "");
   const limit = useCoverageLimit(abilities.redeem ? (merchantId ?? "") : "");
   const branches = useBranches(merchantId ?? "");
   const [params, setParams] = useSearchParams();
@@ -64,7 +64,7 @@ export function RedeemPage() {
       )}
 
       {mode === "cashback" ? (
-        <CashbackForm key="cashback" merchantId={placeId} branches={workBranches} />
+        <CashbackForm key="cashback" percent={cashbackPercent} branches={workBranches} />
       ) : (
         <>
           {limit.isPending && <Loading rows={3} />}

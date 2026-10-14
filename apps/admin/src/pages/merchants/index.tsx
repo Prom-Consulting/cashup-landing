@@ -208,7 +208,6 @@ function TariffBadge({ merchant }: { merchant: Parameters<typeof merchantTariffB
   return (
     <>
       <Badge tone={badge.good ? "good" : "quiet"}>{badge.label}</Badge>
-      {badge.free ? <Badge tone="good">{badge.free} мес. бесплатно</Badge> : null}
     </>
   );
 }

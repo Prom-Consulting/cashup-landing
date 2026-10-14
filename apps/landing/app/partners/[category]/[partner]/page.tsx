@@ -128,7 +128,17 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
                 </div>
               </div>
 
-              {partner.maxCoveragePercent ? (
+              {partner.acceptsBonuses === false ? (
+                <div className="flex items-center gap-4 rounded-[24px] bg-graphite px-5 py-4 text-paper">
+                  {partner.cashbackPercent ? (
+                    <span className="display text-[3rem] leading-none text-amber">{partner.cashbackPercent}%</span>
+                  ) : null}
+                  <span className="text-base leading-snug text-paper/85">
+                    {partner.cashbackPercent ? "кэшбэк бонусами за покупку деньгами. " : ""}
+                    Здесь бонусы не тратят — только копят, а потратить их можно у других партнёров Loal.
+                  </span>
+                </div>
+              ) : partner.maxCoveragePercent ? (
                 <div className="flex items-center gap-4 rounded-[24px] bg-graphite px-5 py-4 text-paper">
                   <span className="display text-[3rem] leading-none text-amber">{partner.maxCoveragePercent}%</span>
                   <span className="text-base leading-snug text-paper/85">
@@ -139,7 +149,7 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
                 <PercentBadge partner={partner} className="w-fit" />
               )}
 
-              {partner.tariff === "octopay" && (
+              {partner.tariff === "octopay" && partner.acceptsBonuses !== false && (
                 <p className="rounded-2xl bg-paper px-4 py-3 text-base leading-snug">
                   Здесь можно платить через OctōPAY: на странице оплаты вы сами решаете, сколько бонусов потратить.
                 </p>

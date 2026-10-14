@@ -1,8 +1,8 @@
 import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
 import {
-  BUSINESS_TARIFF_LABELS,
+  LOAL_TARIFF_LABELS,
   TARIFF_LABELS,
-  isBusinessTariff,
+  isLoalTariff,
   isOctopayIntegrationReady,
   type MerchantSubscription,
   type MerchantTariff,
@@ -14,6 +14,7 @@ import { Link } from "react-router";
 import { merchantKeys, useOctopayIntegration } from "../../entities/merchant/api";
 import { formatDate } from "../../shared/lib/format";
 import { OctopayIntegration } from "../octopay/integration";
+import { TariffChange } from "./tariff-change";
 
 const BUNDLE_PERKS = [
   "Лояльность включена в подписку OctōPAY + Loal",
@@ -21,29 +22,25 @@ const BUNDLE_PERKS = [
   "«Счёт клиенту»: кассир вводит только сумму",
 ];
 
-/** Что даёт тариф Доп. №5 — одной строкой под названием. */
-const BUSINESS_ABOUT = {
-  cashback: "Клиенты получают у вас кэшбэк и тратят бонусы в сети.",
-  redeem: "Клиенты оплачивают часть чека бонусами, списание проходит само.",
-  full: "Оплата бонусами и кэшбэк, выделение в каталоге и день видимости раз в неделю.",
-} as const;
-
 /**
- * Тариф магазина. У заведений по Доп. №5 — выбранный при регистрации (с бесплатными месяцами
- * акции, если досталось место), OctōPAY к нему подключают по желанию. У подключённых раньше —
- * по связи с OctōPAY: на «Только Loal» срок подписки, на «OctōPAY + Loal» — оплата пакета в OctōPAY.
+ * Тариф Loal магазина (ТЗ №5): что он даёт, до какого числа оплачен и смена тарифа. Доступ
+ * открывает только оплата (или месяцы от агентства); связь с OctōPAY — отдельно, по желанию:
+ * от неё зависит только «Счёт клиенту». Старый шлюз без loalTariff — прежняя карточка ниже.
  */
 export function TariffCard({
   merchantId,
   tariff,
-  businessTariff,
-  freeMonths,
+  loalTariff,
+  cashbackPercent,
+  canChange,
   subscription,
 }: {
   merchantId: string;
   tariff: MerchantTariff;
-  businessTariff?: string | null;
-  freeMonths?: number | null;
+  loalTariff?: string | null;
+  cashbackPercent?: number | null;
+  /** Менять тариф может только владелец. */
+  canChange?: boolean;
   subscription: MerchantSubscription | null;
 }) {
   const queryClient = useQueryClient();
@@ -59,31 +56,32 @@ export function TariffCard({
     void queryClient.invalidateQueries({ queryKey: merchantKeys.subscription(merchantId), exact: true });
   }, [linked, tariff, merchantId, queryClient]);
 
-  if (isBusinessTariff(businessTariff))
+  if (isLoalTariff(loalTariff))
     return (
       <Card className="flex flex-col">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-base text-muted-foreground">Тариф</p>
-            <h2 className="display mt-1 text-[1.6rem] leading-tight">{BUSINESS_TARIFF_LABELS[businessTariff].title}</h2>
+            <h2 className="display mt-1 text-[1.6rem] leading-tight">{LOAL_TARIFF_LABELS[loalTariff].title}</h2>
           </div>
-          <Badge tone={paidActive ? "good" : "warn"}>
-            {paidActive
-              ? `${freeMonths ? "бесплатно" : "оплачено"} до ${formatDate(subscription?.expiresAt)}`
+          <Badge tone={subscription?.isActive ? "good" : "warn"}>
+            {subscription?.isActive
+              ? subscription.expiresAt
+                ? `оплачено до ${formatDate(subscription.expiresAt)}`
+                : "доступ бесплатный"
               : "не оплачено"}
           </Badge>
         </div>
-        <p className="mt-2 max-w-[56ch] text-base leading-snug text-muted-foreground">{BUSINESS_ABOUT[businessTariff]}</p>
-        {freeMonths ? (
-          <p className="mt-2 text-base">Вы получили место по акции: {freeMonths} мес. без оплаты.</p>
-        ) : null}
-        {!paidActive && (
-          <div className="mt-4">
-            <Button asChild>
-              <Link to="/billing">Оплатить подписку</Link>
-            </Button>
-          </div>
-        )}
+        <p className="mt-2 max-w-[56ch] text-base leading-snug text-muted-foreground">
+          {LOAL_TARIFF_LABELS[loalTariff].about}
+          {cashbackPercent ? ` Кэшбэк клиенту — ${cashbackPercent}%.` : ""}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button asChild variant={subscription?.isActive ? "outline" : "primary"}>
+            <Link to="/billing">{subscription?.isActive ? "Продлить" : "Оплатить"}</Link>
+          </Button>
+          {canChange && <TariffChange merchantId={merchantId} current={loalTariff} />}
+        </div>
         <p className="mt-5 text-base font-bold">Приём платежей OctōPAY — по желанию</p>
         <OctopayIntegration key={merchantId} merchantId={merchantId} />
       </Card>

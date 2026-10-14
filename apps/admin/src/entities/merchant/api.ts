@@ -1,8 +1,10 @@
 import {
   ApiError,
+  cashbackApi,
   merchantCabinetApi,
   merchantsApi,
   slugify,
+  type CashbackPercentInput,
   type GrantMonthsInput,
   type CreateMerchantForm,
   type DeductionQuery,
@@ -177,6 +179,42 @@ export function useGrantSubscription(merchantId: string) {
   return useMutation({
     mutationFn: (input: GrantMonthsInput) => merchantCabinetApi(api).grantSubscription(merchantId, input),
     onSuccess: (data) => queryClient.setQueryData(merchantKeys.subscription(merchantId), data),
+  });
+}
+
+/** Тариф Loal без оплаты (агентство): срок подписки не меняется, каталог перечитывается. */
+export function useSetLoalTariff(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (loalTariff: string) => merchantsApi(api).setLoalTariff(merchantId, loalTariff),
+    onSuccess: (merchant) => {
+      queryClient.setQueryData(merchantKeys.detail(merchantId), merchant);
+      void queryClient.invalidateQueries({ queryKey: merchantKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["merchants", merchantId, "cashback-percent"] });
+    },
+  });
+}
+
+/** Свой процент кэшбэка партнёра; null — по умолчанию для всех. */
+export function useCashbackPercent(merchantId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["merchants", merchantId, "cashback-percent"],
+    queryFn: () => cashbackApi(api).percent(merchantId),
+    enabled: Boolean(merchantId),
+  });
+}
+
+export function useSetCashbackPercent(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CashbackPercentInput) => cashbackApi(api).setPercent(merchantId, input),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["merchants", merchantId, "cashback-percent"], data);
+      void queryClient.invalidateQueries({ queryKey: merchantKeys.detail(merchantId) });
+    },
   });
 }
 
