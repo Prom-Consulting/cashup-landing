@@ -13,22 +13,24 @@ import { MonthSteps } from "./_components/month-steps";
 import { PageMotion } from "./_components/page-motion";
 import { SiteFooter } from "./_components/site-footer";
 import { SiteHeader } from "./_components/site-header";
-import { PAGE_SEO, openGraph } from "./_data/seo";
+import type { PartnerCategoryId } from "@loal/api";
+import { PAGE_SEO, categoryPath, openGraph } from "./_data/seo";
 import { CLIENT_APP_URL, OCTOPAY_URL } from "./_data/site";
 
 // Подписку оформляют в кабинете клиента: там же выпускается карта
 const SUBSCRIBE_URL = CLIENT_APP_URL;
 
+// Плитка ведёт на страницу своей категории в каталоге
 const categories = [
-  { label: "Кофейни и рестораны", icon: "coffee" },
-  { label: "Салоны красоты", icon: "beauty" },
-  { label: "Магазины одежды", icon: "bag" },
-  { label: "Фитнес и спорт", icon: "sport" },
-  { label: "Автосервисы", icon: "car" },
-  { label: "Услуги для дома", icon: "home" },
-  { label: "Уходовая косметика", icon: "beauty" },
-  { label: "Другое", icon: "bag" },
-];
+  { id: "cafe", label: "Кофейни и рестораны", icon: "coffee" },
+  { id: "beauty", label: "Салоны красоты", icon: "beauty" },
+  { id: "shop", label: "Магазины одежды", icon: "bag" },
+  { id: "sport", label: "Фитнес и спорт", icon: "sport" },
+  { id: "auto", label: "Автосервисы", icon: "car" },
+  { id: "home", label: "Услуги для дома", icon: "home" },
+  { id: "skincare", label: "Уходовая косметика", icon: "beauty" },
+  { id: "other", label: "Другое", icon: "bag" },
+] as const satisfies readonly { id: PartnerCategoryId; label: string; icon: string }[];
 
 /**
  * Главный барьер из контент-плана: «15 000» читают как деньги. Снимаем его сразу
@@ -344,12 +346,12 @@ export default function Home() {
             </div>
 
             <ul data-categories className="grid grid-cols-2 gap-4">
-              {categories.map(({ label, icon }) => (
-                <li
-                  key={label}
-                  data-category
-                  className="group flex flex-col gap-4 rounded-[28px] bg-white p-5 shadow-[0_1rem_2rem_rgb(22_21_21/0.05)]"
-                >
+              {categories.map(({ id, label, icon }) => (
+                <li key={label} data-category>
+                  <Link
+                    href={categoryPath(id)}
+                    className="group flex h-full flex-col gap-4 rounded-[28px] bg-white p-5 shadow-[0_1rem_2rem_rgb(22_21_21/0.05)] transition-shadow hover:shadow-[0_1rem_2rem_rgb(22_21_21/0.12)]"
+                  >
                   <span className="brand-gradient grid h-14 w-14 place-items-center rounded-2xl transition-transform duration-300 group-hover:-rotate-6">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {/* alt — для поисковиков; экранный диктор прочтёт подпись рядом, иконку пропустит */}
@@ -361,6 +363,7 @@ export default function Home() {
                     />
                   </span>
                   <span className="text-lg leading-tight font-bold">{label}</span>
+                  </Link>
                 </li>
               ))}
             </ul>

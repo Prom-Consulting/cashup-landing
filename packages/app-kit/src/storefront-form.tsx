@@ -49,13 +49,9 @@ function useUploadAsset(merchantId: string) {
 
 const MAX_PHOTOS = 10;
 
-/** Тот же список, что на лендинге. Старую свою категорию заведения не теряем — она остаётся в списке. */
-function categoryOptions(current: string | null) {
-  const options = PARTNER_CATEGORIES.map((category) => ({ value: category.label, label: category.label }));
-  return current && !options.some((option) => option.value === current)
-    ? [{ value: current, label: current }, ...options]
-    : options;
-}
+// Только категории платформы: другую бэкенд в профиль не пропустит (400)
+const categoryOptions = PARTNER_CATEGORIES.map((category) => ({ value: category.label, label: category.label }));
+const isListedCategory = (value: string | null) => categoryOptions.some((option) => option.value === value);
 
 /**
  * Точка на карте каталога — из ссылки 2ГИС. Ссылку убрали — убираем и точку; в ссылке
@@ -101,7 +97,8 @@ export function StorefrontForm({
   const photoInput = useRef<HTMLInputElement>(null);
 
   const initialValues: MerchantProfileForm = {
-    category: profile.category ?? "",
+    // Своя категория не из списка: поле пустое, прежнее значение — подсказкой под ним
+    category: isListedCategory(profile.category) ? profile.category! : "",
     description: profile.description ?? "",
     instagramUrl: profile.instagramUrl ?? "",
     twogisUrl: profile.twogisUrl ?? "",
@@ -163,8 +160,13 @@ export function StorefrontForm({
                 onChange={form.handleChange}
                 onBlur={form.handleBlur}
                 invalid={Boolean(fieldError(form, "category"))}
-                options={categoryOptions(profile.category)}
+                options={categoryOptions}
               />
+              {profile.category && !isListedCategory(profile.category) && !fieldError(form, "category") && (
+                <p className="mt-2 text-base text-muted-foreground">
+                  Сейчас указано «{profile.category}» — такой категории больше нет, выберите из списка.
+                </p>
+              )}
               {fieldError(form, "category") && (
                 <p className="mt-2 text-base text-destructive">{fieldError(form, "category")}</p>
               )}
