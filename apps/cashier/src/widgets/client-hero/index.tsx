@@ -21,7 +21,7 @@ export function ClientHero() {
       <div className="flex flex-wrap gap-3">
         {abilities.cashback && (
           <Link to="/cashback" className={button}>
-            Начислить кэшбэк
+            Дать кэшбэк
           </Link>
         )}
         {abilities.redeem && (

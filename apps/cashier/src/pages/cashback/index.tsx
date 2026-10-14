@@ -17,7 +17,7 @@ export function CashbackPage() {
 
   return (
     <section className="flex flex-col gap-6">
-      <PageHeader title="Начислить кэшбэк" description={DESCRIPTION} />
+      <PageHeader title="Дать кэшбэк" description={DESCRIPTION} />
       {kind === "branch" && overview.isPending && <Loading rows={3} />}
       {kind === "branch" && overview.isError && <ErrorState error={overview.error} onRetry={() => overview.refetch()} />}
       {(kind !== "branch" || overview.isSuccess) && (

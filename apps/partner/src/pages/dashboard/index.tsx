@@ -34,10 +34,10 @@ function TeamDashboard() {
           <div className="flex flex-wrap gap-3">
             {abilities.cashback && (
               <Link
-                to="/cashback"
+                to="/redeem?mode=cashback"
                 className="inline-flex w-fit items-center rounded-full bg-graphite px-7 py-4 text-lg font-bold text-white transition-colors hover:bg-white hover:text-graphite"
               >
-                Начислить кэшбэк
+                Дать кэшбэк
               </Link>
             )}
             {abilities.redeem && (

@@ -210,7 +210,7 @@ export function CashbackForm({
 
             <FormStatus message={formError(form)} />
             <Button type="submit" size="lg" disabled={form.isSubmitting} className="h-14 text-lg">
-              {form.isSubmitting ? "Начисляем…" : "Начислить кэшбэк"}
+              {form.isSubmitting ? "Начисляем…" : "Дать кэшбэк"}
             </Button>
           </Form>
         );

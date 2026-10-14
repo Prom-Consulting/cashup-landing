@@ -13,6 +13,7 @@ import { ProfilePage } from "../pages/profile";
 import { PosPage } from "../pages/pos";
 import { RedeemPage } from "../pages/redeem";
 import { CashbackPage } from "../pages/cashback";
+import { SettingsPage } from "../pages/settings";
 import { CashbackJournalPage } from "../pages/cashback-journal";
 import { StorefrontPage } from "../pages/storefront";
 import { SupportPage } from "../pages/support";
@@ -103,6 +104,7 @@ export function AppRouter() {
           }
         />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="settings" element={<SettingsPage />} />
         {["support", "support/:ticketId"].map((path) => (
           <Route
             key={path}

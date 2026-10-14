@@ -160,6 +160,12 @@ export const buyMonthsInputSchema = z.object({
 });
 export type BuyMonthsInput = z.infer<typeof buyMonthsInputSchema>;
 
+/** Выдача доступа агентством без оплаты: срок не ограничен (100 лет — только защита от опечатки). */
+export const grantMonthsInputSchema = z.object({
+  months: z.coerce.number().int("Целое число месяцев").min(1, "Минимум месяц").max(1200, "Не больше 1200 месяцев"),
+});
+export type GrantMonthsInput = z.infer<typeof grantMonthsInputSchema>;
+
 /**
  * Счёт магазину на продление доступа. Сумму считает сервер: цена месяца доступа из
  * настроек платформы × месяцы. Лишнее поле в теле (amount и т. п.) — 400.

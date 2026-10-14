@@ -3,7 +3,7 @@ import {
   merchantCabinetApi,
   merchantsApi,
   slugify,
-  type BuyMonthsInput,
+  type GrantMonthsInput,
   type CreateMerchantForm,
   type DeductionQuery,
   type Merchant,
@@ -175,7 +175,7 @@ export function useGrantSubscription(merchantId: string) {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: BuyMonthsInput) => merchantCabinetApi(api).grantSubscription(merchantId, input),
+    mutationFn: (input: GrantMonthsInput) => merchantCabinetApi(api).grantSubscription(merchantId, input),
     onSuccess: (data) => queryClient.setQueryData(merchantKeys.subscription(merchantId), data),
   });
 }

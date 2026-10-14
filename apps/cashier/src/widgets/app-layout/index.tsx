@@ -29,7 +29,7 @@ const NAV: Record<CashierKind, Item[]> = {
   merchant: [
     { to: "/", label: "Обзор", icon: Chart01Icon },
     { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
-    { to: "/cashback", label: "Начислить кэшбэк", icon: CoinsSwapIcon },
+    { to: "/cashback", label: "Дать кэшбэк", icon: CoinsSwapIcon },
     { to: "/storefront", label: "Витрина", icon: Store01Icon },
     { to: "/pos", label: "Касса", icon: CashierIcon },
     { to: "/profile", label: "Настройки", icon: UserSettings01Icon },
@@ -37,7 +37,7 @@ const NAV: Record<CashierKind, Item[]> = {
   branch: [
     { to: "/", label: "Обзор", icon: Chart01Icon },
     { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
-    { to: "/cashback", label: "Начислить кэшбэк", icon: CoinsSwapIcon },
+    { to: "/cashback", label: "Дать кэшбэк", icon: CoinsSwapIcon },
     { to: "/client-payments", label: "Счёт клиенту", icon: Wallet01Icon },
     { to: "/history", label: "История", icon: Clock01Icon },
     { to: "/storefront", label: "Витрина", icon: Store01Icon },

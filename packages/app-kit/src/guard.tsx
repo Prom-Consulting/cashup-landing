@@ -1,6 +1,7 @@
 import type { Membership, Session } from "@loal/api";
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router";
+import { CabinetSkeleton } from "@loal/ui/shadcn";
 import { useSession } from "./session";
 
 /** Права платформы: всё, что под /admin/v1/certificates, leads и настройками. */
@@ -35,13 +36,7 @@ export function RequireAuth({
   const { status, session, logout } = useSession();
   const location = useLocation();
 
-  if (status === "loading") {
-    return (
-      <Centered>
-        <p className="text-lg text-slate">Загружаем кабинет…</p>
-      </Centered>
-    );
-  }
+  if (status === "loading") return <CabinetSkeleton />;
 
   if (status === "anonymous" || !session) {
     return <Navigate to={loginPath} replace state={{ from: location.pathname + location.search }} />;

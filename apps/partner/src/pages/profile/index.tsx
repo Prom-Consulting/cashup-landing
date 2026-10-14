@@ -170,7 +170,7 @@ export function ProfilePage() {
 
   return (
     <section className="flex flex-col gap-6">
-      <PageHeader title="Настройки" description="Как вы входите в кабинет, ваши данные и доступ." />
+      <PageHeader title="Профиль" description="Как вы входите в кабинет, ваши данные и доступ." />
 
       <AccountCard />
 

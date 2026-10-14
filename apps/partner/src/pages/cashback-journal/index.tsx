@@ -42,7 +42,7 @@ export function CashbackJournalPage() {
           description="Строки появятся после первого кэшбэка на кассе."
           action={
             <Button asChild>
-              <Link to="/cashback">Начислить кэшбэк</Link>
+              <Link to="/redeem?mode=cashback">Дать кэшбэк</Link>
             </Button>
           }
         />

@@ -9,6 +9,7 @@ import {
 } from "../schemas/client-payment";
 import {
   buyMonthsInputSchema,
+  grantMonthsInputSchema,
   connectOctopayInputSchema,
   createInvoiceInputSchema,
   invoiceSchema,
@@ -16,6 +17,7 @@ import {
   octopayIntegrationSchema,
   onecIntegrationSchema,
   type BuyMonthsInput,
+  type GrantMonthsInput,
   type ConnectOctopayInput,
   type CreateInvoiceInput,
 } from "../schemas/billing";
@@ -75,10 +77,10 @@ export const merchantCabinetApi = (api: ApiClient) => ({
     api.request(merchantSubscriptionSchema, `/admin/v1/merchants/${merchantId}/subscription`),
 
   /** Выдача доступа агентством без оплаты. Обычный путь продления — через счёт. */
-  grantSubscription: (merchantId: string, input: BuyMonthsInput) =>
+  grantSubscription: (merchantId: string, input: GrantMonthsInput) =>
     api.request(merchantSubscriptionSchema, `/admin/v1/merchants/${merchantId}/subscription`, {
       method: "POST",
-      body: buyMonthsInputSchema.parse(input),
+      body: grantMonthsInputSchema.parse(input),
     }),
 
   octopayIntegration: (merchantId: string) =>

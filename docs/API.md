@@ -1098,7 +1098,7 @@ GET /admin/v1/merchants/{merchantId}/deductions?page=1&pageSize=50&search=&from=
 
 ```
 GET  /admin/v1/merchants/{merchantId}/subscription
-POST /admin/v1/merchants/{merchantId}/subscription     { "months": 1 }
+POST /admin/v1/merchants/{merchantId}/subscription     { "months": 1 }   // агентство, 1–1200: срок не ограничен
 → { merchantId, plan, status, startedAt, expiresAt, isActive, paidActive, tariff }
 ```
 

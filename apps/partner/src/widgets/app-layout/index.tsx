@@ -1,18 +1,4 @@
-import {
-  Chart01Icon,
-  CoinsSwapIcon,
-  CreditCardIcon,
-  Invoice01Icon,
-  LinkSquare02Icon,
-  CashierIcon,
-  Settings02Icon,
-  Store01Icon,
-  UserSettings01Icon,
-  UserGroupIcon,
-  Wallet01Icon,
-  NfcIcon,
-  CustomerSupportIcon,
-} from "@hugeicons/core-free-icons";
+import { Chart01Icon, CoinsSwapIcon, Settings02Icon, Wallet01Icon } from "@hugeicons/core-free-icons";
 import { ContactVerifyBanner, WelcomeToast } from "@loal/app-kit";
 import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
 import { Icon, type IconSvg } from "@loal/ui/shadcn";
@@ -24,48 +10,40 @@ import { useTariff } from "../../entities/merchant/api";
 import { useSupportTickets } from "../../entities/support/api";
 import { useCurrentMerchant } from "../../entities/session/model";
 import { CASHIER_APP_URL } from "../../shared/config/env";
+import { isSettingsPath } from "../../shared/config/settings-sections";
+
+type Item = NavItem & { icon: IconSvg; tariff?: MerchantTariff };
 
 /**
- * Кто видит раздел: все, владелец и администратор филиала, или только владелец.
- * tariff — раздел есть только на этом тарифе («Счёт клиенту» — на OctōPAY + Loal).
+ * В меню — только ежедневное: обзор, касса и счёт клиенту (на OctōPAY). Остальные разделы
+ * собраны в «Настройках» (shared/config/settings-sections).
  */
-type Item = NavItem & { icon: IconSvg; access?: "branch" | "owner"; tariff?: MerchantTariff; ability?: "redeem" | "cashback" };
-
 const nav: Item[] = [
   { to: "/", label: "Обзор", icon: Chart01Icon },
-  { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon, ability: "redeem" },
-  { to: "/cashback", label: "Начислить кэшбэк", icon: CoinsSwapIcon, ability: "cashback" },
+  { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
   { to: "/client-payments", label: "Счёт клиенту", icon: Wallet01Icon, tariff: "octopay" },
-  { to: "/checkout-points", label: "NFC-кассы", icon: NfcIcon, access: "owner", tariff: "octopay" },
-  { to: "/storefront", label: "Витрина", icon: Store01Icon },
-  { to: "/deductions", label: "Списания", icon: CreditCardIcon, access: "branch", ability: "redeem" },
-  { to: "/accruals", label: "Начисления", icon: CreditCardIcon, access: "branch", ability: "cashback" },
-  { to: "/team", label: "Команда", icon: UserGroupIcon, access: "branch" },
-  { to: "/billing", label: "Оплата", icon: Invoice01Icon, access: "owner" },
-  { to: "/pos", label: "Касса", icon: CashierIcon },
-  { to: "/webhooks", label: "Вебхуки", icon: LinkSquare02Icon, access: "owner" },
-  { to: "/onec", label: "Обмен с 1С", icon: Settings02Icon, access: "owner" },
-  { to: "/support", label: "Поддержка", icon: CustomerSupportIcon, access: "branch" },
-  // Вход через Google, имя и почта, выход из программы — раньше сюда можно было попасть только по адресу
-  { to: "/profile", label: "Настройки", icon: UserSettings01Icon },
+  { to: "/settings", label: "Настройки", icon: Settings02Icon },
 ];
 
+/** Касса называется по тарифу: «Больше клиентов» — только кэшбэк, «Очень много» — и то и другое. */
+const tillLabel = (abilities: { redeem: boolean; cashback: boolean }) =>
+  abilities.redeem && abilities.cashback ? "Бонусы и кэшбэк" : abilities.cashback ? "Дать кэшбэк" : "Списать бонусы";
+
 export function AppLayout() {
-  const { label, logout, memberships, merchantId, selectMerchant, canManage, canRunBranch } = useCurrentMerchant();
+  const { label, logout, memberships, merchantId, selectMerchant, canRunBranch } = useCurrentMerchant();
   const { tariff, abilities } = useTariff(merchantId ?? "");
-  const items = nav.filter(
-    (item) =>
-      (!item.access || (item.access === "owner" ? canManage : canRunBranch)) &&
-      (!item.tariff || item.tariff === tariff) &&
-      (!item.ability || abilities[item.ability]),
-  );
+  const items = nav
+    .filter((item) => !item.tariff || item.tariff === tariff)
+    .map((item) => (item.to === "/redeem" ? { ...item, label: tillLabel(abilities) } : item));
   const location = useLocation();
   const selectId = useId();
   // Ответ поддержки — повод заглянуть: число непрочитанных у пункта меню
   const support = useSupportTickets(canRunBranch ? (merchantId ?? "") : "");
   const supportUnread = support.data?.filter((ticket) => ticket.unread).length ?? 0;
 
-  const isActive = (to: string) => (to === "/" ? location.pathname === "/" : location.pathname.startsWith(to));
+  const inSettings = isSettingsPath(location.pathname);
+  const isActive = (to: string) =>
+    to === "/" ? location.pathname === "/" : to === "/settings" ? inSettings : location.pathname.startsWith(to);
 
   // Кассир работает в своём кабинете, cashier.loal.kg: здесь владелец и администратор филиала
   if (memberships.length > 0 && memberships.every((m) => m.role === "staff"))
@@ -84,7 +62,7 @@ export function AppLayout() {
           <Link key={item.to} to={item.to} className={`${navLinkClass(isActive(item.to))} flex items-center gap-3`}>
             {withIcon && <Icon icon={withIcon.icon} />}
             {item.label}
-            {item.to === "/support" && supportUnread > 0 && (
+            {item.to === "/settings" && supportUnread > 0 && (
               <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-white">
                 {supportUnread}
                 <span className="sr-only"> непрочитано</span>
@@ -113,6 +91,11 @@ export function AppLayout() {
       )}
       {/* Владелец, заведённый агентством с временным паролем, подтверждает номер или почту */}
       <ContactVerifyBanner />
+      {inSettings && location.pathname !== "/settings" && (
+        <Link to="/settings" className="mb-4 inline-flex items-center gap-1 text-base font-semibold text-muted-foreground hover:text-foreground">
+          ← Настройки
+        </Link>
+      )}
       <Outlet />
       <WelcomeToast />
     </AppShell>

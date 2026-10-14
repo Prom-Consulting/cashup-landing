@@ -2,9 +2,9 @@ import {
   DEDUCTION_CHANNEL_LABELS,
   MEMBER_ROLE_LABELS,
   memberBranchIds,
-  buyMonthsInputSchema,
+  grantMonthsInputSchema,
   invoiceState,
-  type BuyMonthsInput,
+  type GrantMonthsInput,
   MERCHANT_LIFECYCLE_LABELS,
   merchantTariffBadge,
   lifecycleOf,
@@ -224,8 +224,8 @@ export function MerchantDetailsPage() {
         {subscription.isPending && <Loading />}
         {subscription.isError && <ErrorState error={subscription.error} onRetry={() => subscription.refetch()} />}
         <Formik
-          initialValues={{ months: 1 } as BuyMonthsInput}
-          validate={zodValidate(buyMonthsInputSchema)}
+          initialValues={{ months: 1 } as GrantMonthsInput}
+          validate={zodValidate(grantMonthsInputSchema)}
           onSubmit={async (values, helpers) => {
             helpers.setStatus(undefined);
             try {
@@ -241,7 +241,7 @@ export function MerchantDetailsPage() {
           {(form) => (
             <Form className="mt-5 flex flex-wrap items-end gap-4" noValidate>
               <FocusFirstError form={form} />
-              <Field label="Месяцев" error={fieldError(form, "months")} className="w-[140px]">
+              <Field label="Месяцев" hint="Любой срок" error={fieldError(form, "months")} className="w-[160px]">
                 {(parts) => (
                   <Input
                     {...parts}
