@@ -21,7 +21,9 @@ import { PartnersCatalog } from "../partners-catalog";
 
 /** Страницы категорий статические, данные живые — как у каталога. */
 export const revalidate = 60;
-export const dynamicParams = false;
+// Категории собраны заранее; если пререндера вдруг нет (кэш сброшен и не записался),
+// страница дорисуется по запросу, а не отдаст 404. Неизвестная категория — notFound() ниже.
+export const dynamicParams = true;
 
 export function generateStaticParams() {
   return PARTNER_CATEGORIES.map((item) => ({ category: item.id }));

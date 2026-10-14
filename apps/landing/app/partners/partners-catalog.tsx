@@ -14,13 +14,18 @@ import { SearchField, Suggestions, type SearchOption } from "./smart-search";
  * Прайм — самое выгодное заведение с фото: оно задаёт тон всей витрине. Нет фото ни у кого —
  * просто самое выгодное. Порядок остальных — как отдал сервер.
  */
-function pickPrime(partners: PublicPartner[]) {
-  const best = (list: PublicPartner[]) =>
-    list.reduce<PublicPartner | null>(
-      (top, partner) => (!top || (partner.maxCoveragePercent ?? 0) > (top.maxCoveragePercent ?? 0) ? partner : top),
-      null,
-    );
-  return best(partners.filter((partner) => partner.photos.length > 0)) ?? best(partners);
+/**
+ * Крупная карточка сверху. Пока нет платного продвижения, она случайная при каждом заходе —
+ * среди заведений с фото, чтобы наверху не стояло всегда одно и то же. `roll` — число 0…1,
+ * выбранное в браузере; без него (HTML с сервера) — заведение с наибольшим процентом.
+ */
+function pickPrime(partners: PublicPartner[], roll: number | null) {
+  const pool = partners.some((partner) => partner.photos.length > 0)
+    ? partners.filter((partner) => partner.photos.length > 0)
+    : partners;
+  if (pool.length === 0) return null;
+  if (roll !== null) return pool[Math.floor(roll * pool.length)] ?? pool[0]!;
+  return pool.reduce((top, partner) => ((partner.maxCoveragePercent ?? 0) > (top.maxCoveragePercent ?? 0) ? partner : top));
 }
 
 /**
@@ -70,7 +75,10 @@ export function PartnersCatalog({
       ),
     [query, result, partners, category],
   );
-  const prime = filtering ? null : pickPrime(partners);
+  // Случайный выбор — только после загрузки в браузере, иначе HTML сервера и первый рендер разойдутся
+  const [roll, setRoll] = useState<number | null>(null);
+  useEffect(() => setRoll(Math.random()), []);
+  const prime = filtering ? null : pickPrime(partners, roll);
   const grid = prime ? shown.filter((partner) => partner.id !== prime.id) : shown;
   const topPercent = Math.max(0, ...partners.map((partner) => partner.maxCoveragePercent ?? 0));
 
@@ -169,7 +177,11 @@ export function PartnersCatalog({
       )}
 
       {prime && (
-        <div className="mt-4">
+        // Проявляется, когда карточка выбрана: без скрипта видна сразу (noscript ниже)
+        <div data-prime className={`mt-4 transition-opacity duration-300 ${roll === null ? "opacity-0" : "opacity-100"}`}>
+          <noscript>
+            <style>{"[data-prime]{opacity:1!important}"}</style>
+          </noscript>
           <PrimeCard
             partner={prime}
             label={prime.maxCoveragePercent && prime.maxCoveragePercent === topPercent ? "Больше всего бонусами" : "В каталоге Loal"}
