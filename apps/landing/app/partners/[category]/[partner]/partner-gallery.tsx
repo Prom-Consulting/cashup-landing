@@ -18,12 +18,28 @@ function PlayBadge({ large = false }: { large?: boolean }) {
     <span
       aria-hidden="true"
       className={`pointer-events-none absolute grid place-items-center rounded-full bg-paper/90 text-graphite shadow-lg ${
-        large ? "bottom-4 left-4 size-14" : "bottom-2 left-2 size-9"
+        large ? "top-1/2 left-1/2 size-16 -translate-1/2" : "bottom-2 left-2 size-9"
       }`}
     >
       <svg viewBox="0 0 24 24" className={large ? "ml-1 size-6" : "ml-0.5 size-4"} fill="currentColor">
         <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z" />
       </svg>
+    </span>
+  );
+}
+
+/** Обложка уже играет без звука — значок «play» врал бы, что она на паузе. Зовём смотреть со звуком. */
+function SoundHint() {
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-graphite/60 py-1.5 pr-3 pl-2.5 text-xs sm:bottom-4 sm:left-4 sm:gap-2 sm:py-2 sm:pr-4 sm:pl-3 sm:text-sm font-semibold text-paper backdrop-blur-md"
+    >
+      <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 5 6 9H3v6h3l5 4V5Z" fill="currentColor" />
+        <path d="m16 9 5 6M21 9l-5 6" />
+      </svg>
+      Смотреть со звуком
     </span>
   );
 }
@@ -84,7 +100,7 @@ export function PartnerGallery({ partner }: { partner: PublicPartner }) {
               preload="metadata"
               className="aspect-[16/10] w-full object-cover"
             />
-            <PlayBadge large />
+            {calm ? <PlayBadge large /> : <SoundHint />}
           </>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
