@@ -9,7 +9,7 @@ import {
   uploadStorefrontVideo,
   type MerchantVideo,
 } from "@loal/api";
-import { Button, Icon } from "@loal/ui/shadcn";
+import { Button, Dialog, DialogContent, Icon } from "@loal/ui/shadcn";
 import { useRef, useState } from "react";
 import { useApi } from "./session";
 
@@ -67,11 +67,15 @@ export function StorefrontVideos({
   merchantId,
   videos,
   onChange,
+  onBusyChange,
   disabled,
 }: {
   merchantId: string;
   videos: MerchantVideo[];
-  onChange: (next: MerchantVideo[]) => void;
+  /** Принимает функцию от текущего списка: обложка приходит позже видео, и список мог измениться. */
+  onChange: (next: (current: MerchantVideo[]) => MerchantVideo[]) => void;
+  /** Пока видео грузится, сохранять витрину нельзя — иначе она уйдёт без него. */
+  onBusyChange?: (busy: boolean) => void;
   disabled?: boolean;
 }) {
   const api = useApi();
@@ -79,6 +83,7 @@ export function StorefrontVideos({
   const [pending, setPending] = useState<Pending | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const [watching, setWatching] = useState<MerchantVideo | null>(null);
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
@@ -89,24 +94,29 @@ export function StorefrontVideos({
       return setError(`Видео ${megabytes(file.size)} — больше ${megabytes(STOREFRONT_VIDEO_MAX_BYTES)}. Сократите или сожмите его.`);
 
     setPending({ name: file.name, preview: null, progress: 0, stage: "poster" });
+    onBusyChange?.(true);
+    let preview: string | null = null;
     try {
       const poster = await posterFrom(file);
-      const preview = poster ? URL.createObjectURL(poster) : null;
+      preview = poster ? URL.createObjectURL(poster) : null;
       if (!poster)
         setWarning("Браузер не смог открыть это видео — у части клиентов оно может не заиграть. Лучше всего MP4 с кодеком H.264.");
       setPending({ name: file.name, preview, progress: 0, stage: "upload" });
-      const [video, posterAsset] = await Promise.all([
-        uploadStorefrontVideo(api, merchantId, file, (share) =>
-          setPending((current) => (current ? { ...current, progress: share } : current)),
-        ),
-        poster ? merchantCabinetApi(api).uploadAsset(merchantId, "merchantPhoto", poster).catch(() => null) : null,
-      ]);
-      if (preview) URL.revokeObjectURL(preview);
-      onChange([...videos, { url: video.url, posterUrl: posterAsset?.url ?? null }].slice(0, STOREFRONT_VIDEO_MAX));
+      const posterUpload = poster ? merchantCabinetApi(api).uploadAsset(merchantId, "merchantPhoto", poster).catch(() => null) : null;
+      const video = await uploadStorefrontVideo(api, merchantId, file, (share) =>
+        setPending((current) => (current ? { ...current, progress: share } : current)),
+      );
+      // Видео — в витрину сразу; обложка (грузится параллельно) допишется, когда придёт
+      onChange((current) => [...current, { url: video.url, posterUrl: null }].slice(0, STOREFRONT_VIDEO_MAX));
+      const posterAsset = await posterUpload;
+      if (posterAsset)
+        onChange((current) => current.map((item) => (item.url === video.url ? { ...item, posterUrl: posterAsset.url } : item)));
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : "Не удалось загрузить видео. Попробуйте ещё раз.");
     } finally {
+      if (preview) URL.revokeObjectURL(preview);
       setPending(null);
+      onBusyChange?.(false);
       if (input.current) input.current.value = "";
     }
   };
@@ -121,6 +131,12 @@ export function StorefrontVideos({
       <div className="mt-3 flex flex-wrap gap-3">
         {videos.map((video, index) => (
           <div key={video.url} className="group relative">
+            <button
+              type="button"
+              onClick={() => setWatching(video)}
+              aria-label={`Посмотреть видео ${index + 1}`}
+              className="absolute inset-0 z-10 cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            />
             <video
               // Без обложки браузер показывает чёрный прямоугольник — #t просит нарисовать кадр
               src={video.posterUrl ? video.url : `${video.url}#t=0.5`}
@@ -129,8 +145,6 @@ export function StorefrontVideos({
               loop
               playsInline
               preload="metadata"
-              onMouseEnter={(event) => void event.currentTarget.play().catch(() => undefined)}
-              onMouseLeave={(event) => event.currentTarget.pause()}
               className="h-24 w-40 rounded-2xl border-2 border-border bg-graphite object-cover"
             />
             <span className="pointer-events-none absolute bottom-1.5 left-1.5 grid size-7 place-items-center rounded-full bg-graphite/80 text-white transition-opacity group-hover:opacity-0">
@@ -139,8 +153,8 @@ export function StorefrontVideos({
             <button
               type="button"
               disabled={disabled || Boolean(pending)}
-              onClick={() => onChange(videos.filter((_, position) => position !== index))}
-              className="absolute -top-2 -right-2 grid h-8 w-8 place-items-center rounded-full bg-surface shadow-md"
+              onClick={() => onChange((current) => current.filter((item) => item.url !== video.url))}
+              className="absolute -top-2 -right-2 z-20 grid h-8 w-8 place-items-center rounded-full bg-surface shadow-md"
               aria-label={`Убрать видео ${index + 1}`}
             >
               <Icon icon={Delete02Icon} size={16} />
@@ -189,8 +203,26 @@ export function StorefrontVideos({
       )}
       {warning && !error && <p className="mt-2 text-base text-muted-foreground">{warning}</p>}
       {videos.length > 0 && !pending && (
-        <p className="mt-2 text-sm text-muted-foreground">Видео появится в каталоге после «Сохранить витрину».</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Нажмите на видео, чтобы посмотреть. В каталоге оно появится после «Сохранить витрину».
+        </p>
       )}
+
+      <Dialog open={watching !== null} onOpenChange={(open) => !open && setWatching(null)}>
+        <DialogContent title="Видео витрины" className="w-[min(860px,calc(100vw-2rem))]">
+          {watching && (
+            <video
+              key={watching.url}
+              src={watching.url}
+              poster={watching.posterUrl ?? undefined}
+              controls
+              autoPlay
+              playsInline
+              className="mt-4 max-h-[70vh] w-full rounded-2xl bg-graphite"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

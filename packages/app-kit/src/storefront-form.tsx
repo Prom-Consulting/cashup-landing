@@ -94,6 +94,7 @@ export function StorefrontForm({
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl);
   const [photos, setPhotos] = useState(profile.photos);
   const [videos, setVideos] = useState(profile.videos ?? []);
+  const [videoBusy, setVideoBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const logoInput = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
@@ -321,11 +322,25 @@ export function StorefrontForm({
             )}
           </div>
 
-          <StorefrontVideos merchantId={merchantId} videos={videos} onChange={setVideos} disabled={form.isSubmitting} />
+          <StorefrontVideos
+            merchantId={merchantId}
+            videos={videos}
+            onChange={(next) => {
+              setVideos(next);
+              // Прежнее «Витрина сохранена» больше не про эту витрину
+              form.setStatus(undefined);
+            }}
+            onBusyChange={setVideoBusy}
+            disabled={form.isSubmitting}
+          />
 
           <div className="flex flex-wrap items-center gap-4">
-            <Button type="submit" disabled={form.isSubmitting}>
-              {form.isSubmitting ? "Сохраняем…" : "Сохранить витрину"}
+            <Button type="submit" disabled={form.isSubmitting || videoBusy || upload.isPending}>
+              {form.isSubmitting
+                ? "Сохраняем…"
+                : videoBusy || upload.isPending
+                  ? "Дождитесь загрузки…"
+                  : "Сохранить витрину"}
             </Button>
             {formError(form) && (
               <p role="status" className="text-base text-muted-foreground">
