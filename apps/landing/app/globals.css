@@ -467,3 +467,13 @@ html {
     opacity: 0.6;
   }
 }
+
+/* Видео в карточке каталога проявляется поверх обложки */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

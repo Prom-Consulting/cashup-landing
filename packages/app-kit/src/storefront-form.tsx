@@ -16,6 +16,7 @@ import { useRef, useState } from "react";
 import { merchantCabinetApi } from "@loal/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "./session";
+import { StorefrontVideos } from "./storefront-videos";
 
 const profileKey = (merchantId: string) => ["merchants", merchantId, "profile"] as const;
 
@@ -92,6 +93,7 @@ export function StorefrontForm({
   const upload = useUploadAsset(merchantId);
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl);
   const [photos, setPhotos] = useState(profile.photos);
+  const [videos, setVideos] = useState(profile.videos ?? []);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const logoInput = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
@@ -131,6 +133,7 @@ export function StorefrontForm({
             description: orNull(values.description),
             logoUrl,
             photos,
+            videos,
             instagramUrl: orNull(values.instagramUrl),
             twogisUrl: orNull(values.twogisUrl),
             address: orNull(values.address),
@@ -317,6 +320,8 @@ export function StorefrontForm({
               </p>
             )}
           </div>
+
+          <StorefrontVideos merchantId={merchantId} videos={videos} onChange={setVideos} disabled={form.isSubmitting} />
 
           <div className="flex flex-wrap items-center gap-4">
             <Button type="submit" disabled={form.isSubmitting}>

@@ -307,11 +307,17 @@ export type UpdateMerchantInput = z.infer<typeof updateMerchantInputSchema>;
  * Адрес и координаты — необязательные: без них сервер оставит прежние; lat и lng
  * ходят только парой (или оба null).
  */
+/** Видео витрины: MP4 на CDN и кадр-обложка (загружен как фото; null — нет). */
+export const merchantVideoSchema = z.object({ url: z.string(), posterUrl: z.string().nullable() });
+export type MerchantVideo = z.infer<typeof merchantVideoSchema>;
+
 export const merchantProfileSchema = z.object({
   category: z.string().trim().min(1).max(60).nullable(),
   description: z.string().trim().min(1).max(2000).nullable(),
   logoUrl: z.string().nullable(),
   photos: z.array(z.string()).max(10),
+  /** До трёх видео. Не прислать поле — сервер оставит прежние (старые кабинеты их не стирают). */
+  videos: z.array(merchantVideoSchema).max(3).optional(),
   instagramUrl: z.string().nullable(),
   twogisUrl: z.string().nullable(),
   address: z.string().nullish(),

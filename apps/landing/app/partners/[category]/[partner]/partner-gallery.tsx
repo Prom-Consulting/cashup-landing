@@ -3,22 +3,50 @@
 import type { PublicPartner } from "@loal/api";
 import { useEffect, useRef, useState } from "react";
 
+type Media = { kind: "photo"; src: string } | { kind: "video"; src: string; poster: string | null };
+
+/** Сначала видео — оно живее любой фотографии, потом фото. */
+function mediaOf(partner: PublicPartner): Media[] {
+  return [
+    ...(partner.videos ?? []).map((video): Media => ({ kind: "video", src: video.url, poster: video.posterUrl })),
+    ...partner.photos.map((src): Media => ({ kind: "photo", src })),
+  ];
+}
+
+function PlayBadge({ large = false }: { large?: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none absolute grid place-items-center rounded-full bg-paper/90 text-graphite shadow-lg ${
+        large ? "bottom-4 left-4 size-14" : "bottom-2 left-2 size-9"
+      }`}
+    >
+      <svg viewBox="0 0 24 24" className={large ? "ml-1 size-6" : "ml-0.5 size-4"} fill="currentColor">
+        <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z" />
+      </svg>
+    </span>
+  );
+}
+
 /**
- * Фото заведения: обложка и лента миниатюр. Нажатие открывает фото в модалке поверх страницы
- * (не на весь экран), стрелками и клавишами ← → листаются остальные. Картинки остаются в HTML,
- * так что поисковик видит их и без скрипта.
+ * Фото и видео заведения: обложка и лента миниатюр. Видео на обложке тихо играет по кругу (если
+ * человек не просил «меньше движения»), по нажатию всё открывается в модалке поверх страницы —
+ * видео со звуком и управлением, листание стрелками и клавишами ← →. Фото и видео остаются в HTML.
  */
 export function PartnerGallery({ partner }: { partner: PublicPartner }) {
-  const photos = partner.photos;
+  const media = mediaOf(partner);
   const dialog = useRef<HTMLDialogElement>(null);
   const [current, setCurrent] = useState<number | null>(null);
+  const [calm, setCalm] = useState(false);
+
+  useEffect(() => setCalm(window.matchMedia("(prefers-reduced-motion: reduce)").matches), []);
 
   const open = (index: number) => {
     setCurrent(index);
     dialog.current?.showModal();
   };
   const step = (delta: number) =>
-    setCurrent((index) => (index === null ? index : (index + delta + photos.length) % photos.length));
+    setCurrent((index) => (index === null ? index : (index + delta + media.length) % media.length));
 
   useEffect(() => {
     if (current === null) return;
@@ -31,42 +59,68 @@ export function PartnerGallery({ partner }: { partner: PublicPartner }) {
     };
   }, [current]);
 
-  const many = photos.length > 1;
+  if (media.length === 0) return null;
+  const cover = media[0]!;
+  const many = media.length > 1;
+  const shown = current === null ? null : media[current];
 
   return (
     <>
       <button
         type="button"
         onClick={() => open(0)}
-        aria-label={`Открыть фото ${partner.name}`}
-        className="block cursor-zoom-in overflow-hidden rounded-[28px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame"
+        aria-label={cover.kind === "video" ? `Смотреть видео ${partner.name}` : `Открыть фото ${partner.name}`}
+        className="relative block cursor-zoom-in overflow-hidden rounded-[28px] bg-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={photos[0]}
-          alt={`${partner.name} — фото`}
-          decoding="async"
-          className="aspect-[16/10] w-full object-cover"
-        />
+        {cover.kind === "video" ? (
+          <>
+            <video
+              src={cover.src}
+              poster={cover.poster ?? undefined}
+              muted
+              loop
+              playsInline
+              autoPlay={!calm}
+              preload="metadata"
+              className="aspect-[16/10] w-full object-cover"
+            />
+            <PlayBadge large />
+          </>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={cover.src} alt={`${partner.name} — фото`} decoding="async" className="aspect-[16/10] w-full object-cover" />
+        )}
       </button>
 
       {many && (
         <ul className="no-scrollbar flex gap-3 overflow-x-auto">
-          {photos.slice(1).map((photo, index) => (
-            <li key={photo} className="shrink-0">
+          {media.slice(1).map((item, index) => (
+            <li key={item.src} className="shrink-0">
               <button
                 type="button"
                 onClick={() => open(index + 1)}
-                aria-label={`Открыть фото ${index + 2}`}
-                className="block cursor-zoom-in rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame"
+                aria-label={item.kind === "video" ? `Смотреть видео ${index + 2}` : `Открыть фото ${index + 2}`}
+                className="relative block cursor-zoom-in overflow-hidden rounded-2xl bg-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photo}
-                  alt={`${partner.name}, фото ${index + 2}`}
-                  loading="lazy"
-                  className="h-28 w-40 rounded-2xl object-cover sm:h-32 sm:w-48"
-                />
+                {item.kind === "video" ? (
+                  <>
+                    {item.poster ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.poster} alt="" loading="lazy" className="h-28 w-40 object-cover sm:h-32 sm:w-48" />
+                    ) : (
+                      <video src={`${item.src}#t=0.5`} muted playsInline preload="metadata" className="h-28 w-40 object-cover sm:h-32 sm:w-48" />
+                    )}
+                    <PlayBadge />
+                  </>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.src}
+                    alt={`${partner.name}, фото ${index + 2}`}
+                    loading="lazy"
+                    className="h-28 w-40 object-cover sm:h-32 sm:w-48"
+                  />
+                )}
               </button>
             </li>
           ))}
@@ -75,7 +129,7 @@ export function PartnerGallery({ partner }: { partner: PublicPartner }) {
 
       <dialog
         ref={dialog}
-        aria-label={`Фото ${partner.name}`}
+        aria-label={`Фото и видео ${partner.name}`}
         onClose={() => setCurrent(null)}
         // Клик по затемнению (мимо окна) закрывает
         onClick={(event) => event.target === event.currentTarget && dialog.current?.close()}
@@ -86,18 +140,37 @@ export function PartnerGallery({ partner }: { partner: PublicPartner }) {
         }}
         className="m-auto w-[min(92vw,960px)] overflow-visible bg-transparent p-0 backdrop:bg-graphite/70 backdrop:backdrop-blur-sm"
       >
-        {current !== null && (
+        {shown && current !== null && (
           <figure className="relative flex flex-col gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photos[current]}
-              alt={`${partner.name}, фото ${current + 1}`}
-              className="aspect-[4/3] max-h-[78vh] w-full rounded-[24px] bg-graphite/40 object-contain"
-            />
+            {shown.kind === "video" ? (
+              <video
+                key={shown.src}
+                src={shown.src}
+                poster={shown.poster ?? undefined}
+                controls
+                playsInline
+                // Со звуком, раз человек сам открыл; браузер не разрешил — пусть играет без звука
+                ref={(video) => {
+                  if (!video || !video.paused) return;
+                  void video.play().catch(() => {
+                    video.muted = true;
+                    void video.play().catch(() => undefined);
+                  });
+                }}
+                className="aspect-[4/3] max-h-[78vh] w-full rounded-[24px] bg-graphite object-contain"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={shown.src}
+                alt={`${partner.name}, фото ${current + 1}`}
+                className="aspect-[4/3] max-h-[78vh] w-full rounded-[24px] bg-graphite/40 object-contain"
+              />
+            )}
             <figcaption className="flex items-center justify-between gap-3 text-base text-paper">
               <span>
                 {partner.name}
-                {many && <span className="text-paper/70"> — {current + 1} из {photos.length}</span>}
+                {many && <span className="text-paper/70"> — {current + 1} из {media.length}</span>}
               </span>
             </figcaption>
 
@@ -115,7 +188,7 @@ export function PartnerGallery({ partner }: { partner: PublicPartner }) {
                 <button
                   type="button"
                   onClick={() => step(-1)}
-                  aria-label="Предыдущее фото"
+                  aria-label="Предыдущее"
                   className="absolute top-[calc(50%-1.5rem)] left-3 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-paper/90 text-2xl text-graphite shadow transition-colors hover:bg-paper"
                 >
                   ‹
@@ -123,7 +196,7 @@ export function PartnerGallery({ partner }: { partner: PublicPartner }) {
                 <button
                   type="button"
                   onClick={() => step(1)}
-                  aria-label="Следующее фото"
+                  aria-label="Следующее"
                   className="absolute top-[calc(50%-1.5rem)] right-3 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-paper/90 text-2xl text-graphite shadow transition-colors hover:bg-paper"
                 >
                   ›

@@ -104,7 +104,7 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
 
           <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr] lg:gap-10">
             <div className="flex flex-col gap-3">
-              {partner.photos.length > 0 ? (
+              {partner.photos.length > 0 || (partner.videos?.length ?? 0) > 0 ? (
                 <PartnerGallery partner={partner} />
               ) : (
                 // Без фото — не пустой баннер, а сам логотип крупно: так выглядят карточки брендов

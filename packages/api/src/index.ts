@@ -1,5 +1,6 @@
 export * from "./device";
 export * from "./image-upload";
+export * from "./video-upload";
 export * from "./promo-link";
 export * from "./endpoints";
 export * from "./http";

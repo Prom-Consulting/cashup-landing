@@ -2,6 +2,7 @@
 
 import type { PublicPartner } from "@loal/api";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { partnerPath } from "../_data/seo";
 import { monogram } from "../_data/partners-api";
 import { fitLogo } from "./logo-fit";
@@ -19,7 +20,8 @@ export function PartnerCover({
   className?: string;
   large?: boolean;
 }) {
-  const photo = partner.photos[0];
+  // Без фото обложкой служит кадр из видео
+  const photo = partner.photos[0] ?? partner.videos?.find((video) => video.posterUrl)?.posterUrl;
   if (photo)
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={photo} alt={`${partner.name} — фото`} loading="lazy" decoding="async" className={`object-cover ${className}`} />;
@@ -107,6 +109,55 @@ export function PercentBadge({ partner, className = "" }: { partner: PublicPartn
 const subtitle = (partner: PublicPartner) =>
   [partner.category, partner.tariff === "octopay" ? "оплата в OctōPAY" : null].filter(Boolean).join(" · ") || "Бишкек";
 
+/**
+ * Видео в карточке каталога: значок «Видео» и тихий ролик по наведению мыши. Сам ролик
+ * подгружается только при наведении — каталог не тянет десятки видео разом; на телефоне и при
+ * «меньше движения» остаётся обложка со значком.
+ */
+function CardVideo({ partner }: { partner: PublicPartner }) {
+  const video = partner.videos?.[0];
+  const [playing, setPlaying] = useState(false);
+  const host = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const card = host.current?.closest("a");
+    if (!card || !video) return;
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const start = () => setPlaying(true);
+    const stop = () => setPlaying(false);
+    card.addEventListener("mouseenter", start);
+    card.addEventListener("mouseleave", stop);
+    return () => {
+      card.removeEventListener("mouseenter", start);
+      card.removeEventListener("mouseleave", stop);
+    };
+  }, [video]);
+
+  if (!video) return null;
+  return (
+    <span ref={host} aria-hidden="true">
+      {playing && (
+        <video
+          src={video.url}
+          poster={video.posterUrl ?? undefined}
+          muted
+          loop
+          playsInline
+          autoPlay
+          className="absolute inset-0 h-full w-full object-cover motion-safe:animate-[fade-in_300ms_ease-out]"
+        />
+      )}
+      <span className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-graphite/80 px-2.5 py-1 text-xs font-bold text-white sm:bottom-3 sm:left-3">
+        <svg viewBox="0 0 24 24" className="size-3" fill="currentColor">
+          <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z" />
+        </svg>
+        Видео
+      </span>
+    </span>
+  );
+}
+
 /** Карточка в сетке каталога: обложка, логотип внахлёст, название и «до N%». Ссылка на страницу заведения. */
 export function PartnerCard({ partner }: { partner: PublicPartner }) {
   return (
@@ -115,13 +166,14 @@ export function PartnerCard({ partner }: { partner: PublicPartner }) {
         href={partnerPath(partner)}
         className="group flex h-full w-full flex-col overflow-hidden rounded-[20px] sm:rounded-[24px] bg-paper text-left shadow-[0_1px_0_rgb(22_21_21/0.06)] ring-1 ring-smoke/70 transition-[box-shadow,transform] duration-200 outline-none hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgb(22_21_21/0.12)] focus-visible:ring-3 focus-visible:ring-flame motion-reduce:hover:translate-y-0"
       >
-        <span className="relative block">
+        <span className="relative block overflow-hidden">
           <PartnerCover partner={partner} className="aspect-[4/3] w-full" />
+          <CardVideo partner={partner} />
           <PercentBadge partner={partner} className="absolute top-2 right-2 px-2.5 text-xs shadow-md sm:top-3 sm:right-3 sm:px-3 sm:text-sm" />
         </span>
         <span className="relative flex flex-1 items-start gap-3 px-3 pt-0 pb-3 sm:px-4 sm:pb-4">
           {/* Без фото логотип уже на обложке — второй раз не повторяем */}
-          {partner.photos.length > 0 && (
+          {(partner.photos.length > 0 || partner.videos?.some((video) => video.posterUrl)) && (
             <span className="-mt-6 hidden rounded-[30%] ring-4 ring-paper sm:block">
               <PartnerLogo partner={partner} />
             </span>
