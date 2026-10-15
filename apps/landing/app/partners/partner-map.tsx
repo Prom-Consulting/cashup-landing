@@ -57,12 +57,17 @@ function pinElement(partner: PublicPartner, index: number, onClick: () => void) 
   }
   drop.append(make("span", "loal-pin__ripple"), lift);
   spread.append(drop);
-  root.append(spread);
+  // Ножка веера: от настоящего адреса к отодвинутой метке — видно, где заведение на самом деле
+  root.append(make("span", "loal-pin__leg"), spread);
   return root;
 }
 
 // Точка — 64×80 px: ближе этого по любой оси карточки налезают друг на друга
 const CLUSTER_PX = 78;
+/** Острие метки — на 13 px выше низа её коробки (64×80): сдвигаем, чтобы острие стояло ровно на адресе. */
+const PIN_TIP_OFFSET: [number, number] = [0, 13];
+/** Между остриями соседей в веере — не меньше этого: метка 64 px плюс плашка процента. */
+const SPREAD_GAP_PX = 86;
 /** С этого приближения близкие точки больше не собираем — раскладываем веером. */
 const SPREAD_ZOOM = 17;
 /** Веер вокруг выбранной точки — только вблизи, где соседей немного. */
@@ -206,13 +211,18 @@ export function PartnerMap({
           dx = center.x - member.point.x;
           dy = center.y - member.point.y;
         } else if (spread) {
+          // Радиус такой, чтобы соседние метки не касались: хорда между ними ≥ SPREAD_GAP_PX
           const angle = (index / group.length) * Math.PI * 2 - Math.PI / 2;
-          const radius = 34 + group.length * 6;
+          const radius = Math.max(44, SPREAD_GAP_PX / 2 / Math.sin(Math.PI / group.length));
           dx = center.x - member.point.x + Math.cos(angle) * radius;
           dy = center.y - member.point.y + Math.sin(angle) * radius;
         }
+        const fanned = spread && Math.hypot(dx, dy) > 4;
+        element.classList.toggle("is-spread", fanned);
         element.style.setProperty("--dx", `${dx.toFixed(1)}px`);
         element.style.setProperty("--dy", `${dy.toFixed(1)}px`);
+        element.style.setProperty("--leg", `${Math.hypot(dx, dy).toFixed(1)}px`);
+        element.style.setProperty("--leg-angle", `${Math.atan2(dy, dx).toFixed(4)}rad`);
       });
       if (group.length < 2 || spread) continue;
 
@@ -344,7 +354,7 @@ export function PartnerMap({
     if (!ready || !instance) return;
     placed.forEach(({ partner, coords }, index) => {
       const element = pinElement(partner, index, () => select.current(partner));
-      const marker = new Marker({ element, anchor: "bottom" }).setLngLat(coords).addTo(instance);
+      const marker = new Marker({ element, anchor: "bottom", offset: PIN_TIP_OFFSET }).setLngLat(coords).addTo(instance);
       markers.current.set(partner.id, marker);
     });
     reclusterRef.current();
