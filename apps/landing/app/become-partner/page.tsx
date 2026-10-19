@@ -5,6 +5,7 @@ import { SiteHeader } from "../_components/site-header";
 import { ScrollToHash } from "../_components/scroll-to-hash";
 import { models } from "../_data/models";
 import { LAUNCH_OFFER } from "../_data/business-pricing";
+import { getPublicPartners } from "../_data/partners-api";
 import { PAGE_SEO, openGraph } from "../_data/seo";
 import { CITY, EMAIL, OCTOPAY_URL, PARTNER_MAIL, PHONE, PHONE_HREF } from "../_data/site";
 import { PartnerForm } from "./partner-form";
@@ -78,7 +79,13 @@ const faq = [
   },
 ];
 
-export default function BecomePartnerPage() {
+export default async function BecomePartnerPage() {
+  // Мест сервер не считает: занятыми считаем заведения каталога на тарифах акции (обновляется
+  // вместе с каталогом). Каталог не ответил — показываем просто «Мест по акции: 200».
+  const partners = await getPublicPartners();
+  const taken = partners.filter((partner) => LAUNCH_OFFER.tariffs.some((tariff) => tariff === partner.loalTariff)).length;
+  const seatsLeft = partners.length > 0 ? Math.max(0, LAUNCH_OFFER.seats - taken) : null;
+
   return (
     <>
       <SiteHeader audience="business" />
@@ -137,7 +144,7 @@ export default function BecomePartnerPage() {
                     </p>
                   )}
                   <h3 className="display text-[clamp(1.57rem,2.36vw,2.07rem)]">{m.title}</h3>
-                  <TariffPrice priceKgs={m.priceKgs} launchOffer={m.launchOffer} featured={m.featured} />
+                  <TariffPrice priceKgs={m.priceKgs} launchOffer={m.launchOffer} featured={m.featured} seatsLeft={seatsLeft} />
                   <p className="mt-6 leading-relaxed">{m.benefit}</p>
                   {m.better && <p className="mt-3 font-bold leading-snug">{m.better}</p>}
                   <ul className="mt-6 flex flex-1 flex-col gap-3">

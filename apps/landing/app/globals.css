@@ -507,3 +507,19 @@ html {
     opacity: 1;
   }
 }
+
+/* Счётчик мест по акции: полоса заполняется слева при загрузке страницы */
+.seat-fill {
+  transform-origin: left center;
+  animation: seat-fill 1.1s cubic-bezier(0.2, 0.9, 0.3, 1) 0.3s both;
+}
+@keyframes seat-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seat-fill {
+    animation: none;
+  }
+}
