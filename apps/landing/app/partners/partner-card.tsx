@@ -138,40 +138,52 @@ const subtitle = (partner: PublicPartner) =>
   [partner.category, partner.tariff === "octopay" ? "оплата в OctōPAY" : null].filter(Boolean).join(" · ") || "Бишкек";
 
 /**
- * Видео в карточке каталога: значок «Видео» и тихий ролик по наведению мыши. Сам ролик
- * подгружается только при наведении — каталог не тянет десятки видео разом; на телефоне и при
- * «меньше движения» остаётся обложка со значком.
+ * Видео в карточке каталога — живое превью: ролик тихо играет, пока карточка на экране, и встаёт
+ * на паузу, когда её прокрутили. Файл не грузится, пока карточку не увидели, — каталог не тянет
+ * десятки роликов разом. При «меньше движения» и режиме экономии трафика остаётся обложка со значком.
  */
 function CardVideo({ partner }: { partner: PublicPartner }) {
   const video = partner.videos?.[0];
-  const [playing, setPlaying] = useState(false);
+  const [seen, setSeen] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [ready, setReady] = useState(false);
   const host = useRef<HTMLSpanElement>(null);
+  const player = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    const card = host.current?.closest("a");
-    if (!card || !video) return;
-    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    // Следим за обложкой, а не за всей карточкой: прайм-карточка на телефоне выше экрана
+    const cover = host.current?.parentElement;
+    if (!cover || !video) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const start = () => setPlaying(true);
-    const stop = () => setPlaying(false);
-    card.addEventListener("mouseenter", start);
-    card.addEventListener("mouseleave", stop);
-    return () => {
-      card.removeEventListener("mouseenter", start);
-      card.removeEventListener("mouseleave", stop);
-    };
+    if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const inView = Boolean(entry?.isIntersecting);
+        setVisible(inView);
+        if (inView) setSeen(true);
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(cover);
+    return () => observer.disconnect();
   }, [video]);
+
+  useEffect(() => {
+    const element = player.current;
+    if (!element) return;
+    if (visible) void element.play().catch(() => undefined);
+    else element.pause();
+  }, [visible, seen]);
 
   if (!video) return null;
   return (
     <span ref={host} aria-hidden="true">
-      {playing && (
+      {seen && (
         <video
           ref={(element) => {
+            player.current = element;
             // React не пишет muted в разметку — без него Safari не запускает ролик сам
-            if (!element) return;
-            element.muted = true;
-            void element.play().catch(() => undefined);
+            if (element) element.muted = true;
           }}
           src={video.url}
           poster={video.posterUrl ?? undefined}
@@ -179,11 +191,14 @@ function CardVideo({ partner }: { partner: PublicPartner }) {
           loop
           playsInline
           autoPlay
+          preload="auto"
           onLoadedMetadata={(event) => {
             const element = event.currentTarget;
             if (element.videoHeight > element.videoWidth) element.classList.replace("object-cover", "object-contain");
           }}
-          className="absolute inset-0 h-full w-full object-cover motion-safe:animate-[fade-in_300ms_ease-out]"
+          onPlaying={() => setReady(true)}
+          // Проявляется, когда пошли кадры: до этого видна обложка, а не чёрный прямоугольник
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`}
         />
       )}
       <span className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-graphite/80 px-2.5 py-1 text-xs font-bold text-white sm:bottom-3 sm:left-3">
@@ -242,6 +257,7 @@ export function PrimeCard({ partner, label }: { partner: PublicPartner; label: s
           large
           className="aspect-[16/10] w-full transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:group-hover:scale-100 md:aspect-auto md:h-full md:min-h-[340px]"
         />
+        <CardVideo partner={partner} />
         <span className="absolute top-4 left-4 rounded-full bg-paper px-3 py-1 text-sm font-bold text-graphite">
           {label}
         </span>
