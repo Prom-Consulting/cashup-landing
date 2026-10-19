@@ -8,7 +8,7 @@ const listeners = new Set<() => void>();
 
 function isHidden() {
   try {
-    return localStorage.getItem(HIDDEN_KEY) === "1";
+    return sessionStorage.getItem(HIDDEN_KEY) === "1";
   } catch {
     return false;
   }
@@ -16,8 +16,9 @@ function isHidden() {
 
 /**
  * Полоса над шапкой на всю ширину: приложение Loal в App Store. Живёт в корневом макете — не
- * пересоздаётся при переходах. Текст в HTML (видно без JS); закрыли — на этом устройстве больше
- * не показываем. Маленький скрипт прячет закрытую полосу ещё до отрисовки, чтобы она не мелькала.
+ * пересоздаётся при переходах. Текст в HTML (видно без JS); закрыли — не показываем до конца
+ * визита (sessionStorage), в новый заход полоса снова на месте. Маленький скрипт прячет закрытую
+ * полосу ещё до отрисовки, чтобы она не мелькала при переходах с перезагрузкой.
  */
 export function AppBanner() {
   const hidden = useSyncExternalStore(
@@ -32,9 +33,9 @@ export function AppBanner() {
 
   const hide = () => {
     try {
-      localStorage.setItem(HIDDEN_KEY, "1");
+      sessionStorage.setItem(HIDDEN_KEY, "1");
     } catch {
-      // Не запомнили — скроем хотя бы до перезагрузки
+      // Не запомнили — скроем хотя бы до перезагрузки страницы
     }
     listeners.forEach((notify) => notify());
   };
@@ -43,7 +44,7 @@ export function AppBanner() {
     <div id="app-banner" suppressHydrationWarning className="relative z-50 shrink-0 bg-graphite text-paper">
       <script
         dangerouslySetInnerHTML={{
-          __html: `try{if(localStorage.getItem("${HIDDEN_KEY}")==="1")document.getElementById("app-banner").hidden=true}catch(e){}`,
+          __html: `try{if(sessionStorage.getItem("${HIDDEN_KEY}")==="1")document.getElementById("app-banner").hidden=true}catch(e){}`,
         }}
       />
       <div className="mx-auto flex w-full max-w-[1512px] items-center gap-3 px-5 py-2.5 sm:px-12">

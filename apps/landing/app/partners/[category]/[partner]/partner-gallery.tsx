@@ -45,8 +45,8 @@ function SoundHint() {
 }
 
 /**
- * Тихий ролик на обложке — в своей форме, без обрезки: вертикальный стоит вертикальным, по высоте
- * не больше трёх четвертей экрана. React не пишет `muted` в HTML страницы, и Safari без него не
+ * Тихий ролик на обложке: горизонтальный блок, ролик увеличен по центру и заполняет его (вертикальный
+ * тоже), целиком — по нажатию, в окне просмотра. React не пишет `muted` в HTML страницы, и Safari без него не
  * запускает видео сам — ставим свойство и запускаем вручную.
  */
 function CoverVideo({ src, poster, autoPlay }: { src: string; poster: string | null; autoPlay: boolean }) {
@@ -65,13 +65,13 @@ function CoverVideo({ src, poster, autoPlay }: { src: string; poster: string | n
       playsInline
       autoPlay={autoPlay}
       preload={autoPlay ? "auto" : "metadata"}
-      className="block h-auto max-h-[75vh] w-auto max-w-full"
+      className="block aspect-[16/10] w-full object-cover object-center"
     />
   );
 }
 
 /**
- * Фото и видео заведения: обложка в полный размер (без обрезки) и лента миниатюр. Видео на обложке тихо играет по кругу (если
+ * Фото и видео заведения: обложка горизонтальным блоком и лента миниатюр. Видео на обложке тихо играет по кругу (если
  * человек не просил «меньше движения»), по нажатию всё открывается в модалке поверх страницы —
  * видео со звуком и управлением, листание стрелками и клавишами ← →. Фото и видео остаются в HTML.
  */
@@ -112,7 +112,7 @@ export function PartnerGallery({ partner }: { partner: PublicPartner }) {
         type="button"
         onClick={() => open(0)}
         aria-label={cover.kind === "video" ? `Смотреть видео ${partner.name}` : `Открыть фото ${partner.name}`}
-        className="relative mx-auto block w-fit max-w-full cursor-zoom-in overflow-hidden rounded-[28px] bg-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame"
+        className="relative block w-full cursor-zoom-in overflow-hidden rounded-[28px] bg-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame"
       >
         {cover.kind === "video" ? (
           <>
@@ -121,7 +121,7 @@ export function PartnerGallery({ partner }: { partner: PublicPartner }) {
           </>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover.src} alt={`${partner.name} — фото`} decoding="async" className="block h-auto max-h-[75vh] w-auto max-w-full" />
+          <img src={cover.src} alt={`${partner.name} — фото`} decoding="async" className="block aspect-[16/10] w-full object-cover object-center" />
         )}
       </button>
 
