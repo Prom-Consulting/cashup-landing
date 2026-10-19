@@ -75,22 +75,30 @@ export default function LocationPicker({
   change.current = onChange;
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState("");
+  // Старый телефон или браузер без WebGL2: карта не создаётся, форма работает без неё
+  const [noMap, setNoMap] = useState(false);
 
   useEffect(() => {
     if (!container.current) return;
-    const instance = new MapLibreMap({
-      container: container.current,
-      style: mapStyle,
-      center: value ? [value.lng, value.lat] : CITY_CENTER,
-      zoom: value ? 15.5 : 11.5,
-      attributionControl: { compact: true },
-      cooperativeGestures: true,
-      locale: {
-        "CooperativeGesturesHandler.WindowsHelpText": "Чтобы приблизить карту, зажмите Ctrl и прокрутите",
-        "CooperativeGesturesHandler.MacHelpText": "Чтобы приблизить карту, зажмите ⌘ и прокрутите",
-        "CooperativeGesturesHandler.MobileHelpText": "Двигайте карту двумя пальцами",
-      },
-    });
+    let instance: MapLibreMap;
+    try {
+      instance = new MapLibreMap({
+        container: container.current,
+        style: mapStyle,
+        center: value ? [value.lng, value.lat] : CITY_CENTER,
+        zoom: value ? 15.5 : 11.5,
+        attributionControl: { compact: true },
+        cooperativeGestures: true,
+        locale: {
+          "CooperativeGesturesHandler.WindowsHelpText": "Чтобы приблизить карту, зажмите Ctrl и прокрутите",
+          "CooperativeGesturesHandler.MacHelpText": "Чтобы приблизить карту, зажмите ⌘ и прокрутите",
+          "CooperativeGesturesHandler.MobileHelpText": "Двигайте карту двумя пальцами",
+        },
+      });
+    } catch {
+      setNoMap(true);
+      return;
+    }
     instance.on("click", (event) => change.current({ lat: round(event.lngLat.lat), lng: round(event.lngLat.lng) }));
     map.current = instance;
     return () => {
@@ -148,7 +156,12 @@ export default function LocationPicker({
     <div className="space-y-3">
       <div className="relative overflow-hidden rounded-2xl border-2 border-smoke">
         <div ref={container} className="h-[300px] w-full sm:h-[340px]" aria-label="Карта: нажмите, чтобы отметить заведение" />
-        {!value && (
+        {noMap && (
+          <p className="absolute inset-0 grid place-items-center bg-cream p-6 text-center text-sm font-medium">
+            Этот браузер не показывает карту. Вставьте ссылку на заведение в 2ГИС — точку возьмём из неё.
+          </p>
+        )}
+        {!value && !noMap && (
           <p className="pointer-events-none absolute inset-x-3 top-3 rounded-full bg-paper/95 px-4 py-2 text-center text-sm font-medium shadow">
             Нажмите на карту там, где находится заведение
           </p>
@@ -157,7 +170,7 @@ export default function LocationPicker({
           <button
             type="button"
             onClick={locate}
-            disabled={disabled || locating}
+            disabled={disabled || locating || noMap}
             className="rounded-full bg-paper px-4 py-2.5 text-sm font-bold shadow-[0_8px_24px_rgb(22_21_21/0.18)] transition-colors hover:bg-graphite hover:text-paper disabled:opacity-60"
           >
             <span className="inline-flex items-center gap-1.5">

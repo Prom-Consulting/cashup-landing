@@ -130,6 +130,8 @@ export function PartnerMap({
   const markers = useRef(new Map<string, Marker>());
   const [hasSize, setHasSize] = useState(false);
   const [ready, setReady] = useState(false);
+  // Браузер без WebGL2 (старый телефон, часть ботов): карты нет, остаётся каталог
+  const [noMap, setNoMap] = useState(false);
   const select = useRef(onSelect);
   select.current = onSelect;
   const paddingRef = useRef(padding);
@@ -294,30 +296,36 @@ export function PartnerMap({
     const points = placedRef.current;
     const lngs = points.map(({ coords }) => coords[0]);
     const lats = points.map(({ coords }) => coords[1]);
-    const instance = new MapLibreMap({
-      container: container.current,
-      style,
-      // Сразу загружаем нужный район: без облёта и запросов тайлов промежуточных масштабов.
-      center: CITY_CENTER,
-      zoom: 12.2,
-      ...(points.length > 0
-        ? {
-            bounds: [
-              [Math.min(...lngs), Math.min(...lats)],
-              [Math.max(...lngs), Math.max(...lats)],
-            ] as [[number, number], [number, number]],
-            fitBoundsOptions: { padding: paddingRef.current, maxZoom: points.length === 1 ? 15 : 14.5, duration: 0 },
-          }
-        : {}),
-      // Храним уже просмотренные тайлы при переключении на каталог и обратно.
-      maxTileCacheSize: 64,
-      pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
-      attributionControl: { compact: true },
-      dragRotate: false,
-      pitchWithRotate: false,
-      // Карта на весь экран: колесо и щипок тачпада масштабируют карту, а не страницу
-      scrollZoom: true,
-    });
+    let instance: MapLibreMap;
+    try {
+      instance = new MapLibreMap({
+        container: container.current,
+        style,
+        // Сразу загружаем нужный район: без облёта и запросов тайлов промежуточных масштабов.
+        center: CITY_CENTER,
+        zoom: 12.2,
+        ...(points.length > 0
+          ? {
+              bounds: [
+                [Math.min(...lngs), Math.min(...lats)],
+                [Math.max(...lngs), Math.max(...lats)],
+              ] as [[number, number], [number, number]],
+              fitBoundsOptions: { padding: paddingRef.current, maxZoom: points.length === 1 ? 15 : 14.5, duration: 0 },
+            }
+          : {}),
+        // Храним уже просмотренные тайлы при переключении на каталог и обратно.
+        maxTileCacheSize: 64,
+        pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+        attributionControl: { compact: true },
+        dragRotate: false,
+        pitchWithRotate: false,
+        // Карта на весь экран: колесо и щипок тачпада масштабируют карту, а не страницу
+        scrollZoom: true,
+      });
+    } catch {
+      setNoMap(true);
+      return;
+    }
     instance.touchZoomRotate.disableRotation();
     instance.scrollZoom.setWheelZoomRate(1 / 300);
     instance.scrollZoom.setZoomRate(1 / 80);
@@ -411,6 +419,11 @@ export function PartnerMap({
     <>
       <div className="absolute inset-0 touch-none">
         <div ref={container} className="map-osm h-full w-full" />
+        {noMap && (
+          <p className="absolute inset-0 grid place-items-center bg-cream p-6 text-center text-base font-medium">
+            Этот браузер не показывает карту. Все заведения есть в «Каталоге».
+          </p>
+        )}
       </div>
       <div
         role="group"
