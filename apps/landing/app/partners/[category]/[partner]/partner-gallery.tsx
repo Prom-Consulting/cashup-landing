@@ -2,6 +2,7 @@
 
 import type { PublicPartner } from "@loal/api";
 import { useEffect, useRef, useState } from "react";
+import { FramedImage } from "../../partner-card";
 
 type Media = { kind: "photo"; src: string } | { kind: "video"; src: string; poster: string | null };
 
@@ -40,6 +41,40 @@ function SoundHint() {
         <path d="m16 9 5 6M21 9l-5 6" />
       </svg>
       Смотреть со звуком
+    </span>
+  );
+}
+
+/**
+ * Тихий ролик на обложке. React не пишет `muted` в HTML страницы, и Safari без него не запускает
+ * видео сам — ставим свойство и запускаем вручную. Вертикальный ролик (снят на телефон) не режем:
+ * он стоит по центру целиком, а по бокам — размытая обложка.
+ */
+function CoverVideo({ src, poster, autoPlay }: { src: string; poster: string | null; autoPlay: boolean }) {
+  const [portrait, setPortrait] = useState(false);
+  return (
+    <span className="relative block aspect-[16/10] w-full overflow-hidden bg-graphite">
+      {portrait && poster && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={poster} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-2xl" />
+      )}
+      <video
+        ref={(video) => {
+          if (!video) return;
+          video.muted = true;
+          if (autoPlay && video.paused) void video.play().catch(() => undefined);
+        }}
+        // Без обложки браузер рисует пустой прямоугольник — #t просит показать кадр
+        src={poster ? src : `${src}#t=0.1`}
+        poster={poster ?? undefined}
+        muted
+        loop
+        playsInline
+        autoPlay={autoPlay}
+        preload={autoPlay ? "auto" : "metadata"}
+        onLoadedMetadata={(event) => setPortrait(event.currentTarget.videoHeight > event.currentTarget.videoWidth)}
+        className={`absolute inset-0 h-full w-full ${portrait ? "object-contain" : "object-cover"}`}
+      />
     </span>
   );
 }
@@ -90,21 +125,11 @@ export function PartnerGallery({ partner }: { partner: PublicPartner }) {
       >
         {cover.kind === "video" ? (
           <>
-            <video
-              src={cover.src}
-              poster={cover.poster ?? undefined}
-              muted
-              loop
-              playsInline
-              autoPlay={!calm}
-              preload="metadata"
-              className="aspect-[16/10] w-full object-cover"
-            />
+            <CoverVideo src={cover.src} poster={cover.poster} autoPlay={!calm} />
             {calm ? <PlayBadge large /> : <SoundHint />}
           </>
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover.src} alt={`${partner.name} — фото`} decoding="async" className="aspect-[16/10] w-full object-cover" />
+          <FramedImage src={cover.src} alt={`${partner.name} — фото`} className="aspect-[16/10] w-full" />
         )}
       </button>
 
@@ -173,7 +198,8 @@ export function PartnerGallery({ partner }: { partner: PublicPartner }) {
                     void video.play().catch(() => undefined);
                   });
                 }}
-                className="aspect-[4/3] max-h-[78vh] w-full rounded-[24px] bg-graphite object-contain"
+                // Своя форма ролика: вертикальный открывается вертикальным, по центру
+                className="max-h-[80vh] w-auto max-w-full self-center rounded-[24px] bg-graphite"
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element

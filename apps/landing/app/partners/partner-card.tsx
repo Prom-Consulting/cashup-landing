@@ -22,15 +22,43 @@ export function PartnerCover({
 }) {
   // Без фото обложкой служит кадр из видео
   const photo = partner.photos[0] ?? partner.videos?.find((video) => video.posterUrl)?.posterUrl;
-  if (photo)
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={photo} alt={`${partner.name} — фото`} loading="lazy" decoding="async" className={`object-cover ${className}`} />;
+  if (photo) return <FramedImage src={photo} alt={`${partner.name} — фото`} className={className} />;
   return (
     <span
       aria-hidden="true"
       className={`relative grid place-items-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,#fff_0,var(--cream)_70%)] ${className}`}
     >
       <LogoTile partner={partner} className={large ? "h-[58%]" : "h-[62%]"} />
+    </span>
+  );
+}
+
+/**
+ * Картинка в горизонтальной рамке. Вертикальную (кадр из ролика на телефон) не режем по лицу:
+ * она стоит по центру целиком, а по бокам — её же размытая копия, без чёрных полос.
+ * Картинка лежит поверх рамки абсолютно, поэтому высоту рамки задаёт раскладка, а не фото.
+ */
+export function FramedImage({ src, alt, className = "" }: { src: string; alt: string; className?: string }) {
+  const [portrait, setPortrait] = useState(false);
+  const measure = (image: HTMLImageElement | null) => {
+    if (image?.complete && image.naturalWidth) setPortrait(image.naturalHeight > image.naturalWidth * 1.05);
+  };
+  return (
+    <span className={`relative block overflow-hidden bg-graphite ${className}`}>
+      {portrait && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-2xl" />
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        ref={measure}
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        onLoad={(event) => measure(event.currentTarget)}
+        className={`absolute inset-0 h-full w-full ${portrait ? "object-contain" : "object-cover"}`}
+      />
     </span>
   );
 }
@@ -139,12 +167,22 @@ function CardVideo({ partner }: { partner: PublicPartner }) {
     <span ref={host} aria-hidden="true">
       {playing && (
         <video
+          ref={(element) => {
+            // React не пишет muted в разметку — без него Safari не запускает ролик сам
+            if (!element) return;
+            element.muted = true;
+            void element.play().catch(() => undefined);
+          }}
           src={video.url}
           poster={video.posterUrl ?? undefined}
           muted
           loop
           playsInline
           autoPlay
+          onLoadedMetadata={(event) => {
+            const element = event.currentTarget;
+            if (element.videoHeight > element.videoWidth) element.classList.replace("object-cover", "object-contain");
+          }}
           className="absolute inset-0 h-full w-full object-cover motion-safe:animate-[fade-in_300ms_ease-out]"
         />
       )}
