@@ -3,6 +3,7 @@ import { Nunito, Nunito_Sans } from "next/font/google";
 import "./globals.css";
 import { JsonLd } from "./_components/json-ld";
 import { EMAIL, PHONE, SITE_URL, SOCIAL_LINKS } from "./_data/site";
+import { AppBanner } from "./_components/app-banner";
 
 // Шрифты брендбука Loal 2026: Nunito Sans — заголовки, Nunito — основной текст.
 // cyrillic-ext нужен кыргызскому: Ң, Ө, Ү.
@@ -74,6 +75,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col">
         <JsonLd data={organizationLd} />
+        <AppBanner />
         {children}
       </body>
     </html>

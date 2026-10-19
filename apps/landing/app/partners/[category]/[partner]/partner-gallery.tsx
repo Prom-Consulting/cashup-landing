@@ -2,7 +2,6 @@
 
 import type { PublicPartner } from "@loal/api";
 import { useEffect, useRef, useState } from "react";
-import { FramedImage } from "../../partner-card";
 
 type Media = { kind: "photo"; src: string } | { kind: "video"; src: string; poster: string | null };
 
@@ -46,41 +45,33 @@ function SoundHint() {
 }
 
 /**
- * Тихий ролик на обложке. React не пишет `muted` в HTML страницы, и Safari без него не запускает
- * видео сам — ставим свойство и запускаем вручную. Вертикальный ролик (снят на телефон) не режем:
- * он стоит по центру целиком, а по бокам — размытая обложка.
+ * Тихий ролик на обложке — в своей форме, без обрезки: вертикальный стоит вертикальным, по высоте
+ * не больше трёх четвертей экрана. React не пишет `muted` в HTML страницы, и Safari без него не
+ * запускает видео сам — ставим свойство и запускаем вручную.
  */
 function CoverVideo({ src, poster, autoPlay }: { src: string; poster: string | null; autoPlay: boolean }) {
-  const [portrait, setPortrait] = useState(false);
   return (
-    <span className="relative block aspect-[16/10] w-full overflow-hidden bg-graphite">
-      {portrait && poster && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={poster} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-2xl" />
-      )}
-      <video
-        ref={(video) => {
-          if (!video) return;
-          video.muted = true;
-          if (autoPlay && video.paused) void video.play().catch(() => undefined);
-        }}
-        // Без обложки браузер рисует пустой прямоугольник — #t просит показать кадр
-        src={poster ? src : `${src}#t=0.1`}
-        poster={poster ?? undefined}
-        muted
-        loop
-        playsInline
-        autoPlay={autoPlay}
-        preload={autoPlay ? "auto" : "metadata"}
-        onLoadedMetadata={(event) => setPortrait(event.currentTarget.videoHeight > event.currentTarget.videoWidth)}
-        className={`absolute inset-0 h-full w-full ${portrait ? "object-contain" : "object-cover"}`}
-      />
-    </span>
+    <video
+      ref={(video) => {
+        if (!video) return;
+        video.muted = true;
+        if (autoPlay && video.paused) void video.play().catch(() => undefined);
+      }}
+      // Без обложки браузер рисует пустой прямоугольник — #t просит показать кадр
+      src={poster ? src : `${src}#t=0.1`}
+      poster={poster ?? undefined}
+      muted
+      loop
+      playsInline
+      autoPlay={autoPlay}
+      preload={autoPlay ? "auto" : "metadata"}
+      className="block h-auto max-h-[75vh] w-auto max-w-full"
+    />
   );
 }
 
 /**
- * Фото и видео заведения: обложка и лента миниатюр. Видео на обложке тихо играет по кругу (если
+ * Фото и видео заведения: обложка в полный размер (без обрезки) и лента миниатюр. Видео на обложке тихо играет по кругу (если
  * человек не просил «меньше движения»), по нажатию всё открывается в модалке поверх страницы —
  * видео со звуком и управлением, листание стрелками и клавишами ← →. Фото и видео остаются в HTML.
  */
@@ -121,7 +112,7 @@ export function PartnerGallery({ partner }: { partner: PublicPartner }) {
         type="button"
         onClick={() => open(0)}
         aria-label={cover.kind === "video" ? `Смотреть видео ${partner.name}` : `Открыть фото ${partner.name}`}
-        className="relative block cursor-zoom-in overflow-hidden rounded-[28px] bg-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame"
+        className="relative mx-auto block w-fit max-w-full cursor-zoom-in overflow-hidden rounded-[28px] bg-graphite focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame"
       >
         {cover.kind === "video" ? (
           <>
@@ -129,7 +120,8 @@ export function PartnerGallery({ partner }: { partner: PublicPartner }) {
             {calm ? <PlayBadge large /> : <SoundHint />}
           </>
         ) : (
-          <FramedImage src={cover.src} alt={`${partner.name} — фото`} className="aspect-[16/10] w-full" />
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={cover.src} alt={`${partner.name} — фото`} decoding="async" className="block h-auto max-h-[75vh] w-auto max-w-full" />
         )}
       </button>
 

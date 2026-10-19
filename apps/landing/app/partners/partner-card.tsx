@@ -34,31 +34,15 @@ export function PartnerCover({
 }
 
 /**
- * Картинка в горизонтальной рамке. Вертикальную (кадр из ролика на телефон) не режем по лицу:
- * она стоит по центру целиком, а по бокам — её же размытая копия, без чёрных полос.
- * Картинка лежит поверх рамки абсолютно, поэтому высоту рамки задаёт раскладка, а не фото.
+ * Картинка в рамке карточки: заполняет рамку целиком, лишнее обрезается — все карточки одной
+ * формы, вертикальное фото тоже. Картинка лежит поверх рамки абсолютно, поэтому высоту рамки
+ * задаёт раскладка, а не фото. Целиком фото и видео видны на странице заведения.
  */
 export function FramedImage({ src, alt, className = "" }: { src: string; alt: string; className?: string }) {
-  const [portrait, setPortrait] = useState(false);
-  const measure = (image: HTMLImageElement | null) => {
-    if (image?.complete && image.naturalWidth) setPortrait(image.naturalHeight > image.naturalWidth * 1.05);
-  };
   return (
     <span className={`relative block overflow-hidden bg-graphite ${className}`}>
-      {portrait && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-2xl" />
-      )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        ref={measure}
-        src={src}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        onLoad={(event) => measure(event.currentTarget)}
-        className={`absolute inset-0 h-full w-full ${portrait ? "object-contain" : "object-cover"}`}
-      />
+      <img src={src} alt={alt} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
     </span>
   );
 }
@@ -142,7 +126,7 @@ const subtitle = (partner: PublicPartner) =>
  * на паузу, когда её прокрутили. Файл не грузится, пока карточку не увидели, — каталог не тянет
  * десятки роликов разом. При «меньше движения» и режиме экономии трафика остаётся обложка со значком.
  */
-function CardVideo({ partner }: { partner: PublicPartner }) {
+function CardVideo({ partner, badge = true }: { partner: PublicPartner; badge?: boolean }) {
   const video = partner.videos?.[0];
   const [seen, setSeen] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -192,21 +176,19 @@ function CardVideo({ partner }: { partner: PublicPartner }) {
           playsInline
           autoPlay
           preload="auto"
-          onLoadedMetadata={(event) => {
-            const element = event.currentTarget;
-            if (element.videoHeight > element.videoWidth) element.classList.replace("object-cover", "object-contain");
-          }}
           onPlaying={() => setReady(true)}
           // Проявляется, когда пошли кадры: до этого видна обложка, а не чёрный прямоугольник
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`}
         />
       )}
-      <span className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-graphite/80 px-2.5 py-1 text-xs font-bold text-white sm:bottom-3 sm:left-3">
-        <svg viewBox="0 0 24 24" className="size-3" fill="currentColor">
-          <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z" />
-        </svg>
-        Видео
-      </span>
+      {badge && (
+        <span className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-graphite/80 px-2.5 py-1 text-xs font-bold text-white sm:top-3 sm:left-3">
+          <svg viewBox="0 0 24 24" className="size-3" fill="currentColor">
+            <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z" />
+          </svg>
+          Видео
+        </span>
+      )}
     </span>
   );
 }
@@ -257,7 +239,8 @@ export function PrimeCard({ partner, label }: { partner: PublicPartner; label: s
           large
           className="aspect-[16/10] w-full transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:group-hover:scale-100 md:aspect-auto md:h-full md:min-h-[340px]"
         />
-        <CardVideo partner={partner} />
+        {/* Значок «Видео» не ставим: угол занят подписью карточки, а ролик и так играет */}
+        <CardVideo partner={partner} badge={false} />
         <span className="absolute top-4 left-4 rounded-full bg-paper px-3 py-1 text-sm font-bold text-graphite">
           {label}
         </span>
