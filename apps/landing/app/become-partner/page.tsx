@@ -4,6 +4,7 @@ import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
 import { ScrollToHash } from "../_components/scroll-to-hash";
 import { models } from "../_data/models";
+import { LAUNCH_OFFER } from "../_data/business-pricing";
 import { PAGE_SEO, openGraph } from "../_data/seo";
 import { CITY, EMAIL, OCTOPAY_URL, PARTNER_MAIL, PHONE, PHONE_HREF } from "../_data/site";
 import { PartnerForm } from "./partner-form";
@@ -23,7 +24,7 @@ const steps = [
   },
   {
     title: "Получаете кабинет",
-    text: "Регистрация бесплатная. Подписку на выбранный тариф оплачиваете в кабинете Loal — после проверки заведения.",
+    text: `Регистрация бесплатная. Первым ${LAUNCH_OFFER.seats} заведениям на тарифах «Больше клиентов» и «Ещё больше клиентов» — ${LAUNCH_OFFER.months} месяцев без оплаты.`,
   },
   {
     title: "Настраиваете процент",
@@ -57,7 +58,7 @@ const gains = [
 const faq = [
   {
     q: "Когда заведение появится в каталоге?",
-    a: "После проверки заведения и при оплаченной подписке. Если подписка не продлена, заведение скрывается из каталога до оплаты.",
+    a: "После проверки заведения и при оплаченной подписке. Заведения, получившие место по акции, работают бесплатно весь срок акции. Если подписка не продлена, заведение скрывается из каталога до оплаты.",
   },
   {
     q: "Чем тарифы отличаются друг от друга?",
@@ -119,6 +120,9 @@ export default function BecomePartnerPage() {
         <section className="bg-graphite text-paper">
           <div className="mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-24">
             <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)]">Выберите тариф</h2>
+            <p className="mt-4 max-w-[60ch] text-lg opacity-85">
+              Первые {LAUNCH_OFFER.seats} заведений на двух первых тарифах работают {LAUNCH_OFFER.months} месяцев бесплатно.
+            </p>
             <div className="mt-12 grid gap-5 xl:grid-cols-3 xl:items-stretch">
               {models("#form").map((m) => (
                 <article
@@ -127,8 +131,13 @@ export default function BecomePartnerPage() {
                     m.featured ? "bg-flame-ink text-paper xl:-my-4 xl:py-14" : "bg-paper text-graphite"
                   }`}
                 >
+                  {m.launchOffer && (
+                    <p className="absolute -top-4 left-8 rotate-[-3deg] rounded-full bg-amber px-4 py-1.5 text-sm font-bold text-graphite sm:left-10">
+                      {LAUNCH_OFFER.months} мес. бесплатно
+                    </p>
+                  )}
                   <h3 className="display text-[clamp(1.57rem,2.36vw,2.07rem)]">{m.title}</h3>
-                  <TariffPrice priceKgs={m.priceKgs} featured={m.featured} />
+                  <TariffPrice priceKgs={m.priceKgs} launchOffer={m.launchOffer} featured={m.featured} />
                   <p className="mt-6 leading-relaxed">{m.benefit}</p>
                   {m.better && <p className="mt-3 font-bold leading-snug">{m.better}</p>}
                   <ul className="mt-6 flex flex-1 flex-col gap-3">
@@ -195,7 +204,7 @@ export default function BecomePartnerPage() {
             <div>
               <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)] brand-gradient-text">Заявка</h2>
               <p className="mt-6 max-w-[42ch] text-lg leading-relaxed">
-                Выберите тариф и подтвердите телефон — регистрация бесплатная. Подписку оплачивают в кабинете Loal. Если нужна помощь, напишите нам.
+                Выберите тариф и подтвердите телефон — регистрация бесплатная. Подписку оплачивают в кабинете Loal, а первым {LAUNCH_OFFER.seats} заведениям на двух первых тарифах она не нужна {LAUNCH_OFFER.months} месяцев. Если нужна помощь, напишите нам.
               </p>
               <ul className="mt-8 flex flex-col gap-3 text-lg">
                 <li>

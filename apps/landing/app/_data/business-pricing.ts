@@ -8,6 +8,16 @@ export const BUSINESS_MONTHLY_PRICES = {
 
 export type BusinessTariff = keyof typeof BUSINESS_MONTHLY_PRICES;
 
+/**
+ * Акция запуска: первым местам на двух нижних тарифах — бесплатные месяцы. Сервер её не считает:
+ * месяцы выдаёт агентство («Подписка заведения» в карточке), поэтому мест здесь не показываем.
+ */
+export const LAUNCH_OFFER = {
+  seats: 200,
+  months: 36,
+  tariffs: ["more_clients", "even_more_clients"] as BusinessTariff[],
+};
+
 const money = new Intl.NumberFormat("ru-RU");
 
 export const formatSom = (value: number) => `${money.format(value)} сом`;
