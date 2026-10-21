@@ -51,7 +51,12 @@ function details(entry: AuditLog): string[] {
   switch (entry.action) {
     case "promo_code.created":
     case "promo_code.redeemed":
-      return [str(diff.code), months(diff.months) && `+${months(diff.months)}`].filter(Boolean) as string[];
+      return [
+        str(diff.code),
+        months(diff.months) && `+${months(diff.months)}`,
+        typeof diff.bonusAmount === "number" &&
+          `+${diff.bonusAmount.toLocaleString("ru-RU")} бонусов${typeof diff.bonusDays === "number" ? ` на ${diff.bonusDays} дн.` : ""}`,
+      ].filter(Boolean) as string[];
     case "promo_code.updated":
       return [diff.active === false ? "выключен" : null].filter(Boolean) as string[];
     case "merchant.onboarded": {

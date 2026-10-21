@@ -10,7 +10,7 @@ import { z } from "zod";
 import dynamic from "next/dynamic";
 import { StorefrontImages } from "./storefront-images";
 import type { Point } from "./location-picker";
-import { toPhoneDigits, coordsFrom2gis, merchantProfileFormSchema } from "@loal/api";
+import { PARTNER_AUDIENCES, toPhoneDigits, coordsFrom2gis, merchantProfileFormSchema, type PartnerAudienceId } from "@loal/api";
 import { categories } from "../_data/categories";
 import { businessPrice, LAUNCH_OFFER, type BusinessTariff } from "../_data/business-pricing";
 import { API_URL, EMAIL, OCTOPAY_URL, PARTNER_APP_URL, PHONE, PHONE_HREF } from "../_data/site";
@@ -165,6 +165,7 @@ type Step = "details" | "code";
 export function PartnerForm() {
   const [logo, setLogo] = useState<File | null>(null);
   const [photos, setPhotos] = useState<File[]>([]);
+  const [audiences, setAudiences] = useState<PartnerAudienceId[]>([]);
   // Точка на карте: из клика, «Где я» или координат в ссылке 2ГИС
   const [point, setPoint] = useState<Point | null>(null);
   const uploaded = useRef(new Map<File, string>());
@@ -351,7 +352,8 @@ export function PartnerForm() {
       const geo = point ?? coordsFrom2gis(values.twogisUrl);
       return { description: values.description.trim() || null, address: values.address.trim() || null,
         instagramUrl: values.instagramUrl.trim() || null, twogisUrl: values.twogisUrl.trim() || null,
-        logoUrl, photos: photoUrls, lat: geo?.lat ?? null, lng: geo?.lng ?? null };
+        logoUrl, photos: photoUrls, lat: geo?.lat ?? null, lng: geo?.lng ?? null,
+        ...(audiences.length ? { audiences } : {}) };
     } finally { setUploadProgress(""); }
   };
 
@@ -648,6 +650,7 @@ export function PartnerForm() {
 
             {!recovering && plan !== "octopay" && <section className="space-y-5 rounded-2xl border border-current/10 p-5" aria-labelledby="storefront-heading">
               <div><h2 id="storefront-heading" className="text-xl font-semibold">Витрина заведения</h2><p className="mt-2 text-sm opacity-75">Эти данные появятся в карточке заведения после проверки супер-админом. Их можно будет изменить в кабинете.</p></div>
+              <AudiencePicker value={audiences} disabled={sending} onChange={setAudiences} />
               <div data-field="description"><Field label="Описание заведения" optional error={errors.description}>{parts => <Textarea {...parts} maxLength={2000} value={values.description} onValueChange={set("description")} onBlur={check("description")} placeholder="Расскажите о заведении, товарах или услугах" />}</Field></div>
               <div data-field="address"><Field label="Адрес" error={errors.address}>{parts => <TextInput {...parts} value={values.address} onChange={event => set("address")(event.target.value)} onBlur={check("address")} placeholder="Город, улица, дом" />}</Field></div>
               <div data-field="twogisUrl"><Field label="Ссылка на 2ГИС" error={errors.twogisUrl} hint="Вставьте ссылку на заведение — или просто нажмите на карту ниже: ссылка заполнится сама.">{parts => <TextInput {...parts} value={values.twogisUrl} onChange={event => set("twogisUrl")(event.target.value)} onBlur={check("twogisUrl")} placeholder="https://2gis.kg/…" />}</Field></div>
@@ -975,5 +978,47 @@ function PasswordFields({ password, confirm, setPassword, setConfirm, disabled }
         <Check ok={matches}>Пароли совпадают</Check>
       </ul>
     </section>
+  );
+}
+
+/** «Для кого» — можно отметить несколько; по ним каталог фильтрует заведения. */
+function AudiencePicker({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: PartnerAudienceId[];
+  disabled: boolean;
+  onChange: (next: PartnerAudienceId[]) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <p id="audiences-label" className="font-medium">
+        Для кого <span className="text-sm font-normal opacity-60">можно несколько</span>
+      </p>
+      <div role="group" aria-labelledby="audiences-label" className="flex flex-wrap gap-2">
+        {PARTNER_AUDIENCES.map((audience) => {
+          const on = value.includes(audience.id);
+          return (
+            <button
+              key={audience.id}
+              type="button"
+              aria-pressed={on}
+              disabled={disabled}
+              onClick={() =>
+                onChange(
+                  PARTNER_AUDIENCES.filter((item) => (item.id === audience.id ? !on : value.includes(item.id))).map((item) => item.id),
+                )
+              }
+              className={`rounded-full border-2 px-4 py-2 font-semibold transition-colors disabled:opacity-50 ${
+                on ? "border-flame bg-flame text-white" : "border-current/15 hover:border-current/40"
+              }`}
+            >
+              {audience.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

@@ -994,14 +994,32 @@ Notification-service имеет read-only runtime-зависимость от `c
 Эта ручка пока остаётся для старого помесячного flow. Mobile v2 её не
 вызывает до отдельного продуктового контракта промокодов.
 
-Клиент вводит промокод оператора и получает бесплатные месяцы подписки своей карты.
+Клиент вводит промокод оператора и получает бесплатные месяцы подписки своей карты
+или бонусы на срок — смотря что даёт код (`reward`).
 
 ```
 POST /v1/me/promo-code          (токен клиента)
 { "code": "LOAL-7KX2QM" }
-→ { "code": "LOAL-7KX2QM", "audience": "client", "months": 1,
+→ { "code": "LOAL-7KX2QM", "audience": "client", "reward": "months", "months": 1, "bonusAmount": null,
     "subscription": { …подписка карты, как в «Подписка клиента»… } }
+
+→ бонусный код:
+  { "code": "GIFT-2000", "audience": "client", "reward": "bonuses", "months": null, "bonusAmount": 2000,
+    "expiresAt": "2026-11-04T10:00:00.000Z",
+    "bonuses": { "amount": 2000, "expiresAt": "…", "mode": "added" | "cycle" } }
 ```
+
+Бонусный код (`reward: "bonuses"`) кладёт `bonusAmount` бонусов на `bonusDays` дней от
+применения, `expiresAt` — когда они сгорят:
+
+- идёт подписка (`mode: "added"`) — бонусы добавляются сверху отдельной партией со своим
+  сроком: сгорают в `expiresAt`, а не с периодом, оплаченный запас не трогают и при
+  продлении подписки остаются;
+- подписки нет или карта заморожена (`mode: "cycle"`) — код сам открывает карту: цикл на
+  `bonusDays` дней ровно с `bonusAmount` бонусов, дальше заморозка и сгорание как у любого
+  цикла; остаток замороженной карты сгорает сразу, как при оплате.
+
+В истории (`/v1/me/history`) начисление — `kind: "grant"`, сгорание — `kind: "burn"`.
 
 Регистр не важен: `loal-7kx2qm` — тот же код. Месяцы ложатся на подписку ровно как
 оплаченные: нет подписки — она начинается сразу с выдачей бонусов; есть — месяцы
@@ -1281,6 +1299,10 @@ PUT /admin/v1/merchants/{merchantId}/profile
 | `description` | 1–2000 символов или `null` |
 | `logoUrl`, `instagramUrl`, `twogisUrl` | адрес `http(s)://`, до 500 символов, или `null` |
 | `photos` | массив адресов, до 10 штук; порядок сохраняется как прислан |
+| `audiences` | «Для кого»: массив без повторов из `men` (Мужское), `women` (Женское), `kids` (Для детей), `family` (Для семьи). Необязательно: не прислать — сервер оставит прежнее, `[]` — очистить; другое значение — `400` с `issues`. В ответе всегда есть (`[]` — не указано) |
+
+`audiences` с 20.10.2026 приходит и в заявке партнёра (`storefront.audiences`, переносится в витрину при
+создании заведения), и у каждого заведения в `GET /v1/public/partners` — по нему каталог фильтрует «Для кого».
 
 Читать может любой сотрудник магазина. Менять — только владелец магазина (`admin`) или
 агентство; остальным `403`.
@@ -2407,8 +2429,8 @@ GET    /admin/v1/certificates/{id}/health   проверить, что ключ 
 
 ### Промокоды
 
-Оператор создаёт коды на бесплатные месяцы подписки — для магазинов или для клиентов.
-Только агентство, остальным `403`.
+Оператор создаёт коды на бесплатные месяцы подписки — для магазинов или для клиентов,
+а клиентам ещё и коды на бонусы на срок. Только агентство, остальным `403`.
 
 ```
 GET    /admin/v1/promo-codes?audience=merchant|client&includeDeleted=true
@@ -2416,6 +2438,7 @@ POST   /admin/v1/promo-codes
        { "code"?: "SUMMER-2026", "audience": "merchant", "months": 2,
          "clientEligibility"?: "all",
          "maxUses"?: 100, "expiresAt"?: "2026-12-31T23:59:59+06:00", "note"?: "…" }
+       { "audience": "client", "reward": "bonuses", "bonusAmount": 2000, "bonusDays": 14, … }
 PATCH  /admin/v1/promo-codes/{id}      { "active"?, "clientEligibility"?, "maxUses"?, "expiresAt"?, "note"? }
 DELETE /admin/v1/promo-codes/{id}
 GET    /admin/v1/promo-codes/{id}/redemptions
@@ -2424,8 +2447,8 @@ GET    /admin/v1/promo-codes/{id}/redemptions
 Промокод в ответе:
 
 ```json
-{ "id": "...", "code": "SUMMER-2026", "audience": "merchant", "months": 2,
-  "clientEligibility": "all",
+{ "id": "...", "code": "SUMMER-2026", "audience": "merchant", "reward": "months", "months": 2,
+  "bonusAmount": null, "bonusDays": null, "clientEligibility": "all",
   "maxUses": 100, "uses": 7, "expiresAt": null, "active": true,
   "note": "летняя акция", "createdAt": "..." }
 ```
@@ -2441,6 +2464,11 @@ GET    /admin/v1/promo-codes/{id}/redemptions
 - `code` можно не присылать — сервер сгенерирует вида `LOAL-7KX2QM` (без похожих
   символов 0/O, 1/I/L). Свой код: 4–32 символа, латиница, цифры, дефис; хранится
   заглавными, повтор существующего — `409`.
+- `reward`: `months` (по умолчанию) — бесплатные месяцы, `months` 1–36, бонусных полей нет;
+  `bonuses` — только `audience: "client"`: `bonusAmount` 1–1 000 000 бонусов на `bonusDays`
+  1–365 дней, `months` не присылают (в ответе `null`). Что как ляжет на карту — в «Legacy:
+  клиентский промокод». Награду и аудиторию `PATCH` не меняет — для них выпускают новый код. В
+  `redemptions` у бонусного применения `months: null`, `bonusAmount`, `bonusDays`.
 - `months` — 1–36. Код многоразовый: им пользуется сколько угодно магазинов или клиентов,
   но каждый — один раз. `maxUses` и `expiresAt` необязательны (`null` — без ограничения).
 - `DELETE` убирает код из списка и выключает его, но история применений

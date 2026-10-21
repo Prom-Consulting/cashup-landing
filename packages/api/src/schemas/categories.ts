@@ -111,6 +111,23 @@ export function slugify(name: string): string {
     .replace(/-+$/g, "");
 }
 
+/**
+ * «Для кого» заведение — отдельное от категории поле витрины (можно отметить несколько).
+ * Список повторяет бэкенд (`PARTNER_AUDIENCES`); по id фильтрует каталог.
+ */
+export const PARTNER_AUDIENCES = [
+  { id: "men", label: "Мужское" },
+  { id: "women", label: "Женское" },
+  { id: "kids", label: "Для детей" },
+  { id: "family", label: "Для семьи" },
+] as const;
+export type PartnerAudienceId = (typeof PARTNER_AUDIENCES)[number]["id"];
+
+/** Только известные id и без повторов: старый или чужой ответ не ломает экран. */
+export function partnerAudiences(value: readonly string[] | null | undefined): PartnerAudienceId[] {
+  return PARTNER_AUDIENCES.filter((item) => value?.includes(item.id)).map((item) => item.id);
+}
+
 /** Категория заведения по названию из витрины; своё название магазина — «Другое». */
 export function partnerCategoryId(category: string | null | undefined): PartnerCategoryId {
   return PARTNER_CATEGORIES.find((item) => item.label === category)?.id ?? "other";

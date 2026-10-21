@@ -5,6 +5,7 @@ import { JsonLd } from "../../../_components/json-ld";
 import { SiteFooter } from "../../../_components/site-footer";
 import { SiteHeader } from "../../../_components/site-header";
 import { getPublicPartners } from "../../../_data/partners-api";
+import { PARTNER_AUDIENCES } from "@loal/api";
 import {
   CATEGORY_SEO,
   categoryIdOf,
@@ -125,6 +126,15 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
                     </Link>
                     {" · Бишкек"}
                   </p>
+                  {audienceLabels(partner.audiences).length > 0 && (
+                    <ul aria-label="Для кого" className="mt-3 flex flex-wrap gap-2">
+                      {audienceLabels(partner.audiences).map((label) => (
+                        <li key={label} className="rounded-full bg-cream px-3 py-1 text-sm font-semibold">
+                          {label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
 
@@ -248,4 +258,9 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
       <SiteFooter />
     </>
   );
+}
+
+/** «Для кого» подписями, в порядке списка платформы. */
+function audienceLabels(audiences: string[] | undefined) {
+  return PARTNER_AUDIENCES.filter((item) => audiences?.includes(item.id)).map((item) => item.label);
 }

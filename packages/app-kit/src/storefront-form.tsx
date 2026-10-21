@@ -2,15 +2,17 @@ import {
   ApiError,
   STOREFRONT_IMAGE_ACCEPT,
   STOREFRONT_IMAGE_FORMATS,
+  PARTNER_AUDIENCES,
   PARTNER_CATEGORIES,
   coordsFrom2gis,
+  partnerAudiences,
   merchantProfileFormSchema,
   type MerchantProfile,
   type MerchantProfileForm,
 } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Delete02Icon, ImageAdd01Icon } from "@hugeicons/core-free-icons";
-import { Button, Icon, Input, Label, NativeSelect, Textarea } from "@loal/ui/shadcn";
+import { Button, ChipSelect, Icon, Input, Label, NativeSelect, Textarea } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useRef, useState } from "react";
 import { merchantCabinetApi } from "@loal/api";
@@ -53,6 +55,7 @@ const MAX_PHOTOS = 10;
 // Только категории платформы: другую бэкенд в профиль не пропустит (400)
 const categoryOptions = PARTNER_CATEGORIES.map((category) => ({ value: category.label, label: category.label }));
 const isListedCategory = (value: string | null) => categoryOptions.some((option) => option.value === value);
+const audienceOptions = PARTNER_AUDIENCES.map((audience) => ({ value: audience.id, label: audience.label }));
 
 /**
  * Точка на карте каталога — из ссылки 2ГИС. Ссылку убрали — убираем и точку; в ссылке
@@ -94,6 +97,7 @@ export function StorefrontForm({
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl);
   const [photos, setPhotos] = useState(profile.photos);
   const [videos, setVideos] = useState(profile.videos ?? []);
+  const [audiences, setAudiences] = useState<string[]>(partnerAudiences(profile.audiences));
   const [videoBusy, setVideoBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const logoInput = useRef<HTMLInputElement>(null);
@@ -135,6 +139,7 @@ export function StorefrontForm({
             logoUrl,
             photos,
             videos,
+            audiences: partnerAudiences(audiences),
             instagramUrl: orNull(values.instagramUrl),
             twogisUrl: orNull(values.twogisUrl),
             address: orNull(values.address),
@@ -191,6 +196,22 @@ export function StorefrontForm({
               {fieldError(form, "instagramUrl") && (
                 <p className="mt-2 text-base text-destructive">{fieldError(form, "instagramUrl")}</p>
               )}
+            </div>
+
+            <div className="sm:col-span-2">
+              <p className="text-base font-medium text-foreground">Для кого</p>
+              <p id="audiences-hint" className="mt-1 text-base text-muted-foreground">
+                Можно отметить несколько — по ним клиенты находят вас в каталоге.
+              </p>
+              <ChipSelect
+                id="audiences"
+                className="mt-2"
+                options={audienceOptions}
+                value={audiences}
+                onChange={setAudiences}
+                describedBy="audiences-hint"
+                label="Для кого"
+              />
             </div>
 
             <div className="sm:col-span-2">

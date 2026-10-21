@@ -1,6 +1,7 @@
 import { LOAL_TARIFF_LABELS, isLoalTariff } from "./tariffs";
 import { z } from "zod";
 import { phoneSchema } from "./phone";
+import type { PartnerAudienceId } from "./categories";
 
 /**
  * Мерчант — заведение, принимающее бонусы. Раньше назывался store; карты, клиенты
@@ -318,6 +319,8 @@ export const merchantProfileSchema = z.object({
   photos: z.array(z.string()).max(10),
   /** До трёх видео. Не прислать поле — сервер оставит прежние (старые кабинеты их не стирают). */
   videos: z.array(merchantVideoSchema).max(3).optional(),
+  /** «Для кого»: men | women | kids | family. Не прислать — сервер оставит прежнее, [] — очистить. */
+  audiences: z.array(z.string()).optional(),
   instagramUrl: z.string().nullable(),
   twogisUrl: z.string().nullable(),
   address: z.string().nullish(),
@@ -463,6 +466,8 @@ export type AgencyRegistrationInput = {
     photos: string[];
     lat: number | null;
     lng: number | null;
+    /** «Для кого» (`PARTNER_AUDIENCES`); пустой список не шлём. */
+    audiences?: PartnerAudienceId[];
   };
 };
 

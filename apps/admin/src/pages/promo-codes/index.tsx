@@ -1,4 +1,4 @@
-import { PROMO_AUDIENCE_LABELS, type PromoAudience, type PromoCode } from "@loal/api";
+import { PROMO_AUDIENCE_LABELS, promoRewardText, type PromoAudience, type PromoCode } from "@loal/api";
 import {
   Badge,
   Card,
@@ -29,7 +29,7 @@ function Redemptions({ promo, onClose }: { promo: PromoCode | null; onClose: () 
       {promo && (
         <DialogContent
           title={`Кто применил ${promo.code}`}
-          description={`${PROMO_AUDIENCE_LABELS[promo.audience]}, по ${promo.months} мес.`}
+          description={`${PROMO_AUDIENCE_LABELS[promo.audience]}: ${promoRewardText(promo)}`}
           className="w-[min(640px,calc(100vw-2rem))]"
         >
           <div className="mt-5">
@@ -44,7 +44,8 @@ function Redemptions({ promo, onClose }: { promo: PromoCode | null; onClose: () 
                       {row.merchantName ?? row.userPhone ?? row.merchantId ?? row.userId ?? "—"}
                     </span>
                     <span className="text-sm text-muted-foreground tabular-nums">
-                      +{row.months} мес. · {formatDateTime(row.createdAt)}
+                      {promoRewardText({ reward: row.bonusAmount != null ? "bonuses" : "months", ...row })} ·{" "}
+                      {formatDateTime(row.createdAt)}
                     </span>
                   </li>
                 ))}
@@ -111,9 +112,7 @@ function PromoRow({ promo, onOpen }: { promo: PromoCode; onOpen: () => void }) {
         </div>
         <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
           <Badge tone={promo.audience === "client" ? "neutral" : "quiet"}>{PROMO_AUDIENCE_LABELS[promo.audience]}</Badge>
-          <span>
-            +{promo.months} {promo.months === 1 ? "месяц" : promo.months < 5 ? "месяца" : "месяцев"}
-          </span>
+          <span>{promoRewardText(promo)}</span>
         </p>
         {promo.note && <p className="mt-1 truncate text-sm text-muted-foreground">{promo.note}</p>}
       </div>
@@ -140,7 +139,7 @@ function PromoRow({ promo, onOpen }: { promo: PromoCode; onOpen: () => void }) {
   );
 }
 
-/** Промокоды на бесплатные месяцы подписки — для магазинов и для держателей карт. */
+/** Промокоды на бесплатные месяцы подписки — для магазинов и для держателей карт; клиентам — ещё и бонусы на срок. */
 export function PromoCodesPage() {
   const [audience, setAudience] = useState<PromoAudience | "">("");
   const [includeDeleted, setIncludeDeleted] = useState(false);
@@ -155,7 +154,7 @@ export function PromoCodesPage() {
     <section className="flex flex-col gap-6">
       <PageHeader
         title="Промокоды"
-        description="Бесплатные месяцы подписки. Магазин вводит код в разделе «Оплата», клиент — в настройках кабинета или по ссылке."
+        description="Бесплатные месяцы подписки или, клиентам, бонусы на срок. Магазин вводит код в разделе «Оплата», клиент — в настройках кабинета или по ссылке."
         action={<CreatePromoDialog onCreated={setCreated} />}
       />
 
