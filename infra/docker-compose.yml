@@ -27,6 +27,8 @@ services:
     image: loal-landing:latest
     environment:
       NEXT_PUBLIC_SITE_URL: https://${LANDING_HOST:-loal.kg}
+      # Used by the deployment readiness check from the same Docker network.
+      GATEWAY_RATE_LIMIT_URL: ${GATEWAY_RATE_LIMIT_URL:-http://gateway:8080/_edge/rate-limit}
     labels:
       - traefik.enable=true
       - traefik.docker.network=${TRAEFIK_NETWORK:-infra_default}
@@ -34,8 +36,15 @@ services:
       - traefik.http.routers.loal-landing.entrypoints=websecure
       - traefik.http.routers.loal-landing.tls=true
       - traefik.http.routers.loal-landing.tls.certresolver=letsencrypt
-      - traefik.http.routers.loal-landing.middlewares=loal-www-to-apex@docker,loal-security-landing@docker
+      - traefik.http.routers.loal-landing.middlewares=loal-security-landing@docker,loal-ip-landing@docker,loal-www-to-apex@docker
       - traefik.http.services.loal-landing.loadbalancer.server.port=3000
+      # Shared gateway/Redis quota; runs before pages, assets and redirects.
+      - traefik.http.middlewares.loal-ip-landing.forwardauth.address=${GATEWAY_RATE_LIMIT_URL:-http://gateway:8080/_edge/rate-limit}
+      - traefik.http.middlewares.loal-ip-landing.forwardauth.trustForwardHeader=false
+      - traefik.http.middlewares.loal-ip-landing.forwardauth.authRequestHeaders=Origin
+      - traefik.http.middlewares.loal-ip-landing.forwardauth.forwardBody=false
+      - traefik.http.middlewares.loal-ip-landing.forwardauth.maxResponseBodySize=16384
+      - traefik.http.middlewares.loal-ip-landing.forwardauth.preserveRequestMethod=false
       # www отдаём редиректом на основной домен: одна версия страницы для поиска
       - traefik.http.middlewares.loal-www-to-apex.redirectregex.regex=^https://www\.(.+)
       - traefik.http.middlewares.loal-www-to-apex.redirectregex.replacement=https://$${1}
@@ -63,8 +72,15 @@ services:
       - traefik.http.routers.loal-admin.entrypoints=websecure
       - traefik.http.routers.loal-admin.tls=true
       - traefik.http.routers.loal-admin.tls.certresolver=letsencrypt
-      - traefik.http.routers.loal-admin.middlewares=loal-security-admin@docker
+      - traefik.http.routers.loal-admin.middlewares=loal-security-admin@docker,loal-ip-admin@docker
       - traefik.http.services.loal-admin.loadbalancer.server.port=80
+      # Shared gateway/Redis quota; runs before pages, assets and redirects.
+      - traefik.http.middlewares.loal-ip-admin.forwardauth.address=${GATEWAY_RATE_LIMIT_URL:-http://gateway:8080/_edge/rate-limit}
+      - traefik.http.middlewares.loal-ip-admin.forwardauth.trustForwardHeader=false
+      - traefik.http.middlewares.loal-ip-admin.forwardauth.authRequestHeaders=Origin
+      - traefik.http.middlewares.loal-ip-admin.forwardauth.forwardBody=false
+      - traefik.http.middlewares.loal-ip-admin.forwardauth.maxResponseBodySize=16384
+      - traefik.http.middlewares.loal-ip-admin.forwardauth.preserveRequestMethod=false
       # Свой middleware у каждого приложения: общий жил бы на одном контейнере,
       # и пока тот не поднялся, Traefik ломал бы роутеры остальных
       - traefik.http.middlewares.loal-security-admin.headers.stsSeconds=31536000
@@ -91,8 +107,15 @@ services:
       - traefik.http.routers.loal-partner.entrypoints=websecure
       - traefik.http.routers.loal-partner.tls=true
       - traefik.http.routers.loal-partner.tls.certresolver=letsencrypt
-      - traefik.http.routers.loal-partner.middlewares=loal-security-partner@docker
+      - traefik.http.routers.loal-partner.middlewares=loal-security-partner@docker,loal-ip-partner@docker
       - traefik.http.services.loal-partner.loadbalancer.server.port=80
+      # Shared gateway/Redis quota; runs before pages, assets and redirects.
+      - traefik.http.middlewares.loal-ip-partner.forwardauth.address=${GATEWAY_RATE_LIMIT_URL:-http://gateway:8080/_edge/rate-limit}
+      - traefik.http.middlewares.loal-ip-partner.forwardauth.trustForwardHeader=false
+      - traefik.http.middlewares.loal-ip-partner.forwardauth.authRequestHeaders=Origin
+      - traefik.http.middlewares.loal-ip-partner.forwardauth.forwardBody=false
+      - traefik.http.middlewares.loal-ip-partner.forwardauth.maxResponseBodySize=16384
+      - traefik.http.middlewares.loal-ip-partner.forwardauth.preserveRequestMethod=false
       # Свой middleware у каждого приложения: общий жил бы на одном контейнере,
       # и пока тот не поднялся, Traefik ломал бы роутеры остальных
       - traefik.http.middlewares.loal-security-partner.headers.stsSeconds=31536000
@@ -117,8 +140,15 @@ services:
       - traefik.http.routers.loal-client.entrypoints=websecure
       - traefik.http.routers.loal-client.tls=true
       - traefik.http.routers.loal-client.tls.certresolver=letsencrypt
-      - traefik.http.routers.loal-client.middlewares=loal-security-client@docker
+      - traefik.http.routers.loal-client.middlewares=loal-security-client@docker,loal-ip-client@docker
       - traefik.http.services.loal-client.loadbalancer.server.port=80
+      # Shared gateway/Redis quota; runs before pages, assets and redirects.
+      - traefik.http.middlewares.loal-ip-client.forwardauth.address=${GATEWAY_RATE_LIMIT_URL:-http://gateway:8080/_edge/rate-limit}
+      - traefik.http.middlewares.loal-ip-client.forwardauth.trustForwardHeader=false
+      - traefik.http.middlewares.loal-ip-client.forwardauth.authRequestHeaders=Origin
+      - traefik.http.middlewares.loal-ip-client.forwardauth.forwardBody=false
+      - traefik.http.middlewares.loal-ip-client.forwardauth.maxResponseBodySize=16384
+      - traefik.http.middlewares.loal-ip-client.forwardauth.preserveRequestMethod=false
       # Свой middleware у каждого приложения: общий жил бы на одном контейнере,
       # и пока тот не поднялся, Traefik ломал бы роутеры остальных
       - traefik.http.middlewares.loal-security-client.headers.stsSeconds=31536000
@@ -145,8 +175,15 @@ services:
       - traefik.http.routers.loal-cashier.entrypoints=websecure
       - traefik.http.routers.loal-cashier.tls=true
       - traefik.http.routers.loal-cashier.tls.certresolver=letsencrypt
-      - traefik.http.routers.loal-cashier.middlewares=loal-security-cashier@docker
+      - traefik.http.routers.loal-cashier.middlewares=loal-security-cashier@docker,loal-ip-cashier@docker
       - traefik.http.services.loal-cashier.loadbalancer.server.port=80
+      # Shared gateway/Redis quota; runs before pages, assets and redirects.
+      - traefik.http.middlewares.loal-ip-cashier.forwardauth.address=${GATEWAY_RATE_LIMIT_URL:-http://gateway:8080/_edge/rate-limit}
+      - traefik.http.middlewares.loal-ip-cashier.forwardauth.trustForwardHeader=false
+      - traefik.http.middlewares.loal-ip-cashier.forwardauth.authRequestHeaders=Origin
+      - traefik.http.middlewares.loal-ip-cashier.forwardauth.forwardBody=false
+      - traefik.http.middlewares.loal-ip-cashier.forwardauth.maxResponseBodySize=16384
+      - traefik.http.middlewares.loal-ip-cashier.forwardauth.preserveRequestMethod=false
       # Свой middleware у каждого приложения: общий жил бы на одном контейнере,
       # и пока тот не поднялся, Traefik ломал бы роутеры остальных
       - traefik.http.middlewares.loal-security-cashier.headers.stsSeconds=31536000

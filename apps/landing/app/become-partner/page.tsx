@@ -3,6 +3,8 @@ import { CorporateHero } from "../_components/business-section";
 import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
 import { models } from "../_data/models";
+import { getBusinessPricing } from "../_data/business-pricing";
+import { BusinessOffer, BusinessPrice, BusinessPricingProvider } from "../_components/business-pricing";
 import { PAGE_SEO, openGraph } from "../_data/seo";
 import { CITY, EMAIL, OCTOPAY_URL, PARTNER_MAIL, PHONE, PHONE_HREF } from "../_data/site";
 import { PartnerForm } from "./partner-form";
@@ -21,7 +23,7 @@ const steps = [
   },
   {
     title: "Получаете кабинет",
-    text: "Регистрация бесплатная на всех трёх моделях. Абонентской платы за «Только лояльность» пока нет — пока набирается аудитория, в пакете с OctōPAY её нет вовсе.",
+    text: <>Регистрация бесплатная на всех трёх моделях. «Больше клиентов» — <BusinessPrice plan="loyalty" /> в месяц, «Ещё больше клиентов» — <BusinessPrice plan="bundle" /> в месяц.</>,
   },
   {
     title: "Настраиваете процент",
@@ -55,7 +57,7 @@ const gains = [
 const faq = [
   {
     q: "Когда заведение появится в каталоге?",
-    a: "На тарифе «Только лояльность» — после оплаты, в пакете с OctōPAY — после автоматического подключения. Если подписка «Только лояльность» не продлена, заведение скрывается из каталога до оплаты.",
+    a: "После проверки заведения: на тарифе «Больше клиентов» — пока действует бесплатная акция или оплачена подписка, в пакете — при включённой связи с OctōPAY. Когда бесплатные места закончатся, платная цена включится для всех. Подписку «Больше клиентов» оплачивают в Loal, «Ещё больше клиентов» — в OctōPAY.",
   },
   {
     q: "Кто платит за бонусы клиента?",
@@ -67,10 +69,11 @@ const faq = [
   },
 ];
 
-export default function BecomePartnerPage() {
+export default async function BecomePartnerPage() {
+  const pricing = await getBusinessPricing();
   return (
-    <>
-      <SiteHeader audience="business" cta={{ label: "Оставить заявку", href: "#form" }} />
+    <BusinessPricingProvider initialPricing={pricing}>
+      <SiteHeader audience="business" cta={{ label: "Стать партнером", href: "#form" }} />
 
       <main className="flex-1 overflow-x-clip">
         <CorporateHero formHref="#form" />
@@ -128,9 +131,10 @@ export default function BecomePartnerPage() {
                       m.featured ? "text-paper" : "text-flame"
                     }`}
                   >
-                    {m.price}
+                    {m.key === "octopay" ? "%" : <BusinessPrice plan={m.key === "bundle" ? "bundle" : "loyalty"} />}
                   </p>
                   <p className="mt-2 font-medium">{m.priceNote}</p>
+                  {m.key !== "octopay" && <BusinessOffer plan={m.key === "bundle" ? "bundle" : "loyalty"} />}
                   <ul className="mt-8 flex flex-1 flex-col gap-3">
                     {m.points.map((pt) => (
                       <li key={pt} className="flex gap-3">
@@ -167,11 +171,10 @@ export default function BecomePartnerPage() {
               ))}
             </div>
             <p className="mt-8 max-w-[64ch] text-sm opacity-75">
-              Все подписки оплачиваются через{" "}
+              Подписка «Больше клиентов» оплачивается в кабинете Loal через{" "}
               <a href={OCTOPAY_URL} className="underline underline-offset-4 hover:no-underline">
                 OctōPAY
-              </a>{" "}
-              на счёт Loal и продлеваются в кабинете партнёра.
+              </a>. Подписку на пакет «Ещё больше клиентов» оплачивают в OctōPAY.
             </p>
           </div>
         </section>
@@ -181,7 +184,7 @@ export default function BecomePartnerPage() {
             <div>
               <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)] brand-gradient-text">Заявка</h2>
               <p className="mt-6 max-w-[42ch] text-lg leading-relaxed">
-                Выберите тариф и подтвердите телефон. Платная лояльность подключится после оплаты, бесплатные тарифы — сразу. Если нужна помощь, напишите нам.
+                Выберите тариф и подтвердите телефон — регистрация бесплатная. Подписку «Больше клиентов» оплачивают в кабинете Loal, пакет — в OctōPAY. Если нужна помощь, напишите нам.
               </p>
               <ul className="mt-8 flex flex-col gap-3 text-lg">
                 <li>
@@ -217,6 +220,6 @@ export default function BecomePartnerPage() {
       </main>
 
       <SiteFooter />
-    </>
+    </BusinessPricingProvider>
   );
 }

@@ -7,16 +7,17 @@ import { Link } from "react-router";
 import { merchantKeys, useOctopayIntegration } from "../../entities/merchant/api";
 import { formatDate } from "../../shared/lib/format";
 import { OctopayIntegration } from "../octopay/integration";
+import { usePublicTariffs } from "@loal/app-kit";
 
 const BUNDLE_PERKS = [
-  "Loal бесплатно — без абонентской платы",
+  "Лояльность включена в подписку OctōPAY + Loal",
   "Клиент платит через OctōPAY и сам решает, сколько бонусов потратить",
   "«Счёт клиенту»: кассир вводит только сумму",
 ];
 
 /**
  * Тариф магазина — следует из связи с OctōPAY, его не выбирают. На «Только Loal» показываем
- * срок подписки и дорогу к бесплатному пакету; на «OctōPAY + Loal» — что Loal бесплатен.
+ * срок подписки; на «OctōPAY + Loal» — оплату пакета через OctōPAY.
  */
 export function TariffCard({
   merchantId,
@@ -31,6 +32,9 @@ export function TariffCard({
   const integration = useOctopayIntegration(merchantId);
   const paidActive = subscription ? (subscription.paidActive ?? subscription.isActive) : false;
   const label = TARIFF_LABELS[tariff];
+  const prices = usePublicTariffs();
+  const currentPrice = prices.isError ? undefined : prices.data?.find((item) => item.code === (tariff === "octopay" ? "loal_octopay" : "loal"));
+  const free = currentPrice?.priceKgs === 0;
 
   // Проверка связи обновляет тариф на сервере: если он разошёлся с показанным — перечитываем
   const linked = integration.data ? integration.data.connected && integration.data.isEnabled === true : null;
@@ -47,8 +51,8 @@ export function TariffCard({
           <p className="text-base text-muted-foreground">Тариф</p>
           <h2 className="display mt-1 text-[1.6rem] leading-tight">{label.title}</h2>
         </div>
-        {tariff === "octopay" ? (
-          <Badge tone="good">Loal бесплатно</Badge>
+        {free ? <Badge tone="good">Бесплатно</Badge> : tariff === "octopay" ? (
+          <Badge tone="good">Оплата в OctōPAY</Badge>
         ) : (
           <Badge tone={paidActive ? "good" : "warn"}>
             {paidActive ? `оплачено до ${formatDate(subscription?.expiresAt)}` : "не оплачено"}
@@ -56,6 +60,14 @@ export function TariffCard({
         )}
       </div>
       <p className="mt-2 max-w-[56ch] text-base leading-snug text-muted-foreground">{label.about}</p>
+      {currentPrice && (
+        <p className="mt-3 text-lg font-bold" aria-live="polite">
+          {new Intl.NumberFormat("ru-RU").format(currentPrice.priceKgs)} сом/мес
+          {currentPrice.freeOfferActive && <span className="mt-1 block text-sm font-normal text-muted-foreground">
+            Осталось бесплатных мест: {currentPrice.freePlacesRemaining}. После заполнения для всех — {new Intl.NumberFormat("ru-RU").format(currentPrice.regularPriceKgs)} сом/мес.
+          </span>}
+        </p>
+      )}
 
       {tariff === "octopay" && paidActive && subscription?.expiresAt && (
         <p className="mt-2 text-sm text-muted-foreground">
@@ -68,12 +80,12 @@ export function TariffCard({
         <>
           <div className="mt-4">
             <Button asChild variant={paidActive ? "outline" : "primary"}>
-              <Link to="/billing">{paidActive ? "Продлить подписку" : "Оплатить Loal"}</Link>
+              <Link to="/billing">{free ? "Условия тарифа" : paidActive ? "Продлить подписку" : "Оплатить Loal"}</Link>
             </Button>
           </div>
           {/* Дорога к пакету: тот же блок подключения, что и ниже, — просто с объяснением зачем */}
           <div className="mt-5 rounded-[20px] bg-muted p-4 sm:p-5">
-            <p className="text-lg font-bold">OctōPAY + Loal — Loal бесплатно</p>
+            <p className="text-lg font-bold">OctōPAY + Loal — единая подписка</p>
             <ul className="mt-2 flex flex-col gap-1.5">
               {BUNDLE_PERKS.map((perk) => (
                 <li key={perk} className="flex gap-2 text-base leading-snug">
@@ -83,7 +95,7 @@ export function TariffCard({
               ))}
             </ul>
             <p className="mt-2 text-sm text-muted-foreground">
-              Подключите свой магазин в OctōPAY ниже — тариф сменится сам.
+              Подключите свой магазин в OctōPAY ниже — тариф сменится сам. Подписку на пакет оплачивают в OctōPAY.
             </p>
           </div>
         </>

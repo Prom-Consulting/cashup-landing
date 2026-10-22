@@ -19,8 +19,9 @@ import {
   TableHeaderCell,
   TableRow,
 } from "@loal/ui/shadcn";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BulkIssueDialog } from "../../features/customer/bulk-issue-dialog";
+import { DeleteCustomerDialog } from "../../features/customer/delete-customer-dialog";
 import { CustomerDialog } from "../../features/customer/customer-dialog";
 import { cardPageUrl } from "../../shared/config/env";
 import { formatDate } from "../../shared/lib/format";
@@ -41,6 +42,15 @@ export function CustomersPage() {
   const rows = customers.data?.items ?? [];
   const total = customers.data?.total ?? 0;
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  useEffect(() => {
+    if (customers.isSuccess && !customers.isPlaceholderData && page > lastPage) setPage(lastPage);
+  }, [customers.isSuccess, customers.isPlaceholderData, page, lastPage]);
+
+  const onDeleted = (id: string) => {
+    setSelected((current) => current.filter((selectedId) => selectedId !== id));
+    setOpened((current) => current?.id === id ? null : current);
+  };
 
   return (
     <section className="flex flex-col gap-6">
@@ -106,6 +116,7 @@ export function CustomersPage() {
                 <TableHeaderCell>Телефон</TableHeaderCell>
                 <TableHeaderCell>Почта</TableHeaderCell>
                 <TableHeaderCell>Заведён</TableHeaderCell>
+                <TableHeaderCell>Действия</TableHeaderCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -140,6 +151,9 @@ export function CustomersPage() {
                   <TableCell label="Телефон" className="tabular-nums">{customer.phone ?? "—"}</TableCell>
                   <TableCell label="Почта" className="break-all">{customer.email ?? "—"}</TableCell>
                   <TableCell label="Заведён" className="text-base text-muted-foreground">{formatDate(customer.createdAt)}</TableCell>
+                  <TableCell label="Действия">
+                    <DeleteCustomerDialog customer={customer} onDeleted={onDeleted} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -147,7 +161,7 @@ export function CustomersPage() {
         </Card>
       )}
 
-      <CustomerDialog customer={opened} onClose={() => setOpened(null)} />
+      <CustomerDialog key={opened?.id ?? "closed"} customer={opened} onClose={() => setOpened(null)} onDeleted={onDeleted} />
 
       {lastPage > 1 && (
         <div className="flex items-center gap-4">

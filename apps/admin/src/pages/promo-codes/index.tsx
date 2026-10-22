@@ -1,4 +1,4 @@
-import { PROMO_AUDIENCE_LABELS, type PromoAudience, type PromoCode } from "@loal/api";
+import { PROMO_AUDIENCE_LABELS, PROMO_CLIENT_ELIGIBILITY_LABELS, PROMO_KIND_LABELS, type PromoAudience, type PromoCode } from "@loal/api";
 import {
   Badge,
   Button,
@@ -36,7 +36,7 @@ function Redemptions({ promo, onClose }: { promo: PromoCode | null; onClose: () 
       {promo && (
         <DialogContent
           title={`Кто применил ${promo.code}`}
-          description={`${PROMO_AUDIENCE_LABELS[promo.audience]}, по ${promo.months} мес.`}
+          description={`${PROMO_AUDIENCE_LABELS[promo.audience]} · ${PROMO_KIND_LABELS[promo.kind]}${promo.kind === "months" ? ` · ${promo.months} мес.` : ""} · Баллов: ${promo.cycleBalance == null ? "—" : money.format(promo.cycleBalance)}`}
           className="w-[min(640px,calc(100vw-2rem))]"
         >
           <div className="mt-5">
@@ -51,7 +51,9 @@ function Redemptions({ promo, onClose }: { promo: PromoCode | null; onClose: () 
                       {row.merchantName ?? row.userPhone ?? row.merchantId ?? row.userId ?? "—"}
                     </span>
                     <span className="text-sm text-muted-foreground tabular-nums">
-                      +{row.months} мес. · {formatDateTime(row.createdAt)}
+                      {PROMO_KIND_LABELS[row.kind]}{row.kind === "months" ? ` · +${row.months} мес.` : ""}
+                      {" · Баллов: "}{row.cycleBalance == null ? "—" : money.format(row.cycleBalance)}
+                      {" · "}{formatDateTime(row.createdAt)}
                     </span>
                   </li>
                 ))}
@@ -64,7 +66,7 @@ function Redemptions({ promo, onClose }: { promo: PromoCode | null; onClose: () 
   );
 }
 
-/** Промокоды на бесплатные месяцы подписки — для магазинов и для держателей карт. */
+/** Промокоды на месяцы подписки и клиентские циклы с заданным балансом. */
 export function PromoCodesPage() {
   const [audience, setAudience] = useState<PromoAudience | "">("");
   const [includeDeleted, setIncludeDeleted] = useState(false);
@@ -76,7 +78,7 @@ export function PromoCodesPage() {
     <section className="flex flex-col gap-6">
       <PageHeader
         title="Промокоды"
-        description="Бесплатные месяцы подписки. Магазин вводит код в разделе «Оплата», клиент — в настройках кабинета."
+        description="Бесплатные месяцы или подписка на 30 дней с баллами. Магазин вводит код в разделе «Оплата», клиент — в настройках кабинета."
         action={<CreatePromoDialog onCreated={setCreated} />}
       />
 
@@ -120,7 +122,9 @@ export function PromoCodesPage() {
               <TableRow>
                 <TableHeaderCell>Код</TableHeaderCell>
                 <TableHeaderCell>Кому</TableHeaderCell>
-                <TableHeaderCell className="text-right">Месяцев</TableHeaderCell>
+                <TableHeaderCell>Вид</TableHeaderCell>
+                <TableHeaderCell className="text-right">Срок</TableHeaderCell>
+                <TableHeaderCell className="text-right">Баллов</TableHeaderCell>
                 <TableHeaderCell className="text-right">Применили</TableHeaderCell>
                 <TableHeaderCell>До</TableHeaderCell>
                 <TableHeaderCell>Состояние</TableHeaderCell>
@@ -137,8 +141,15 @@ export function PromoCodesPage() {
                     <CopyPromoLinkButton promo={promo} />
                     {promo.note && <p className="text-sm text-muted-foreground">{promo.note}</p>}
                   </TableCell>
-                  <TableCell label="Кому">{PROMO_AUDIENCE_LABELS[promo.audience]}</TableCell>
-                  <TableCell label="Месяцев" className="text-right tabular-nums">{promo.months}</TableCell>
+                  <TableCell label="Кому">
+                    {PROMO_AUDIENCE_LABELS[promo.audience]}
+                    {promo.audience === "client" && <p className="text-sm text-muted-foreground">
+                      {PROMO_CLIENT_ELIGIBILITY_LABELS[promo.kind === "subscription_cycle" ? "without_subscription" : promo.clientEligibility ?? "all"]}
+                    </p>}
+                  </TableCell>
+                  <TableCell label="Вид">{PROMO_KIND_LABELS[promo.kind]}</TableCell>
+                  <TableCell label="Срок" className="text-right tabular-nums whitespace-nowrap">{promo.kind === "subscription_cycle" ? "30 дней" : `${promo.months} мес.`}</TableCell>
+                  <TableCell label="Баллов" className="text-right tabular-nums whitespace-nowrap">{promo.cycleBalance == null ? "—" : money.format(promo.cycleBalance)}</TableCell>
                   <TableCell label="Применили" className="text-right tabular-nums">
                     <Button variant="ghost" size="sm" title="Кто применил" onClick={() => setViewing(promo)}>
                       {money.format(promo.uses)}

@@ -56,6 +56,9 @@ jobs:
             echo "▸ Сборка"
             docker compose -f infra/docker-compose.yml build
 
+            echo "▸ Проверка готовности защиты IP в backend"
+            bash scripts/check-edge-ready.sh
+
             echo "▸ Запуск"
             docker compose -f infra/docker-compose.yml up -d --remove-orphans
 

@@ -21,6 +21,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check frontend IP protection configuration
+        run: python3 scripts/check-edge-config.py
+
       - uses: pnpm/action-setup@v4
         # Версию берёт из packageManager в package.json
 

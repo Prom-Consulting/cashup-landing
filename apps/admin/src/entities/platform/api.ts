@@ -415,7 +415,7 @@ export const tariffKeys = { all: ["tariffs"] as const };
 
 export function useTariffs() {
   const api = useApi();
-  return useQuery({ queryKey: tariffKeys.all, queryFn: () => tariffsApi(api).list() });
+  return useQuery({ queryKey: tariffKeys.all, queryFn: () => tariffsApi(api).list(), refetchInterval: 5_000 });
 }
 
 export function useSetTariffPrice() {

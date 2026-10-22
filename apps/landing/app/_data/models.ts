@@ -1,11 +1,8 @@
-// Три способа подключения из ТЗ (раздел 2.3). Используются на главной и на странице «Стать партнёром».
-
-
+// Три способа подключения на странице «Стать партнёром».
 
 export type Model = {
   key: string;
   title: string;
-  price: string;
   priceNote: string;
   points: string[];
   featured?: boolean;
@@ -16,9 +13,8 @@ export function models(partnerUrl: string): Model[] {
   return [
     {
       key: "loyalty",
-      title: "Только лояльность",
-      price: "0 сом",
-      priceNote: "бесплатно на старте, пока набирается аудитория",
+      title: "Больше клиентов",
+      priceNote: "в месяц",
       points: [
         "Место в каталоге Loal и кабинет партнёра",
         "Сами задаёте максимальный % оплаты бонусами на месяц",
@@ -29,15 +25,14 @@ export function models(partnerUrl: string): Model[] {
     },
     {
       key: "bundle",
-      title: "OctōPAY + лояльность",
-      price: "0 $",
-      priceNote: "абонентской платы за лояльность",
+      title: "Ещё больше клиентов",
+      priceNote: "в месяц за лояльность и OctōPAY",
       points: [
         "Приём QR-платежей через OctōPAY",
         "Клиент сам решает, сколько бонусов потратить при оплате",
         "Счёт клиенту: кассир вводит только сумму",
         "Метка «оплата бонусами в OctōPAY» в каталоге",
-        "Платите только комиссию с оборота",
+        "Комиссия за платежи — по условиям OctōPAY",
       ],
       featured: true,
       cta: { label: "Подключить пакет", href: `${partnerUrl.split("#")[0]}?plan=bundle#form` },
@@ -45,7 +40,6 @@ export function models(partnerUrl: string): Model[] {
     {
       key: "octopay",
       title: "Только OctōPAY",
-      price: "%",
       priceNote: "комиссия с оборота",
       points: ["Приём QR-платежей в Кыргызстане", "Деньги зачисляются на ваш счёт", "Без участия в программе Loal"],
       cta: { label: "Подключить OctōPAY", href: `${partnerUrl.split("#")[0]}?plan=octopay#form` },

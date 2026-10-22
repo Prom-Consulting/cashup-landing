@@ -165,6 +165,7 @@ export function useSubscription(merchantId: string) {
   const api = useApi();
   return useQuery({
     queryKey: merchantKeys.subscription(merchantId),
+    refetchInterval: 5_000,
     queryFn: async () => {
       try {
         return await merchantCabinetApi(api).subscription(merchantId);

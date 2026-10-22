@@ -23,7 +23,7 @@ export const promoApi = (api: ApiClient) => ({
   create: (values: CreatePromoForm) =>
     api.request(promoCodeSchema, "/admin/v1/promo-codes", { method: "POST", body: createPromoBody(values) }),
 
-  /** months и audience не меняются — для них выпускают новый код. */
+  /** kind, cycleBalance, months и audience не меняются — для них выпускают новый код. */
   update: (id: string, input: UpdatePromoInput) =>
     api.request(promoCodeSchema, `/admin/v1/promo-codes/${id}`, { method: "PATCH", body: input }),
 
@@ -39,7 +39,7 @@ export const promoApi = (api: ApiClient) => ({
       body: redeemPromoInputSchema.parse(input),
     }),
 
-  /** Месяцы ложатся на подписку карты как оплаченные. Без карты — 404 «Сначала получите карту». */
+  /** Применяет месяцы или 30-дневный цикл. После успеха нужно перечитать /v1/me/card. */
   redeemForMe: (input: RedeemPromoInput) =>
     api.request(promoRedeemResultSchema, "/v1/me/promo-code", {
       method: "POST",
@@ -58,6 +58,8 @@ export function promoErrorText(error: unknown): string {
       return "Промокод не найден";
     case "PROMO_ALREADY_USED":
       return "Вы уже использовали этот промокод";
+    case "PROMO_SUBSCRIPTION_EXISTS":
+      return "Промокод доступен только клиентам, у которых ещё не было подписки";
     case "PROMO_WRONG_AUDIENCE":
       return "Этот промокод не для вас: он для другой аудитории";
     case "PROMO_EXPIRED":

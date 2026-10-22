@@ -48,7 +48,7 @@ export type Merchant = z.infer<typeof merchantSchema>;
 
 /**
  * Тариф магазина — следует из связи с OctōPAY, его не выбирают (docs/API.md, «Тариф магазина»):
- * - octopay — OctōPAY + Loal: Loal бесплатен, бонусы тратятся при оплате через OctōPAY,
+ * - octopay — OctōPAY + Loal: лояльность входит в платный пакет, бонусы тратятся при оплате через OctōPAY,
  *   есть «Счёт клиенту»;
  * - loal — только Loal: помесячная подписка, бонусы списывает касса.
  * Строкой с запасным значением: незнакомый или старый ответ — «только Loal».
@@ -59,13 +59,13 @@ export const tariffOf = (value: string | null | undefined): MerchantTariff =>
 
 export const TARIFF_LABELS: Record<MerchantTariff, { title: string; short: string; about: string }> = {
   octopay: {
-    title: "OctōPAY + Loal",
-    short: "OctōPAY + Loal",
-    about: "Клиенты платят через OctōPAY и сами решают, сколько бонусов потратить. Абонентской платы за Loal нет.",
+    title: "Ещё больше клиентов",
+    short: "Ещё больше клиентов",
+    about: "Клиенты платят через OctōPAY и сами решают, сколько бонусов потратить. Лояльность включена в подписку на пакет, оплата — в OctōPAY.",
   },
   loal: {
-    title: "Только Loal",
-    short: "Только Loal",
+    title: "Больше клиентов",
+    short: "Больше клиентов",
     about: "Бонусы списывает касса по QR-коду карты. Loal оплачивается помесячно.",
   },
 };

@@ -11,12 +11,12 @@ const money = new Intl.NumberFormat("ru-RU");
 /** Что значит цена каждого тарифа — коротко, для агентства. */
 const ABOUT: Record<string, { title: string; text: string; free: string }> = {
   loal: {
-    title: "Только Loal",
+    title: "Больше клиентов",
     text: "Счёт магазину выставляет Loal по этой цене за месяц.",
     free: "Пока 0 — подписка не нужна: магазин принимает бонусы и виден в каталоге без оплаты, а кнопка счёта отвечает «доступ бесплатный».",
   },
   loal_octopay: {
-    title: "Loal + OctōPAY",
+    title: "Ещё больше клиентов",
     text: "Эту цену читает OctōPAY и сам ведёт подписку своих партнёров. Пока связь включена, Loal пускает магазин без подписки.",
     free: "0 — OctōPAY не выставляет счёт.",
   },
@@ -26,7 +26,10 @@ export function TariffPriceForm({ tariff }: { tariff: MerchantTariffPlan }) {
   const save = useSetTariffPrice();
   const [saved, setSaved] = useState(false);
   const about = ABOUT[tariff.code];
-  const initialValues: TariffPriceInput = { priceKgs: tariff.priceKgs };
+  const initialValues: TariffPriceInput = {
+    priceKgs: tariff.regularPriceKgs ?? tariff.priceKgs,
+    freeMerchantLimit: tariff.freeMerchantLimit ?? 0,
+  };
 
   return (
     <Card className="flex flex-col">
@@ -67,7 +70,7 @@ export function TariffPriceForm({ tariff }: { tariff: MerchantTariffPlan }) {
           return (
             <Form className="mt-5 flex flex-1 flex-col gap-4" noValidate onChange={() => setSaved(false)}>
               <FocusFirstError form={form} />
-              <FormField label="Цена за месяц" hint={hint} error={fieldError(form, "priceKgs")}>
+              <FormField label="Цена после заполнения бесплатных мест" hint={hint} error={fieldError(form, "priceKgs")}>
                 {(parts) => (
                   <div className="relative max-w-[280px]">
                     <Input
@@ -85,12 +88,26 @@ export function TariffPriceForm({ tariff }: { tariff: MerchantTariffPlan }) {
                   </div>
                 )}
               </FormField>
+              <FormField
+                label="Лимит бесплатных мест"
+                hint="0 — без акции. Пока число подключённых заведений меньше лимита, тариф бесплатный для всех. При достижении лимита все переходят на цену выше."
+                error={fieldError(form, "freeMerchantLimit")}
+              >
+                {(parts) => (
+                  <Input {...parts} name="freeMerchantLimit" inputMode="numeric" className="max-w-[280px]"
+                    value={String(form.values.freeMerchantLimit ?? 0)} onChange={form.handleChange} onBlur={form.handleBlur} />
+                )}
+              </FormField>
+              <p className="text-sm text-muted-foreground" aria-live="polite">
+                Подключено заведений: {tariff.enrolledMerchants ?? 0}. Осталось бесплатных мест: {tariff.freePlacesRemaining ?? 0}.
+                {" "}Учитываются подтверждённые заведения, каждое один раз на тариф. Отключение не возвращает место.
+              </p>
               <div className="mt-auto flex flex-wrap items-center gap-4">
                 <Button type="submit" disabled={form.isSubmitting || !form.dirty}>
-                  {form.isSubmitting ? "Сохраняем…" : "Сохранить цену"}
+                  {form.isSubmitting ? "Сохраняем…" : "Сохранить тариф"}
                 </Button>
                 <FormStatus message={formError(form)} />
-                <FormStatus tone="success" message={saved && !form.dirty ? "Цена сохранена" : undefined} />
+                <FormStatus tone="success" message={saved && !form.dirty ? "Тариф сохранён" : undefined} />
               </div>
               {tariff.updatedAt && (
                 <p className="text-sm text-muted-foreground">Изменена {formatDateTime(tariff.updatedAt)}</p>

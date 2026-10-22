@@ -12,6 +12,8 @@ import { StorefrontImages } from "./storefront-images";
 import type { Point } from "./location-picker";
 import { toPhoneDigits, coordsFrom2gis, merchantProfileFormSchema } from "@loal/api";
 import { categories } from "../_data/categories";
+import { businessPrice } from "../_data/business-pricing";
+import { useBusinessPricing } from "../_components/business-pricing";
 import { API_URL, EMAIL, PARTNER_APP_URL, PHONE, PHONE_HREF } from "../_data/site";
 
 gsap.registerPlugin(useGSAP);
@@ -22,14 +24,14 @@ const LocationPicker = dynamic(() => import("./location-picker"), {
   loading: () => <div className="h-[300px] animate-pulse rounded-2xl bg-cream sm:h-[340px]" />,
 });
 
-const plans = [
-  { id: "loyalty", label: "Только лояльность", note: "бесплатно на старте" },
-  { id: "bundle", label: "OctōPAY + лояльность", note: "без абонентской платы" },
+const planOptions = [
+  { id: "loyalty", label: "Больше клиентов" },
+  { id: "bundle", label: "Ещё больше клиентов" },
   { id: "octopay", label: "Только OctōPAY", note: "комиссия с оборота" },
 ] as const;
-const PLAN_LABEL: Record<PlanId, string> = { loyalty: plans[0].label, bundle: plans[1].label, octopay: plans[2].label };
+const PLAN_LABEL: Record<PlanId, string> = { loyalty: planOptions[0].label, bundle: planOptions[1].label, octopay: planOptions[2].label };
 
-type PlanId = (typeof plans)[number]["id"];
+type PlanId = (typeof planOptions)[number]["id"];
 type FieldName = "name" | "category" | "contact" | "phone" | "comment" | "description" | "address" | "instagramUrl" | "twogisUrl";
 
 const empty = { name: "", category: "", contact: "", phone: "", comment: "", description: "", address: "", instagramUrl: "", twogisUrl: "" };
@@ -136,6 +138,10 @@ const money = new Intl.NumberFormat("ru-RU");
 type Step = "details" | "code";
 
 export function PartnerForm() {
+  const pricing = useBusinessPricing();
+  const plans = planOptions.map((item) => ({
+    ...item, note: item.id === "octopay" ? item.note : `${businessPrice(item.id, pricing)}/мес`,
+  }));
   const [logo, setLogo] = useState<File | null>(null);
   const [photos, setPhotos] = useState<File[]>([]);
   // Точка на карте: из клика, «Где я» или координат в ссылке 2ГИС
@@ -166,14 +172,14 @@ export function PartnerForm() {
     const draft = readDraft();
     if (draft.values) setValues({ ...empty, ...draft.values });
     if (draft.point && typeof draft.point.lat === "number" && typeof draft.point.lng === "number") setPoint(draft.point);
-    if (draft.plan && plans.some((item) => item.id === draft.plan)) setPlan(draft.plan);
+    if (draft.plan && planOptions.some((item) => item.id === draft.plan)) setPlan(draft.plan);
     requestId.current = draft.requestId ?? null;
     if (draft.token && (draft.tokenUntil ?? 0) > Date.now()) {
       setToken(draft.token);
       setTokenUntil(draft.tokenUntil ?? 0);
     }
     const selected = new URLSearchParams(window.location.search).get("plan");
-    if (plans.some((item) => item.id === selected)) setPlan(selected as PlanId);
+    if (planOptions.some((item) => item.id === selected)) setPlan(selected as PlanId);
     restored.current = true;
   }, []);
 
@@ -727,9 +733,10 @@ function Alert({ text }: { text: string }) {
   );
 }
 
-/** Этапы подключения: для лояльности есть оплата, для бесплатных тарифов — нет. */
+/** Registration is free; the payment step is only for an existing onboarding invoice. */
 function Status({ sent, failed, phone }: { sent: Registration; failed: string | null; phone: string }) {
-  const paid = sent.plan === "loyalty";
+  const pricing = useBusinessPricing();
+  const paid = sent.plan === "loyalty" && sent.amount > 0;
   const stages = paid ? ["Заявка принята", "Оплата", "Кабинет готов"] : ["Заявка принята", "Создаём кабинеты", "Кабинеты готовы"];
   if (sent.plan !== "octopay") stages.push("Проверка супер-админа");
   const at =
@@ -749,7 +756,7 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
           : "Подключаем ваш бизнес";
 
   const text =
-    sent.verificationStatus === "pending" ? "Кабинет создан. До проверки супер-админа заведение не показывается в каталоге LOAL и не принимает бонусы. Вы уже можете войти и проверить данные витрины." : sent.state === "ready"
+    sent.verificationStatus === "pending" ? "Кабинет создан. До проверки супер-админа заведение не показывается в каталоге LOAL и не принимает бонусы. Вы уже можете войти и проверить данные витрины. Подписка оплачивается отдельно: «Больше клиентов» — в кабинете Loal, пакет — в OctōPAY." : sent.state === "ready"
       ? sent.plan === "octopay"
         ? "Аккаунт OctōPAY создан. Войдите по этому телефону и паролю, заданному в форме."
         : sent.plan === "bundle"
@@ -826,10 +833,13 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
           Логин: <span className="font-bold whitespace-nowrap">{formatPhone(phone)}</span>
         </p>
       )}
-      {sent.state === "ready" && sent.plan !== "loyalty" && (
+      {sent.state === "ready" && (
         <p className="rounded-2xl bg-cream px-4 py-3 text-base leading-relaxed">
-          Абонентской платы нет — только комиссия с платежей. Чтобы принимать оплату, подключите банковский счёт в
-          кабинете OctōPAY.
+          {sent.plan === "loyalty"
+            ? `Тариф «Больше клиентов» — ${businessPrice("loyalty", pricing)}/мес. Актуальные условия и оплата — в кабинете Loal.`
+            : sent.plan === "bundle"
+              ? `Тариф «Ещё больше клиентов» — ${businessPrice("bundle", pricing)}/мес, оплата — в OctōPAY. Для приёма платежей подключите банковский счёт в кабинете OctōPAY.`
+              : "Абонентской платы нет — только комиссия с платежей. Чтобы принимать оплату, подключите банковский счёт в кабинете OctōPAY."}
         </p>
       )}
       {sent.state === "pending_payment" && (

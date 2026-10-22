@@ -91,6 +91,7 @@ src/shared/     конфигурация, утилиты, обёртки над 
 # деплой бэкенда стирает свою папку целиком)
 cp infra/.env.example infra/.env   # проверить домены, API_URL и TRAEFIK_NETWORK
 docker compose -f infra/docker-compose.yml build
+bash scripts/check-edge-ready.sh  # обновлённый gateway backend должен быть уже запущен
 docker compose -f infra/docker-compose.yml up -d
 ```
 
@@ -107,6 +108,56 @@ docker compose -f infra/docker-compose.yml up -d
 ```bash
 docker inspect traefik -f '{{range $n,$_ := .NetworkSettings.Networks}}{{$n}} {{end}}'
 ```
+
+### Ограничение запросов и бан IP
+
+Traefik проверяет IP **перед всеми пятью frontend-приложениями**: `loal.kg`,
+`www.loal.kg`, `admin`, `partner`, `client` и `cashier`. Учитываются страницы,
+JS/CSS, изображения, `/_next/*`, API лендинга, `OPTIONS` и неизвестные пути.
+Проверка стоит перед редиректом с `www`, поэтому смена домена или пути её не обходит.
+
+Лимит **общий с API платформы: 100 запросов от IP за скользящую секунду**.
+101-й запрос включает бан на **15 минут** сразу на всех этих доменах и API.
+Traefik возвращает `429` с `Retry-After`, не отправляя запрос в Next.js/nginx.
+Повторные запросы не продлевают бан. Счётчик и срок хранятся в Redis backend;
+настройки `GATEWAY_RATE_LIMIT_RPS` и `GATEWAY_IP_BAN_SECONDS` меняются в
+`cashup_platform/infra/.env` (при CI/CD — также в его GitHub secret `ENV`).
+
+Используется [Traefik ForwardAuth](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/forwardauth/):
+проверка обращается к `http://gateway:8080/_edge/rate-limit` по общей Docker-сети.
+URL задаётся `GATEWAY_RATE_LIMIT_URL` в `infra/.env`; он должен быть внутренним,
+без возврата через публичный Traefik, иначе получится цикл. Проверка получает
+IP из соединения Traefik; присланным посетителем `X-Forwarded-*` не доверяет.
+Cookies, токены и тело запроса в проверку не передаются. Docker-порты приложений
+наружу не опубликованы. Доверие рассчитано на прямой вход посетителя в Traefik;
+подключение CDN требует отдельной настройки реального IP и доверенных прокси.
+
+**Порядок первого обновления: backend → frontend.** Сначала выкатите gateway
+с endpoint `/_edge/rate-limit`, затем frontend. После сборки образов CD и
+`scripts/ship.sh` проверяют ответ `204` с `X-Loal-Rate-Limit: v1` из Docker-сети.
+Если endpoint ещё не готов, деплой останавливается до изменения работающих
+контейнеров frontend. При ручном обновлении выполните `bash scripts/check-edge-ready.sh`
+перед `docker compose up`. Gateway без этой версии возвращает `404`, поэтому
+пропускать проверку и выкатывать frontend первым нельзя.
+
+После подключения защиты доступность frontend зависит от gateway и Redis:
+при их отказе запросы отклоняются с `5xx`, без обхода защиты. Перезапуск gateway
+сохраняет баны; перезапуск Redis сбрасывает их, так как его persistence отключена.
+Проверка работает в production через Traefik; `pnpm dev` напрямую её не включает.
+HTTP-редирект с порта 80 на HTTPS выполняется раньше middleware. Защита от
+перегрузки сетевого канала и распределённого потока с множества IP нужна также
+на стороне хостинга/CDN.
+
+Посмотреть и снять бан можно в `cashup_platform/infra`:
+
+```bash
+docker compose exec -T redis redis-cli --scan --pattern 'gateway:ip:*:ban'
+docker compose exec -T redis redis-cli DEL 'gateway:ip:{203.0.113.8}:ban' 'gateway:ip:{203.0.113.8}:requests'
+```
+
+Подставьте IP из списка ключей. Проверка конфигурации всех frontend-роутеров,
+порядка middleware и готовности деплоя: `python3 scripts/check-edge-config.py`
+(также запускается в CI и в локальном `scripts/ship.sh`).
 
 ### DNS
 

@@ -95,12 +95,12 @@ export function usePaySubscriptionByPhone() {
   });
 }
 
-/** Промокод на месяцы подписки: после успеха карта перечитывается — подписка на ней уже с ними. */
+/** После промокода перечитываем карту, историю и offer: баланс и даты берём только с сервера. */
 export function useRedeemPromo() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: RedeemPromoInput) => promoApi(api).redeemForMe(input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me"], refetchType: "all" }),
   });
 }

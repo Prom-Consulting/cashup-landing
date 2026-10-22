@@ -71,7 +71,7 @@ function OwnerDashboard() {
         title={merchant.data?.name ?? "Кабинет магазина"}
         description={
           pendingVerification ? "Заведение ожидает обязательной проверки супер-админа LOAL." : tariff === "octopay"
-            ? "Тариф OctōPAY + Loal: бонусы принимаются, абонентской платы за Loal нет."
+            ? "Тариф «Ещё больше клиентов»: лояльность и платежи через OctōPAY. Актуальная цена — в карточке тарифа."
             : "Пока подписка активна, касса и 1С могут списывать бонусы клиентов."
         }
         action={<Badge tone={active ? "good" : "warn"}>{active ? "Бонусы принимаются" : "Приём остановлен"}</Badge>}
@@ -85,8 +85,8 @@ function OwnerDashboard() {
             {subscription.data ? "Подписка закончилась" : "Loal ещё не оплачен"}
           </h2>
           <p className="mt-2 max-w-[70ch] text-lg">
-            Списания не проходят ни через приложение, ни через 1С. Оплатите Loal — или подключите OctōPAY, и Loal станет
-            бесплатным.
+            Списания не проходят ни через приложение, ни через 1С. Оплатите подписку Loal или подключите платный пакет
+            OctōPAY + Loal.
           </p>
           <Link to="/billing" className="mt-4 inline-block text-lg text-destructive underline underline-offset-4">
             Перейти к оплате

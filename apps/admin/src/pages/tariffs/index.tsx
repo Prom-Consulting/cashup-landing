@@ -13,7 +13,7 @@ export function TariffsPage() {
     <section className="flex flex-col gap-6">
       <PageHeader
         title="Тарифы"
-        description="Цены за месяц для магазинов. 0 — бесплатно. «Только OctōPAY» и Enterprise здесь не настраиваются."
+        description="Настройте бесплатные места и цену для каждого тарифа. Когда лимит заполнится, платят все заведения на тарифе. Актуальная цена автоматически появляется на лендинге."
       />
       {tariffs.isPending && <Loading rows={2} />}
       {tariffs.isError && <ErrorState error={tariffs.error} onRetry={() => tariffs.refetch()} />}

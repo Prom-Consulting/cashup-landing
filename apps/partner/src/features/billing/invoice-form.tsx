@@ -2,7 +2,8 @@ import { ApiError, createInvoiceInputSchema, type CreateInvoiceInput, type Invoi
 import { FocusFirstError, applyServerIssues, formError, zodValidate } from "@loal/forms";
 import { Button, FormStatus, cn } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePublicTariffs } from "@loal/app-kit";
 import { useCreateInvoice } from "../../entities/merchant/api";
 
 const money = new Intl.NumberFormat("ru-RU");
@@ -21,9 +22,12 @@ export function InvoiceForm({ merchantId }: { merchantId: string }) {
   const [issued, setIssued] = useState<Invoice | null>(null);
   // Цена тарифа «Только Loal» — 0: счёт не нужен, бонусы и так принимаются
   const [free, setFree] = useState(false);
+  const prices = usePublicTariffs();
+  const price = prices.isError ? undefined : prices.data?.find((item) => item.code === "loal")?.priceKgs;
+  useEffect(() => { setFree(price === 0); }, [price, prices.dataUpdatedAt]);
   const initialValues: CreateInvoiceInput = { months: 1 };
 
-  if (free)
+  if (price === 0 || (price === undefined && free))
     return (
       <div role="status" className="rounded-[24px] bg-muted p-5">
         <p className="text-xl font-bold">Доступ сейчас бесплатный</p>

@@ -24,7 +24,7 @@ export function CorporateHero({ formHref }: { formHref: string }) {
             href={formHref}
             className="inline-flex items-center justify-center rounded-full bg-white px-7 py-4 text-[1.1875rem] font-bold text-graphite transition-colors hover:bg-flame hover:text-white"
           >
-            Оставить заявку
+            Стать партнером
           </Link>
           <Link
             href="/partners"

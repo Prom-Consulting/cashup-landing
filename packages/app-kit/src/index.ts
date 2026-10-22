@@ -18,3 +18,4 @@ export * from "./welcome";
 export * from "./client-payments";
 export * from "./work-branch";
 export * from "./google";
+export * from "./tariffs";

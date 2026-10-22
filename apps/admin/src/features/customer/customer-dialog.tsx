@@ -27,6 +27,7 @@ import {
 import { useTiers } from "../../entities/platform/api";
 import { cardPageUrl } from "../../shared/config/env";
 import { formatDate } from "../../shared/lib/format";
+import { DeleteCustomerDialog } from "./delete-customer-dialog";
 import { IssueCardPanel } from "./issue-card-panel";
 
 const money = new Intl.NumberFormat("ru-RU");
@@ -203,7 +204,7 @@ function CardRow({ card, customer }: { card: Card; customer: Customer }) {
 }
 
 /** Всё о держателе: его карты, подписка, уровень, выдача новой карты и архив. */
-export function CustomerDialog({ customer, onClose }: { customer: Customer | null; onClose: () => void }) {
+export function CustomerDialog({ customer, onClose, onDeleted }: { customer: Customer | null; onClose: () => void; onDeleted: (id: string) => void }) {
   const cards = useCustomerCards(customer?.id ?? null);
   const [issuing, setIssuing] = useState(false);
   const archive = useArchiveCustomer();
@@ -227,6 +228,10 @@ export function CustomerDialog({ customer, onClose }: { customer: Customer | nul
                 <CardRow key={card.serialNumber} card={card} customer={customer} />
               ))}
             </ul>
+
+            <div className="border-t border-border pt-5">
+              <DeleteCustomerDialog customer={customer} onDeleted={onDeleted} />
+            </div>
 
             {!customer.archivedAt && (
               <div className="flex flex-wrap gap-3 border-t border-border pt-5">
