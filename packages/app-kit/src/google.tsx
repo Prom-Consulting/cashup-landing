@@ -190,7 +190,9 @@ export function GoogleSignIn({ clientId, onDone }: { clientId?: string; onDone?:
 function googleLinkError(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === "IDENTITY_TAKEN")
-      return "Этот Google уже привязан к другому человеку — или у вас привязан другой. Сначала отвяжите прежний.";
+      return /актив/i.test(error.message)
+        ? "Этот Google привязан к другому активному заведению — отвяжите его там."
+        : "У вас уже привязан другой Google — сначала отвяжите его.";
     if (error.code === "NOT_BUSINESS_ACCOUNT") return "Google можно привязать только сотруднику магазина.";
     if (error.code === "INVALID_GOOGLE_TOKEN") return "Google не подтвердил вход. Попробуйте ещё раз.";
     if (error.code === "GOOGLE_SIGN_IN_DISABLED") return "Вход через Google пока не включён.";

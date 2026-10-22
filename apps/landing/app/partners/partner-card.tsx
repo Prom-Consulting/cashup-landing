@@ -2,11 +2,15 @@
 
 import type { PublicPartner } from "@loal/api";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { partnerPath } from "../_data/seo";
 import { monogram } from "../_data/partners-api";
 import { fitLogo } from "./logo-fit";
 
-/** Обложка: первое фото витрины. Без фото — фирменный градиент с крупной монограммой. */
+/**
+ * Обложка: первое фото витрины. Без фото — логотип крупной квадратной плиткой на светлом фоне:
+ * в круге на градиенте логотипы теряли края и выглядели заглушкой.
+ */
 export function PartnerCover({
   partner,
   className = "",
@@ -16,12 +20,39 @@ export function PartnerCover({
   className?: string;
   large?: boolean;
 }) {
-  const photo = partner.photos[0];
-  if (photo)
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={photo} alt={`${partner.name} — фото`} loading="lazy" decoding="async" className={`object-cover ${className}`} />;
+  // Без фото обложкой служит кадр из видео
+  const photo = partner.photos[0] ?? partner.videos?.find((video) => video.posterUrl)?.posterUrl;
+  if (photo) return <FramedImage src={photo} alt={`${partner.name} — фото`} className={className} />;
   return (
-    <span aria-hidden="true" className={`brand-gradient relative grid place-items-center overflow-hidden ${className}`}>
+    <span
+      aria-hidden="true"
+      className={`relative grid place-items-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,#fff_0,var(--cream)_70%)] ${className}`}
+    >
+      <LogoTile partner={partner} className={large ? "h-[58%]" : "h-[62%]"} />
+    </span>
+  );
+}
+
+/**
+ * Картинка в рамке карточки: заполняет рамку целиком, лишнее обрезается — все карточки одной
+ * формы, вертикальное фото тоже. Картинка лежит поверх рамки абсолютно, поэтому высоту рамки
+ * задаёт раскладка, а не фото. Целиком фото и видео видны на странице заведения.
+ */
+export function FramedImage({ src, alt, className = "" }: { src: string; alt: string; className?: string }) {
+  return (
+    <span className={`relative block overflow-hidden bg-graphite ${className}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+    </span>
+  );
+}
+
+/** Логотип на белой квадратной плитке; без логотипа — монограмма на фирменном градиенте. */
+export function LogoTile({ partner, className = "" }: { partner: PublicPartner; className?: string }) {
+  return (
+    <span
+      className={`grid aspect-square place-items-center overflow-hidden rounded-[22%] border border-smoke bg-white shadow-[0_14px_36px_rgb(22_21_21/0.12)] ${className}`}
+    >
       {partner.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -29,10 +60,11 @@ export function PartnerCover({
           src={partner.logoUrl}
           alt={`Логотип ${partner.name}`}
           crossOrigin="anonymous"
-          className={`rounded-full border-4 border-paper/90 bg-paper object-cover shadow-xl ${large ? "h-32 w-32" : "h-16 w-16 sm:h-20 sm:w-20"}`}
+          loading="lazy"
+          className="h-full w-full object-contain p-[12%]"
         />
       ) : (
-        <span className={`display text-white/95 ${large ? "text-[5rem]" : "text-[3.25rem]"} leading-none`}>
+        <span className="brand-gradient display grid h-full w-full place-items-center text-[clamp(1.5rem,6vw,4rem)] text-white">
           {monogram(partner.name)}
         </span>
       )}
@@ -46,7 +78,7 @@ export function PartnerLogo({ partner, size = "md" }: { partner: PublicPartner; 
   return (
     <span
       aria-hidden="true"
-      className={`grid ${box} shrink-0 place-items-center overflow-hidden rounded-full bg-[conic-gradient(from_210deg,var(--coral),var(--flame),var(--amber),var(--peach),var(--coral))] p-[3px]`}
+      className={`grid ${box} shrink-0 place-items-center overflow-hidden rounded-[28%] border border-smoke bg-white`}
     >
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -56,10 +88,10 @@ export function PartnerLogo({ partner, size = "md" }: { partner: PublicPartner; 
           alt={`Логотип ${partner.name}`}
           crossOrigin="anonymous"
           loading="lazy"
-          className="h-full w-full rounded-full border-2 border-paper bg-paper object-cover"
+          className="h-full w-full object-cover"
         />
       ) : (
-        <span className="brand-gradient display grid h-full w-full place-items-center rounded-full border-2 border-paper text-base text-white">
+        <span className="brand-gradient display grid h-full w-full place-items-center text-base text-white">
           {monogram(partner.name)}
         </span>
       )}
@@ -67,7 +99,17 @@ export function PartnerLogo({ partner, size = "md" }: { partner: PublicPartner; 
   );
 }
 
+/** «Больше клиентов»: бонусы здесь только копят — тратить нельзя (acceptsBonuses: false). */
+export const onlyEarns = (partner: PublicPartner) => partner.acceptsBonuses === false;
+
 export function PercentBadge({ partner, className = "" }: { partner: PublicPartner; className?: string }) {
+  // Здесь не тратят — показываем кэшбэк, иначе клиент придёт платить бонусами и получит отказ
+  if (onlyEarns(partner))
+    return (
+      <span className={`shrink-0 rounded-full bg-graphite px-3 py-1 text-sm font-bold whitespace-nowrap text-white ${className}`}>
+        {partner.cashbackPercent ? `кэшбэк ${partner.cashbackPercent}%` : "только кэшбэк"}
+      </span>
+    );
   if (!partner.maxCoveragePercent) return null;
   return (
     <span className={`shrink-0 rounded-full bg-flame px-3 py-1 text-sm font-bold whitespace-nowrap text-white ${className}`}>
@@ -79,6 +121,78 @@ export function PercentBadge({ partner, className = "" }: { partner: PublicPartn
 const subtitle = (partner: PublicPartner) =>
   [partner.category, partner.tariff === "octopay" ? "оплата в OctōPAY" : null].filter(Boolean).join(" · ") || "Бишкек";
 
+/**
+ * Видео в карточке каталога — живое превью: ролик тихо играет, пока карточка на экране, и встаёт
+ * на паузу, когда её прокрутили. Файл не грузится, пока карточку не увидели, — каталог не тянет
+ * десятки роликов разом. При «меньше движения» и режиме экономии трафика остаётся обложка со значком.
+ */
+function CardVideo({ partner, badge = true }: { partner: PublicPartner; badge?: boolean }) {
+  const video = partner.videos?.[0];
+  const [seen, setSeen] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [ready, setReady] = useState(false);
+  const host = useRef<HTMLSpanElement>(null);
+  const player = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    // Следим за обложкой, а не за всей карточкой: прайм-карточка на телефоне выше экрана
+    const cover = host.current?.parentElement;
+    if (!cover || !video) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const inView = Boolean(entry?.isIntersecting);
+        setVisible(inView);
+        if (inView) setSeen(true);
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(cover);
+    return () => observer.disconnect();
+  }, [video]);
+
+  useEffect(() => {
+    const element = player.current;
+    if (!element) return;
+    if (visible) void element.play().catch(() => undefined);
+    else element.pause();
+  }, [visible, seen]);
+
+  if (!video) return null;
+  return (
+    <span ref={host} aria-hidden="true">
+      {seen && (
+        <video
+          ref={(element) => {
+            player.current = element;
+            // React не пишет muted в разметку — без него Safari не запускает ролик сам
+            if (element) element.muted = true;
+          }}
+          src={video.url}
+          poster={video.posterUrl ?? undefined}
+          muted
+          loop
+          playsInline
+          autoPlay
+          preload="auto"
+          onPlaying={() => setReady(true)}
+          // Проявляется, когда пошли кадры: до этого видна обложка, а не чёрный прямоугольник
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`}
+        />
+      )}
+      {badge && (
+        <span className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-graphite/80 px-2.5 py-1 text-xs font-bold text-white sm:top-3 sm:left-3">
+          <svg viewBox="0 0 24 24" className="size-3" fill="currentColor">
+            <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z" />
+          </svg>
+          Видео
+        </span>
+      )}
+    </span>
+  );
+}
+
 /** Карточка в сетке каталога: обложка, логотип внахлёст, название и «до N%». Ссылка на страницу заведения. */
 export function PartnerCard({ partner }: { partner: PublicPartner }) {
   return (
@@ -87,14 +201,15 @@ export function PartnerCard({ partner }: { partner: PublicPartner }) {
         href={partnerPath(partner)}
         className="group flex h-full w-full flex-col overflow-hidden rounded-[20px] sm:rounded-[24px] bg-paper text-left shadow-[0_1px_0_rgb(22_21_21/0.06)] ring-1 ring-smoke/70 transition-[box-shadow,transform] duration-200 outline-none hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgb(22_21_21/0.12)] focus-visible:ring-3 focus-visible:ring-flame motion-reduce:hover:translate-y-0"
       >
-        <span className="relative block">
+        <span className="relative block overflow-hidden">
           <PartnerCover partner={partner} className="aspect-[4/3] w-full" />
+          <CardVideo partner={partner} />
           <PercentBadge partner={partner} className="absolute top-2 right-2 px-2.5 text-xs shadow-md sm:top-3 sm:right-3 sm:px-3 sm:text-sm" />
         </span>
         <span className="relative flex flex-1 items-start gap-3 px-3 pt-0 pb-3 sm:px-4 sm:pb-4">
           {/* Без фото логотип уже на обложке — второй раз не повторяем */}
-          {partner.photos.length > 0 && (
-            <span className="-mt-6 hidden rounded-full ring-4 ring-paper sm:block">
+          {(partner.photos.length > 0 || partner.videos?.some((video) => video.posterUrl)) && (
+            <span className="-mt-6 hidden rounded-[30%] ring-4 ring-paper sm:block">
               <PartnerLogo partner={partner} />
             </span>
           )}
@@ -124,6 +239,8 @@ export function PrimeCard({ partner, label }: { partner: PublicPartner; label: s
           large
           className="aspect-[16/10] w-full transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:group-hover:scale-100 md:aspect-auto md:h-full md:min-h-[340px]"
         />
+        {/* Значок «Видео» не ставим: угол занят подписью карточки, а ролик и так играет */}
+        <CardVideo partner={partner} badge={false} />
         <span className="absolute top-4 left-4 rounded-full bg-paper px-3 py-1 text-sm font-bold text-graphite">
           {label}
         </span>
@@ -136,7 +253,17 @@ export function PrimeCard({ partner, label }: { partner: PublicPartner; label: s
             <span className="mt-1 block truncate text-base text-paper/70">{subtitle(partner)}</span>
           </span>
         </span>
-        {partner.maxCoveragePercent ? (
+        {onlyEarns(partner) ? (
+          <span className="flex flex-col gap-1">
+            {partner.cashbackPercent ? (
+              <span className="flex items-baseline gap-2">
+                <span className="display text-[3.5rem] leading-none text-amber sm:text-[4.25rem]">{partner.cashbackPercent}%</span>
+                <span className="text-base leading-snug text-paper/80">кэшбэк бонусами за оплату деньгами</span>
+              </span>
+            ) : null}
+            <span className="text-base text-paper/70">Бонусы здесь не тратят — только копят.</span>
+          </span>
+        ) : partner.maxCoveragePercent ? (
           <span className="flex items-baseline gap-2">
             <span className="display text-[3.5rem] leading-none text-amber sm:text-[4.25rem]">
               {partner.maxCoveragePercent}%

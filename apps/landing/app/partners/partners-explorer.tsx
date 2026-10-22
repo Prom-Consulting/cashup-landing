@@ -93,24 +93,26 @@ export function PartnersExplorer({ partners }: { partners: PublicPartner[] }) {
   const [viewport, setViewport] = useState({ width: 375, height: 600 });
   const section = useRef<HTMLElement>(null);
 
-  // Учитываем реальную шапку, адресную строку браузера и экранную клавиатуру.
+  // Учитываем всё над картой (полоса приложения, шапка), адресную строку браузера и экранную клавиатуру.
   useEffect(() => {
     const header = document.querySelector("header");
     const resize = () => {
-      const height = Math.max(
-        180,
-        (window.visualViewport?.height ?? window.innerHeight) - (header?.getBoundingClientRect().height ?? 88),
-      );
+      const above = section.current ? section.current.getBoundingClientRect().top + window.scrollY : 88;
+      const height = Math.max(180, (window.visualViewport?.height ?? window.innerHeight) - above);
       setViewport({ width: window.innerWidth, height });
       section.current?.style.setProperty("--map-height", `${height}px`);
     };
     resize();
     const observer = new ResizeObserver(resize);
     if (header) observer.observe(header);
+    // Закрыли полосу приложения (она уходит из body) — карта дорастает до низа экрана
+    const mutations = new MutationObserver(resize);
+    mutations.observe(document.body, { childList: true });
     window.addEventListener("resize", resize);
     window.visualViewport?.addEventListener("resize", resize);
     return () => {
       observer.disconnect();
+      mutations.disconnect();
       window.removeEventListener("resize", resize);
       window.visualViewport?.removeEventListener("resize", resize);
     };

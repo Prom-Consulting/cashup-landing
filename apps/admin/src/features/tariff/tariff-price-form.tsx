@@ -10,15 +10,20 @@ const money = new Intl.NumberFormat("ru-RU");
 
 /** Что значит цена каждого тарифа — коротко, для агентства. */
 const ABOUT: Record<string, { title: string; text: string; free: string }> = {
-  loal: {
+  more_clients: {
     title: "Больше клиентов",
-    text: "Счёт магазину выставляет Loal по этой цене за месяц.",
-    free: "Пока 0 — подписка не нужна: магазин принимает бонусы и виден в каталоге без оплаты, а кнопка счёта отвечает «доступ бесплатный».",
+    text: "Бонусы здесь только копят: кэшбэк клиенту, тратить нельзя.",
+    free: "0 — заведения на этом тарифе работают без подписки.",
   },
-  loal_octopay: {
+  even_more_clients: {
     title: "Ещё больше клиентов",
-    text: "Эту цену читает OctōPAY и сам ведёт подписку своих партнёров. Пока связь включена, Loal пускает магазин без подписки.",
-    free: "0 — OctōPAY не выставляет счёт.",
+    text: "Оплата части чека бонусами, кэшбэка нет.",
+    free: "0 — заведения на этом тарифе работают без подписки.",
+  },
+  very_many_clients: {
+    title: "Очень много клиентов",
+    text: "И оплата бонусами, и кэшбэк, плюс выделение в каталоге. На нём все заведения, подключённые раньше.",
+    free: "0 — заведения на этом тарифе работают без подписки.",
   },
 };
 
@@ -35,7 +40,7 @@ export function TariffPriceForm({ tariff }: { tariff: MerchantTariffPlan }) {
     <Card className="flex flex-col">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="display text-[1.6rem] leading-tight">{tariff.name ?? about?.title ?? tariff.code}</h2>
+          <h2 className="display text-[1.6rem] leading-tight">{about?.title ?? tariff.name ?? tariff.code}</h2>
           <p className="mt-1 font-mono text-sm text-muted-foreground">{tariff.code}</p>
         </div>
         <Badge tone={tariff.priceKgs === 0 ? "good" : "neutral"}>

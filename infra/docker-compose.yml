@@ -24,6 +24,9 @@ services:
     build:
       context: ..
       dockerfile: infra/Dockerfile.landing
+      args:
+        NEXT_PUBLIC_SENTRY_DSN: ${SENTRY_DSN_LANDING:-https://8a1ac44aa650e42c6c410d4b04fa1849@o4511183322349568.ingest.us.sentry.io/4512242068684800}
+        NEXT_PUBLIC_SENTRY_RELEASE: ${GIT_SHA:-}
     image: loal-landing:latest
     environment:
       NEXT_PUBLIC_SITE_URL: https://${LANDING_HOST:-loal.kg}

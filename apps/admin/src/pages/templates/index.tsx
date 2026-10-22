@@ -21,6 +21,7 @@ export function TemplatesPage() {
   return (
     <section className="flex flex-col gap-6">
       <PageHeader
+        as="h2"
         title="Карты"
         description="Как выглядит карта в Wallet. Правка опубликованной карты сразу уходит всем, у кого она уже есть."
         action={<CreateTemplateDialog />}

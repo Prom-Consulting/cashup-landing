@@ -1,5 +1,12 @@
 import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
-import { TARIFF_LABELS, isOctopayIntegrationReady, type MerchantSubscription, type MerchantTariff } from "@loal/api";
+import {
+  LOAL_TARIFF_LABELS,
+  TARIFF_LABELS,
+  isLoalTariff,
+  isOctopayIntegrationReady,
+  type MerchantSubscription,
+  type MerchantTariff,
+} from "@loal/api";
 import { Badge, Button, Card, Icon } from "@loal/ui/shadcn";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -8,6 +15,7 @@ import { merchantKeys, useOctopayIntegration } from "../../entities/merchant/api
 import { formatDate } from "../../shared/lib/format";
 import { OctopayIntegration } from "../octopay/integration";
 import { usePublicTariffs } from "@loal/app-kit";
+import { TariffChange } from "./tariff-change";
 
 const BUNDLE_PERKS = [
   "Лояльность включена в подписку OctōPAY + Loal",
@@ -16,16 +24,24 @@ const BUNDLE_PERKS = [
 ];
 
 /**
- * Тариф магазина — следует из связи с OctōPAY, его не выбирают. На «Только Loal» показываем
- * срок подписки; на «OctōPAY + Loal» — оплату пакета через OctōPAY.
+ * Тариф Loal магазина (ТЗ №5): что он даёт, до какого числа оплачен и смена тарифа. Доступ
+ * открывает только оплата (или месяцы от агентства); связь с OctōPAY — отдельно, по желанию:
+ * от неё зависит только «Счёт клиенту». Старый шлюз без loalTariff — прежняя карточка ниже.
  */
 export function TariffCard({
   merchantId,
   tariff,
+  loalTariff,
+  cashbackPercent,
+  canChange,
   subscription,
 }: {
   merchantId: string;
   tariff: MerchantTariff;
+  loalTariff?: string | null;
+  cashbackPercent?: number | null;
+  /** Менять тариф может только владелец. */
+  canChange?: boolean;
   subscription: MerchantSubscription | null;
 }) {
   const queryClient = useQueryClient();
@@ -33,8 +49,7 @@ export function TariffCard({
   const paidActive = subscription ? (subscription.paidActive ?? subscription.isActive) : false;
   const label = TARIFF_LABELS[tariff];
   const prices = usePublicTariffs();
-  const currentPrice = prices.isError ? undefined : prices.data?.find((item) => item.code === (tariff === "octopay" ? "loal_octopay" : "loal"));
-  const free = currentPrice?.priceKgs === 0;
+  const currentPrice = prices.isError ? undefined : prices.data?.find((item) => item.code === loalTariff);
 
   // Проверка связи обновляет тариф на сервере: если он разошёлся с показанным — перечитываем
   const linked = integration.data ? integration.data.connected && integration.data.isEnabled === true : null;
@@ -44,6 +59,43 @@ export function TariffCard({
     void queryClient.invalidateQueries({ queryKey: merchantKeys.subscription(merchantId), exact: true });
   }, [linked, tariff, merchantId, queryClient]);
 
+  if (isLoalTariff(loalTariff))
+    return (
+      <Card className="flex flex-col">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-base text-muted-foreground">Тариф</p>
+            <h2 className="display mt-1 text-[1.6rem] leading-tight">{LOAL_TARIFF_LABELS[loalTariff].title}</h2>
+          </div>
+          <Badge tone={subscription?.isActive ? "good" : "warn"}>
+            {subscription?.isActive
+              ? subscription.expiresAt
+                ? `оплачено до ${formatDate(subscription.expiresAt)}`
+                : "доступ бесплатный"
+              : "не оплачено"}
+          </Badge>
+        </div>
+        <p className="mt-2 max-w-[56ch] text-base leading-snug text-muted-foreground">
+          {LOAL_TARIFF_LABELS[loalTariff].about}
+          {cashbackPercent ? ` Кэшбэк клиенту — ${cashbackPercent}%.` : ""}
+        </p>
+        {currentPrice && <p className="mt-3 text-lg font-bold" aria-live="polite">
+          {new Intl.NumberFormat("ru-RU").format(currentPrice.priceKgs)} сом/мес
+          {currentPrice.freeOfferActive && <span className="mt-1 block text-sm font-normal text-muted-foreground">
+            Осталось бесплатных мест: {currentPrice.freePlacesRemaining}. После заполнения для всех — {new Intl.NumberFormat("ru-RU").format(currentPrice.regularPriceKgs)} сом/мес.
+          </span>}
+        </p>}
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button asChild variant={subscription?.isActive ? "outline" : "primary"}>
+            <Link to="/billing">{currentPrice?.priceKgs === 0 ? "Условия тарифа" : subscription?.isActive ? "Продлить" : "Оплатить"}</Link>
+          </Button>
+          {canChange && <TariffChange merchantId={merchantId} current={loalTariff} />}
+        </div>
+        <p className="mt-5 text-base font-bold">Приём платежей OctōPAY — по желанию</p>
+        <OctopayIntegration key={merchantId} merchantId={merchantId} />
+      </Card>
+    );
+
   return (
     <Card className="flex flex-col">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -51,7 +103,7 @@ export function TariffCard({
           <p className="text-base text-muted-foreground">Тариф</p>
           <h2 className="display mt-1 text-[1.6rem] leading-tight">{label.title}</h2>
         </div>
-        {free ? <Badge tone="good">Бесплатно</Badge> : tariff === "octopay" ? (
+        {tariff === "octopay" ? (
           <Badge tone="good">Оплата в OctōPAY</Badge>
         ) : (
           <Badge tone={paidActive ? "good" : "warn"}>
@@ -60,14 +112,6 @@ export function TariffCard({
         )}
       </div>
       <p className="mt-2 max-w-[56ch] text-base leading-snug text-muted-foreground">{label.about}</p>
-      {currentPrice && (
-        <p className="mt-3 text-lg font-bold" aria-live="polite">
-          {new Intl.NumberFormat("ru-RU").format(currentPrice.priceKgs)} сом/мес
-          {currentPrice.freeOfferActive && <span className="mt-1 block text-sm font-normal text-muted-foreground">
-            Осталось бесплатных мест: {currentPrice.freePlacesRemaining}. После заполнения для всех — {new Intl.NumberFormat("ru-RU").format(currentPrice.regularPriceKgs)} сом/мес.
-          </span>}
-        </p>
-      )}
 
       {tariff === "octopay" && paidActive && subscription?.expiresAt && (
         <p className="mt-2 text-sm text-muted-foreground">
@@ -80,7 +124,7 @@ export function TariffCard({
         <>
           <div className="mt-4">
             <Button asChild variant={paidActive ? "outline" : "primary"}>
-              <Link to="/billing">{free ? "Условия тарифа" : paidActive ? "Продлить подписку" : "Оплатить Loal"}</Link>
+              <Link to="/billing">{paidActive ? "Продлить подписку" : "Оплатить Loal"}</Link>
             </Button>
           </div>
           {/* Дорога к пакету: тот же блок подключения, что и ниже, — просто с объяснением зачем */}

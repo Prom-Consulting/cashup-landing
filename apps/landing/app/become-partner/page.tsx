@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import { CorporateHero } from "../_components/business-section";
 import { SiteFooter } from "../_components/site-footer";
 import { SiteHeader } from "../_components/site-header";
+import { ScrollToHash } from "../_components/scroll-to-hash";
 import { models } from "../_data/models";
 import { getBusinessPricing } from "../_data/business-pricing";
-import { BusinessOffer, BusinessPrice, BusinessPricingProvider } from "../_components/business-pricing";
+import { BusinessPricingProvider } from "../_components/business-pricing";
 import { PAGE_SEO, openGraph } from "../_data/seo";
 import { CITY, EMAIL, OCTOPAY_URL, PARTNER_MAIL, PHONE, PHONE_HREF } from "../_data/site";
 import { PartnerForm } from "./partner-form";
+import { TariffPrice } from "./tariff-price";
 
 export const metadata: Metadata = {
   title: { absolute: PAGE_SEO.business.title },
@@ -19,11 +21,11 @@ export const metadata: Metadata = {
 const steps = [
   {
     title: "Оставляете заявку",
-    text: "Рассказываете о заведении и выбираете модель подключения. Подтверждаете номер телефона кодом из WhatsApp.",
+    text: "Рассказываете о заведении и выбираете тариф. Подтверждаете номер телефона кодом из WhatsApp.",
   },
   {
     title: "Получаете кабинет",
-    text: <>Регистрация бесплатная на всех трёх моделях. «Больше клиентов» — <BusinessPrice plan="loyalty" /> в месяц, «Ещё больше клиентов» — <BusinessPrice plan="bundle" /> в месяц.</>,
+    text: "Регистрация бесплатная. Актуальные цены и количество бесплатных мест указаны в тарифах ниже.",
   },
   {
     title: "Настраиваете процент",
@@ -31,7 +33,7 @@ const steps = [
   },
   {
     title: "Принимаете гостей",
-    text: "Заведение появляется в каталоге. Кассир сканирует QR карты, а в пакете с OctōPAY бонусы списываются сами.",
+    text: "Заведение появляется в каталоге. Клиенты находят вас в каталоге Loal и приходят с бонусами.",
   },
 ];
 
@@ -57,7 +59,15 @@ const gains = [
 const faq = [
   {
     q: "Когда заведение появится в каталоге?",
-    a: "После проверки заведения: на тарифе «Больше клиентов» — пока действует бесплатная акция или оплачена подписка, в пакете — при включённой связи с OctōPAY. Когда бесплатные места закончатся, платная цена включится для всех. Подписку «Больше клиентов» оплачивают в Loal, «Ещё больше клиентов» — в OctōPAY.",
+    a: "После проверки заведения — при оплаченной подписке или пока действует бесплатная акция. Когда лимит мест заполнится, обычная цена включится для всех заведений на тарифе. Уже оплаченные периоды сохраняются.",
+  },
+  {
+    q: "Чем тарифы отличаются друг от друга?",
+    a: "«Больше клиентов» — клиент получает у вас кэшбэк. «Ещё больше клиентов» — клиент оплачивает часть чека бонусами. «Очень много клиентов» — и то и другое, плюс выделение в каталоге и день повышенной видимости раз в неделю.",
+  },
+  {
+    q: "Нужен ли OctōPAY?",
+    a: "Приём платежей OctōPAY доступен всем заведениям Loal по желанию. Если нужны только платежи без программы лояльности, подключайтесь напрямую на octopay.click.",
   },
   {
     q: "Кто платит за бонусы клиента?",
@@ -71,6 +81,7 @@ const faq = [
 
 export default async function BecomePartnerPage() {
   const pricing = await getBusinessPricing();
+
   return (
     <BusinessPricingProvider initialPricing={pricing}>
       <SiteHeader audience="business" cta={{ label: "Стать партнером", href: "#form" }} />
@@ -111,7 +122,10 @@ export default async function BecomePartnerPage() {
 
         <section className="bg-graphite text-paper">
           <div className="mx-auto max-w-[1440px] px-5 py-16 sm:px-10 sm:py-20 xl:py-24">
-            <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)]">Выберите модель</h2>
+            <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)]">Выберите тариф</h2>
+            <p className="mt-4 max-w-[60ch] text-lg opacity-85">
+              Бесплатные места и текущая цена обновляются автоматически. После заполнения лимита обычная цена действует для всех.
+            </p>
             <div className="mt-12 grid gap-5 xl:grid-cols-3 xl:items-stretch">
               {models("#form").map((m) => (
                 <article
@@ -120,22 +134,11 @@ export default async function BecomePartnerPage() {
                     m.featured ? "bg-flame-ink text-paper xl:-my-4 xl:py-14" : "bg-paper text-graphite"
                   }`}
                 >
-                  {m.featured && (
-                    <p className="absolute -top-4 left-8 rotate-[-3deg] rounded-full bg-amber px-4 py-1.5 text-sm font-bold text-graphite sm:left-10">
-                      Выгоднее всего
-                    </p>
-                  )}
                   <h3 className="display text-[clamp(1.57rem,2.36vw,2.07rem)]">{m.title}</h3>
-                  <p
-                    className={`display mt-6 text-[clamp(2.25rem,4.17vw,4.14rem)] whitespace-nowrap ${
-                      m.featured ? "text-paper" : "text-flame"
-                    }`}
-                  >
-                    {m.key === "octopay" ? "%" : <BusinessPrice plan={m.key === "bundle" ? "bundle" : "loyalty"} />}
-                  </p>
-                  <p className="mt-2 font-medium">{m.priceNote}</p>
-                  {m.key !== "octopay" && <BusinessOffer plan={m.key === "bundle" ? "bundle" : "loyalty"} />}
-                  <ul className="mt-8 flex flex-1 flex-col gap-3">
+                  <TariffPrice tariff={m.key} featured={m.featured} />
+                  <p className="mt-6 leading-relaxed">{m.benefit}</p>
+                  {m.better && <p className="mt-3 font-bold leading-snug">{m.better}</p>}
+                  <ul className="mt-6 flex flex-1 flex-col gap-3">
                     {m.points.map((pt) => (
                       <li key={pt} className="flex gap-3">
                         <span
@@ -170,21 +173,36 @@ export default async function BecomePartnerPage() {
                 </article>
               ))}
             </div>
+            <div className="mt-10">
+              <div className="flex flex-col justify-between gap-5 rounded-[28px] border-2 border-paper/20 p-6 sm:flex-row sm:items-center sm:p-8">
+                <div>
+                  <h3 className="text-xl font-bold">Только OctōPAY</h3>
+                  <p className="mt-1 opacity-80">Нужны только платежи без программы лояльности.</p>
+                </div>
+                <a
+                  href={OCTOPAY_URL}
+                  className="shrink-0 rounded-full bg-paper px-6 py-3 text-center font-bold text-graphite"
+                >
+                  Перейти на octopay.click
+                </a>
+              </div>
+            </div>
             <p className="mt-8 max-w-[64ch] text-sm opacity-75">
-              Подписка «Больше клиентов» оплачивается в кабинете Loal через{" "}
+              Подписка оплачивается в кабинете Loal через{" "}
               <a href={OCTOPAY_URL} className="underline underline-offset-4 hover:no-underline">
                 OctōPAY
-              </a>. Подписку на пакет «Ещё больше клиентов» оплачивают в OctōPAY.
+              </a>. Приём платежей OctōPAY доступен на всех тарифах по желанию.
             </p>
           </div>
         </section>
 
+        <ScrollToHash id="form" />
         <section id="form" className="scroll-mt-6">
           <div className="mx-auto grid max-w-[1440px] gap-12 px-5 py-20 sm:px-10 lg:grid-cols-[1fr_1.2fr] lg:py-28">
             <div>
               <h2 className="display text-[clamp(2.08rem,4.86vw,4.14rem)] brand-gradient-text">Заявка</h2>
               <p className="mt-6 max-w-[42ch] text-lg leading-relaxed">
-                Выберите тариф и подтвердите телефон — регистрация бесплатная. Подписку «Больше клиентов» оплачивают в кабинете Loal, пакет — в OctōPAY. Если нужна помощь, напишите нам.
+                Выберите тариф и подтвердите телефон — регистрация бесплатная. Текущая цена и бесплатные места показаны выше. Подписку оплачивают в кабинете Loal. Если нужна помощь, напишите нам.
               </p>
               <ul className="mt-8 flex flex-col gap-3 text-lg">
                 <li>

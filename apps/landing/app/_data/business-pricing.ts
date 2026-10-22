@@ -1,12 +1,14 @@
-import { publicMerchantTariffSchema, type PublicMerchantTariff } from "@loal/api";
+import { publicMerchantTariffSchema, type LoalTariff, type PublicMerchantTariff } from "@loal/api";
 import { z } from "zod";
 import { API_URL } from "./site";
 
-export type BusinessPlan = "loyalty" | "bundle";
+export type BusinessTariff = LoalTariff;
+export type BusinessPlan = BusinessTariff;
 export type BusinessPricing = PublicMerchantTariff[] | null;
-export const TARIFF_CODE = { loyalty: "loal", bundle: "loal_octopay" } as const;
+export const TARIFF_CODE = { more_clients: "more_clients", even_more_clients: "even_more_clients", very_many_clients: "very_many_clients" } as const;
 
 const money = new Intl.NumberFormat("ru-RU");
+export const formatSom = (value: number) => `${money.format(value)} сом`;
 
 export function businessPrice(plan: BusinessPlan, pricing: BusinessPricing): string {
   const tariff = pricing?.find((item) => item.code === TARIFF_CODE[plan]);

@@ -12,6 +12,7 @@ import { AppShell, navLinkClass, type NavItem } from "@loal/ui/app-shell";
 import { Icon, type IconSvg } from "@loal/ui/shadcn";
 import { Link, Outlet, useLocation } from "react-router";
 import {
+  useCashierAbilities,
   useCashierMerchant,
   useCashierOverview,
   useCashierSession,
@@ -28,6 +29,7 @@ const NAV: Record<CashierKind, Item[]> = {
   merchant: [
     { to: "/", label: "Обзор", icon: Chart01Icon },
     { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
+    { to: "/cashback", label: "Дать кэшбэк", icon: CoinsSwapIcon },
     { to: "/storefront", label: "Витрина", icon: Store01Icon },
     { to: "/pos", label: "Касса", icon: CashierIcon },
     { to: "/profile", label: "Настройки", icon: UserSettings01Icon },
@@ -35,6 +37,7 @@ const NAV: Record<CashierKind, Item[]> = {
   branch: [
     { to: "/", label: "Обзор", icon: Chart01Icon },
     { to: "/redeem", label: "Списать бонусы", icon: CoinsSwapIcon },
+    { to: "/cashback", label: "Дать кэшбэк", icon: CoinsSwapIcon },
     { to: "/client-payments", label: "Счёт клиенту", icon: Wallet01Icon },
     { to: "/history", label: "История", icon: Clock01Icon },
     { to: "/storefront", label: "Витрина", icon: Store01Icon },
@@ -50,7 +53,13 @@ export function AppLayout() {
   const location = useLocation();
   // «Счёт клиенту» — часть тарифа OctōPAY + Loal: на «Только Loal» его нет
   const bundle = overview.data?.tariff === "octopay";
-  const nav = NAV[kind ?? "merchant"].filter((item) => item.to !== "/client-payments" || bundle);
+  const abilities = useCashierAbilities();
+  const nav = NAV[kind ?? "merchant"].filter(
+    (item) =>
+      (item.to !== "/client-payments" || bundle) &&
+      (item.to !== "/redeem" || abilities.redeem) &&
+      (item.to !== "/cashback" || abilities.cashback),
+  );
 
   // Несколько филиалов — в шапке магазин: на какой филиал записать операцию, выбирают на кассе
   const place = kind === "branch" ? (overview.data?.branch?.name ?? overview.data?.merchant?.name) : merchant.data?.name;

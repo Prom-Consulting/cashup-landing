@@ -10,11 +10,11 @@ import { z } from "zod";
 import dynamic from "next/dynamic";
 import { StorefrontImages } from "./storefront-images";
 import type { Point } from "./location-picker";
-import { toPhoneDigits, coordsFrom2gis, merchantProfileFormSchema } from "@loal/api";
+import { PARTNER_AUDIENCES, toPhoneDigits, coordsFrom2gis, merchantProfileFormSchema, type PartnerAudienceId } from "@loal/api";
 import { categories } from "../_data/categories";
-import { businessPrice } from "../_data/business-pricing";
+import { businessPrice, type BusinessTariff } from "../_data/business-pricing";
 import { useBusinessPricing } from "../_components/business-pricing";
-import { API_URL, EMAIL, PARTNER_APP_URL, PHONE, PHONE_HREF } from "../_data/site";
+import { API_URL, EMAIL, OCTOPAY_URL, PARTNER_APP_URL, PHONE, PHONE_HREF } from "../_data/site";
 
 gsap.registerPlugin(useGSAP);
 
@@ -24,14 +24,20 @@ const LocationPicker = dynamic(() => import("./location-picker"), {
   loading: () => <div className="h-[300px] animate-pulse rounded-2xl bg-cream sm:h-[340px]" />,
 });
 
-const planOptions = [
-  { id: "loyalty", label: "Больше клиентов" },
-  { id: "bundle", label: "Ещё больше клиентов" },
-  { id: "octopay", label: "Только OctōPAY", note: "комиссия с оборота" },
+// Доп. №5: три тарифа Loal. «Только OctōPAY» больше не оформляется здесь — ссылка на octopay.click.
+const tariffOptions = [
+  { id: "more_clients", label: "Больше клиентов" },
+  { id: "even_more_clients", label: "Ещё больше клиентов" },
+  { id: "very_many_clients", label: "Очень много клиентов" },
 ] as const;
-const PLAN_LABEL: Record<PlanId, string> = { loyalty: planOptions[0].label, bundle: planOptions[1].label, octopay: planOptions[2].label };
+const TARIFF_LABEL: Record<BusinessTariff, string> = {
+  more_clients: tariffOptions[0].label,
+  even_more_clients: tariffOptions[1].label,
+  very_many_clients: tariffOptions[2].label,
+};
+const isTariff = (value: unknown): value is BusinessTariff => tariffOptions.some((item) => item.id === value);
 
-type PlanId = (typeof planOptions)[number]["id"];
+type PlanId = "loyalty" | "bundle" | "octopay";
 type FieldName = "name" | "category" | "contact" | "phone" | "comment" | "description" | "address" | "instagramUrl" | "twogisUrl";
 
 const empty = { name: "", category: "", contact: "", phone: "", comment: "", description: "", address: "", instagramUrl: "", twogisUrl: "" };
@@ -61,12 +67,15 @@ const rules: Record<FieldName, (v: Values) => string> = {
     return toPhoneDigits(phone) ? "" : "Проверьте номер: не хватает цифр или неверный код страны";
   },
   description: ({ description }) => description.trim().length > 2000 ? "Не длиннее 2000 символов" : "",
-  address: ({ address }) => address.trim().length > 200 ? "Не длиннее 200 символов" : "",
+  // Адрес и 2ГИС обязательны: по ним клиент находит заведение, а каталог ставит точку
+  address: ({ address }) =>
+    !address.trim() ? "Укажите адрес — улицу и дом" : address.trim().length > 200 ? "Не длиннее 200 символов" : "",
   instagramUrl: ({ instagramUrl }) => {
     const result = merchantProfileFormSchema.shape.instagramUrl.safeParse(instagramUrl);
     return result.success ? "" : result.error.issues[0]?.message ?? "Проверьте ссылку";
   },
   twogisUrl: ({ twogisUrl }) => {
+    if (!twogisUrl.trim()) return "Вставьте ссылку на заведение в 2ГИС или нажмите на карту ниже";
     const result = merchantProfileFormSchema.shape.twogisUrl.safeParse(twogisUrl);
     return result.success ? "" : result.error.issues[0]?.message ?? "Проверьте ссылку";
   },
@@ -77,6 +86,7 @@ const order: FieldName[] = ["name", "category", "contact", "phone", "description
 const resultSchema = z.object({
   id: z.string().uuid(),
   plan: z.enum(["loyalty", "bundle", "octopay"]),
+  tariff: z.string().nullish(),
   state: z.enum(["processing", "pending_payment", "ready", "action_required"]),
   requiresOctopayPassword: z.boolean().optional(),
   verificationStatus: z.enum(["pending", "verified"]).nullable().optional(),
@@ -87,6 +97,9 @@ const resultSchema = z.object({
   octopayUrl: z.string().url().nullable(),
 });
 type Registration = z.infer<typeof resultSchema>;
+
+/** Ссылка 2ГИС на точку: карта откроется на этом месте, а coordsFrom2gis прочитает координаты. */
+const twogisPointLink = ({ lat, lng }: Point) => `https://2gis.kg/bishkek?m=${lng.toFixed(6)}%2C${lat.toFixed(6)}%2F18`;
 
 class FormError extends Error {}
 class PhoneExpired extends FormError {}
@@ -100,8 +113,17 @@ async function call(path: string, body?: unknown, token?: string) {
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   if (response.status === 401) throw new PhoneExpired("Код не подошёл или подтверждение устарело. Запросите новый код.");
-  if (response.status === 409)
+  if (response.status === 409) {
+    // Один номер — одно живое заведение; заявка на номер — одна, пока её не отклонили
+    const code = ((await response.json().catch(() => ({}))) as { error?: string }).error;
+    if (code === "PHONE_HAS_ACTIVE_MERCHANT")
+      throw new FormError("Этот номер уже работает в заведении Loal — владельцем или сотрудником. Подайте заявку с другого номера или напишите нам.");
+    if (code === "APPLICATION_IN_PROGRESS")
+      throw new FormError("По этому номеру уже обрабатывается заявка с другими данными. Дождитесь решения — статус заявки ниже.");
+    if (code === "APPLICATION_EXISTS")
+      throw new FormError("На этот номер уже есть заявка на OctōPAY. Проверьте её статус или напишите нам.");
     throw new FormError("На этот номер уже есть заявка или аккаунт. Проверьте статус заявки или напишите нам.");
+  }
   if (response.status === 429) throw new FormError("Слишком много попыток. Подождите минуту и попробуйте снова.");
   if (response.status === 400) throw new FormError("Проверьте поля заявки: сервер не принял данные.");
   if (!response.ok) throw new FormError("Сервис временно недоступен. Попробуйте через минуту.");
@@ -115,7 +137,7 @@ async function call(path: string, body?: unknown, token?: string) {
  */
 const DRAFT_KEY = "loal.partner-onboarding";
 const TOKEN_TTL = 29 * 60_000;
-type Draft = { plan: PlanId; values: Values; requestId: string | null; token: string | null; tokenUntil: number; point?: Point | null };
+type Draft = { tariff?: BusinessTariff; values: Values; requestId: string | null; token: string | null; tokenUntil: number; point?: Point | null };
 
 function readDraft(): Partial<Draft> {
   try {
@@ -139,18 +161,19 @@ type Step = "details" | "code";
 
 export function PartnerForm() {
   const pricing = useBusinessPricing();
-  const plans = planOptions.map((item) => ({
-    ...item, note: item.id === "octopay" ? item.note : `${businessPrice(item.id, pricing)}/мес`,
-  }));
+  const tariffs = tariffOptions.map((item) => ({ ...item, note: `${businessPrice(item.id, pricing)}/мес` }));
   const [logo, setLogo] = useState<File | null>(null);
   const [photos, setPhotos] = useState<File[]>([]);
+  const [audiences, setAudiences] = useState<PartnerAudienceId[]>([]);
   // Точка на карте: из клика, «Где я» или координат в ссылке 2ГИС
   const [point, setPoint] = useState<Point | null>(null);
   const uploaded = useRef(new Map<File, string>());
   const [uploadProgress, setUploadProgress] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [plan, setPlan] = useState<PlanId>("bundle");
+  // Новые заявки — всегда модель «loyalty» с тарифом; OctōPAY подключают в кабинете по желанию
+  const plan = "loyalty" as PlanId;
+  const [tariff, setTariff] = useState<BusinessTariff>("even_more_clients");
   const [values, setValues] = useState<Values>(empty);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [step, setStep] = useState<Step>("details");
@@ -172,21 +195,21 @@ export function PartnerForm() {
     const draft = readDraft();
     if (draft.values) setValues({ ...empty, ...draft.values });
     if (draft.point && typeof draft.point.lat === "number" && typeof draft.point.lng === "number") setPoint(draft.point);
-    if (draft.plan && planOptions.some((item) => item.id === draft.plan)) setPlan(draft.plan);
+    if (isTariff(draft.tariff)) setTariff(draft.tariff);
     requestId.current = draft.requestId ?? null;
     if (draft.token && (draft.tokenUntil ?? 0) > Date.now()) {
       setToken(draft.token);
       setTokenUntil(draft.tokenUntil ?? 0);
     }
-    const selected = new URLSearchParams(window.location.search).get("plan");
-    if (planOptions.some((item) => item.id === selected)) setPlan(selected as PlanId);
+    const selected = new URLSearchParams(window.location.search).get("tariff");
+    if (isTariff(selected)) setTariff(selected);
     restored.current = true;
   }, []);
 
   useEffect(() => {
     if (!restored.current) return;
-    writeDraft({ plan, values, requestId: requestId.current, token, tokenUntil, point });
-  }, [plan, values, token, tokenUntil, sent, point]);
+    writeDraft({ tariff, values, requestId: requestId.current, token, tokenUntil, point });
+  }, [tariff, values, token, tokenUntil, sent, point]);
 
   // Вставили ссылку 2ГИС с координатами — сразу ставим по ним точку на карте
   // Перешли к проверке статуса — курсор сразу в телефон (поле появляется после отрисовки)
@@ -201,6 +224,22 @@ export function PartnerForm() {
   }, [recovering]);
 
   const lastLink = useRef("");
+  /** Ссылка, которую форма собрала сама по точке на карте: её можно менять вслед за точкой. */
+  const autoLink = useRef("");
+  const pickPoint = (next: Point | null) => {
+    setPoint(next);
+    freshAttempt();
+    // Клик по карте сам заполняет 2ГИС — второй раз указывать место не нужно. Свою ссылку
+    // на заведение (с карточкой фирмы) не перезаписываем: она полезнее точки
+    setValues((current) => {
+      if (current.twogisUrl.trim() && current.twogisUrl !== autoLink.current) return current;
+      const link = next ? twogisPointLink(next) : "";
+      autoLink.current = link;
+      lastLink.current = link;
+      return { ...current, twogisUrl: link };
+    });
+    if (next) setErrors((current) => (current.twogisUrl ? { ...current, twogisUrl: undefined } : current));
+  };
   useEffect(() => {
     if (values.twogisUrl === lastLink.current) return;
     lastLink.current = values.twogisUrl;
@@ -312,7 +351,8 @@ export function PartnerForm() {
       const geo = point ?? coordsFrom2gis(values.twogisUrl);
       return { description: values.description.trim() || null, address: values.address.trim() || null,
         instagramUrl: values.instagramUrl.trim() || null, twogisUrl: values.twogisUrl.trim() || null,
-        logoUrl, photos: photoUrls, lat: geo?.lat ?? null, lng: geo?.lng ?? null };
+        logoUrl, photos: photoUrls, lat: geo?.lat ?? null, lng: geo?.lng ?? null,
+        ...(audiences.length ? { audiences } : {}) };
     } finally { setUploadProgress(""); }
   };
 
@@ -341,6 +381,7 @@ export function PartnerForm() {
       {
         requestId: requestId.current,
         plan,
+        tariff,
         name: values.name.trim(),
         contactName: values.contact.trim(),
         category: values.category,
@@ -468,7 +509,7 @@ export function PartnerForm() {
 
           {!recovering && (
             <div className="flex flex-col rounded-2xl bg-cream px-4 py-3 text-base">
-              <span className="font-bold">{PLAN_LABEL[plan]}</span>
+              <span className="font-bold">{TARIFF_LABEL[tariff]}</span>
               <span className="min-w-0 truncate">{values.name.trim()}</span>
             </div>
           )}
@@ -492,7 +533,7 @@ export function PartnerForm() {
           <div className="flex flex-wrap items-center gap-3">
             <Button type="button" disabled={sending || otp.length < 6} onClick={() => void submitCode(otp)} className="gap-3">
               {sending && <Spinner />}
-              {sending ? "Проверяем…" : recovering ? "Показать заявку" : plan === "loyalty" ? "Перейти к оплате" : "Подключить"}
+              {sending ? "Проверяем…" : recovering ? "Показать заявку" : "Подключить"}
             </Button>
             <Button
               type="button"
@@ -527,16 +568,24 @@ export function PartnerForm() {
                 </p>
               </div>
             ) : (
-              <ChoiceCards
-                name="plan"
-                legend="Тариф"
-                value={plan}
-                onChange={(next) => {
-                  setPlan(next);
-                  freshAttempt();
-                }}
-                options={[...plans]}
-              />
+              <div className="flex flex-col gap-3">
+                <ChoiceCards
+                  name="tariff"
+                  legend="Тариф"
+                  value={tariff}
+                  onChange={(next) => {
+                    setTariff(next);
+                    freshAttempt();
+                  }}
+                  options={[...tariffs]}
+                />
+                <p className="text-base">
+                  Нужны только платежи без программы лояльности?{" "}
+                  <a href={OCTOPAY_URL} className="text-flame-ink underline underline-offset-4">
+                    Подключите OctōPAY
+                  </a>
+                </p>
+              </div>
             )}
 
             {!recovering && (
@@ -600,21 +649,15 @@ export function PartnerForm() {
 
             {!recovering && plan !== "octopay" && <section className="space-y-5 rounded-2xl border border-current/10 p-5" aria-labelledby="storefront-heading">
               <div><h2 id="storefront-heading" className="text-xl font-semibold">Витрина заведения</h2><p className="mt-2 text-sm opacity-75">Эти данные появятся в карточке заведения после проверки супер-админом. Их можно будет изменить в кабинете.</p></div>
+              <AudiencePicker value={audiences} disabled={sending} onChange={setAudiences} />
               <div data-field="description"><Field label="Описание заведения" optional error={errors.description}>{parts => <Textarea {...parts} maxLength={2000} value={values.description} onValueChange={set("description")} onBlur={check("description")} placeholder="Расскажите о заведении, товарах или услугах" />}</Field></div>
-              <div data-field="address"><Field label="Адрес" optional error={errors.address}>{parts => <TextInput {...parts} value={values.address} onChange={event => set("address")(event.target.value)} onBlur={check("address")} placeholder="Город, улица, дом" />}</Field></div>
-              <div data-field="twogisUrl"><Field label="Ссылка на 2ГИС" optional error={errors.twogisUrl} hint="Вставьте ссылку на заведение — если в ней есть координаты, точка на карте встанет сама.">{parts => <TextInput {...parts} value={values.twogisUrl} onChange={event => set("twogisUrl")(event.target.value)} onBlur={check("twogisUrl")} placeholder="https://2gis.kg/…" />}</Field></div>
+              <div data-field="address"><Field label="Адрес" error={errors.address}>{parts => <TextInput {...parts} value={values.address} onChange={event => set("address")(event.target.value)} onBlur={check("address")} placeholder="Город, улица, дом" />}</Field></div>
+              <div data-field="twogisUrl"><Field label="Ссылка на 2ГИС" error={errors.twogisUrl} hint="Вставьте ссылку на заведение — или просто нажмите на карту ниже: ссылка заполнится сама.">{parts => <TextInput {...parts} value={values.twogisUrl} onChange={event => set("twogisUrl")(event.target.value)} onBlur={check("twogisUrl")} placeholder="https://2gis.kg/…" />}</Field></div>
               <div className="space-y-2">
                 <p className="font-medium">
-                  Точка на карте <span className="text-sm font-normal opacity-60">необязательно</span>
+                  Точка на карте <span className="text-sm font-normal opacity-60">клик заполнит ссылку 2ГИС</span>
                 </p>
-                <LocationPicker
-                  value={point}
-                  disabled={sending}
-                  onChange={(next) => {
-                    setPoint(next);
-                    freshAttempt();
-                  }}
-                />
+                <LocationPicker value={point} disabled={sending} onChange={pickPoint} />
               </div>
               <div data-field="instagramUrl"><Field label="Ссылка на Instagram" optional error={errors.instagramUrl}>{parts => <TextInput {...parts} value={values.instagramUrl} onChange={event => set("instagramUrl")(event.target.value)} onBlur={check("instagramUrl")} placeholder="https://www.instagram.com/…" />}</Field></div>
               <StorefrontImages logo={logo} photos={photos} disabled={sending} onLogo={file => { setLogo(file); freshAttempt(); }} onPhotos={files => { setPhotos(files); freshAttempt(); }} />
@@ -662,9 +705,7 @@ export function PartnerForm() {
               </Button>
               {!recovering && (
                 <p className="max-w-[52ch] text-sm leading-relaxed opacity-75">
-                  {plan === "loyalty"
-                    ? "После кода — оплата первого месяца. Заведение в LOAL начнёт работу после проверки супер-админа."
-                    : "После кода создадим аккаунты без оплаты. Для работы в LOAL нужна проверка супер-админа."}
+                  {`После кода создадим кабинет. Тариф — ${businessPrice(tariff, pricing)}/мес. Заведение начнёт работу после проверки Loal.`}
                 </p>
               )}
               <button
@@ -756,7 +797,7 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
           : "Подключаем ваш бизнес";
 
   const text =
-    sent.verificationStatus === "pending" ? "Кабинет создан. До проверки супер-админа заведение не показывается в каталоге LOAL и не принимает бонусы. Вы уже можете войти и проверить данные витрины. Подписка оплачивается отдельно: «Больше клиентов» — в кабинете Loal, пакет — в OctōPAY." : sent.state === "ready"
+    sent.verificationStatus === "pending" ? "Кабинет создан. До проверки супер-админа заведение не показывается в каталоге LOAL и не принимает бонусы. Вы уже можете войти и проверить данные витрины. Подписка оплачивается отдельно: «Только лояльность» — в кабинете Loal, пакет — в OctōPAY." : sent.state === "ready"
       ? sent.plan === "octopay"
         ? "Аккаунт OctōPAY создан. Войдите по этому телефону и паролю, заданному в форме."
         : sent.plan === "bundle"
@@ -835,11 +876,13 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
       )}
       {sent.state === "ready" && (
         <p className="rounded-2xl bg-cream px-4 py-3 text-base leading-relaxed">
-          {sent.plan === "loyalty"
-            ? `Тариф «Больше клиентов» — ${businessPrice("loyalty", pricing)}/мес. Актуальные условия и оплата — в кабинете Loal.`
-            : sent.plan === "bundle"
-              ? `Тариф «Ещё больше клиентов» — ${businessPrice("bundle", pricing)}/мес, оплата — в OctōPAY. Для приёма платежей подключите банковский счёт в кабинете OctōPAY.`
-              : "Абонентской платы нет — только комиссия с платежей. Чтобы принимать оплату, подключите банковский счёт в кабинете OctōPAY."}
+          {isTariff(sent.tariff)
+            ? `Тариф «${TARIFF_LABEL[sent.tariff]}» — ${businessPrice(sent.tariff, pricing)}/мес. Условия и оплата — в кабинете Loal.`
+            : sent.plan === "loyalty"
+              ? "Оплатите подписку в кабинете Loal, чтобы принимать бонусы после проверки заведения."
+              : sent.plan === "bundle"
+                ? "Подписку пакета оплачивают в OctōPAY. Для приёма платежей подключите банковский счёт в кабинете OctōPAY."
+                : "Абонентской платы нет — только комиссия с платежей. Чтобы принимать оплату, подключите банковский счёт в кабинете OctōPAY."}
         </p>
       )}
       {sent.state === "pending_payment" && (
@@ -931,5 +974,47 @@ function PasswordFields({ password, confirm, setPassword, setConfirm, disabled }
         <Check ok={matches}>Пароли совпадают</Check>
       </ul>
     </section>
+  );
+}
+
+/** «Для кого» — можно отметить несколько; по ним каталог фильтрует заведения. */
+function AudiencePicker({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: PartnerAudienceId[];
+  disabled: boolean;
+  onChange: (next: PartnerAudienceId[]) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <p id="audiences-label" className="font-medium">
+        Для кого <span className="text-sm font-normal opacity-60">можно несколько</span>
+      </p>
+      <div role="group" aria-labelledby="audiences-label" className="flex flex-wrap gap-2">
+        {PARTNER_AUDIENCES.map((audience) => {
+          const on = value.includes(audience.id);
+          return (
+            <button
+              key={audience.id}
+              type="button"
+              aria-pressed={on}
+              disabled={disabled}
+              onClick={() =>
+                onChange(
+                  PARTNER_AUDIENCES.filter((item) => (item.id === audience.id ? !on : value.includes(item.id))).map((item) => item.id),
+                )
+              }
+              className={`rounded-full border-2 px-4 py-2 font-semibold transition-colors disabled:opacity-50 ${
+                on ? "border-flame bg-flame text-white" : "border-current/15 hover:border-current/40"
+              }`}
+            >
+              {audience.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

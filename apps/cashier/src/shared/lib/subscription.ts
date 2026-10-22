@@ -7,6 +7,9 @@ export function subscriptionState(overview: CashierOverview | undefined) {
   const until = subscription?.expiresAt ?? null;
   // Право списывать даёт сервер; нет поля — значит, ограничений не сообщили
   const canRedeem = overview?.permissions?.redeem !== false;
+  // Кассир работает, если ему открыто списание или тариф даёт кэшбэк («Больше клиентов» — только кэшбэк)
+  const canOperate =
+    canRedeem || ((overview?.branches?.length ?? 0) > 0 && overview?.loalTariff !== "even_more_clients");
   const free = subscription?.free === true;
-  return { active: Boolean(active) || free, until: free ? null : until, free, canRedeem };
+  return { active: Boolean(active) || free, until: free ? null : until, free, canRedeem, canOperate };
 }

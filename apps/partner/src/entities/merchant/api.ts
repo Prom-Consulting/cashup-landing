@@ -14,6 +14,8 @@ import {
   type CreateWebhookInput,
   type DeductionQuery,
   type RedeemPromoInput,
+  type TariffChangeInput,
+  tariffAbilities,
 } from "@loal/api";
 import { refetchWhilePending, useApi } from "@loal/app-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -178,10 +180,19 @@ export function useSubscription(merchantId: string) {
   });
 }
 
-/** Тариф магазина: OctōPAY + Loal или только Loal — по связи с OctōPAY (tariffOf). */
+/**
+ * Тариф магазина: OctōPAY + Loal или только Loal — по связи с OctōPAY (tariffOf). `abilities` —
+ * что разрешает тариф Доп. №5 на кассе: «Больше клиентов» — только кэшбэк, «Очень много» — оба.
+ */
 export function useTariff(merchantId: string) {
   const merchant = useMerchant(merchantId);
-  return { tariff: tariffOf(merchant.data?.tariff), isPending: merchant.isPending };
+  return {
+    tariff: tariffOf(merchant.data?.tariff),
+    abilities: tariffAbilities(merchant.data?.loalTariff),
+    loalTariff: merchant.data?.loalTariff ?? null,
+    cashbackPercent: merchant.data?.cashbackPercent ?? null,
+    isPending: merchant.isPending,
+  };
 }
 
 /** Связь с OctōPAY меняет тариф: перечитываем магазин и подписку. */
@@ -269,6 +280,19 @@ export function useCreateInvoice(merchantId: string) {
   return useMutation({
     mutationFn: (input: CreateInvoiceInput) => merchantCabinetApi(api).createInvoice(merchantId, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: merchantKeys.invoices(merchantId) }),
+  });
+}
+
+/** Смена тарифа оплатой: счёт или сразу новый тариф, если он бесплатный. */
+export function useChangeTariff(merchantId: string) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: TariffChangeInput) => merchantCabinetApi(api).changeTariff(merchantId, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: merchantKeys.invoices(merchantId) });
+      refreshTariff(queryClient, merchantId);
+    },
   });
 }
 

@@ -1,10 +1,11 @@
-import { ApiError, otpLoginInputSchema, otpRequestInputSchema, toPhoneDigits, type OtpLoginInput } from "@loal/api";
+import { ApiError, OTP_CHANNEL_LABELS, otpLoginInputSchema, otpRequestInputSchema, toPhoneDigits, type OtpLoginInput } from "@loal/api";
 import { FocusFirstError, fieldError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Button, OtpInput, PhoneInput, Spinner } from "@loal/ui/inputs";
 import { Form, Formik, type FormikHelpers } from "formik";
 import { useEffect, useState } from "react";
-import { useCheckPhone, useLoginByOtp, useRegisterByPhone, useRequestOtp, useSession } from "./session";
+import { OtpChannelPicker, otpChannelErrorText, useOtpChannel } from "./otp-channel";
+import { useCheckPhone, useLoginByOtp, useRegisterByPhone, useRequestOtp } from "./session";
 
 type Step = "phone" | "code";
 
@@ -17,6 +18,8 @@ const isWrongCode = (error: unknown) =>
   (error.code === "OTP_INVALID" || (error.status === 401 && /invalid otp/i.test(error.message)));
 
 function readable(error: unknown): string {
+  const channel = otpChannelErrorText(error);
+  if (channel) return channel;
   if (error instanceof ApiError) {
     if (error.code === "OTP_TOO_MANY_ATTEMPTS" || (error.isTooManyRequests && /attempts/i.test(error.message)))
       return "Слишком много неверных попыток. Запросите новый код.";
@@ -28,7 +31,7 @@ function readable(error: unknown): string {
     // 503 — недоступно хранилище кодов (или WhatsApp): это не «неверный код», а временный сбой
     if (error.code === "OTP_UNAVAILABLE" || error.status === 503)
       return "Сервис кодов временно недоступен. Попробуйте через минуту.";
-    if (error.status === 502) return "WhatsApp сейчас не отвечает. Попробуйте через минуту.";
+    if (error.status === 502) return "WhatsApp сейчас не отвечает. Попробуйте через минуту или выберите Telegram.";
     return error.message;
   }
   return error instanceof Error ? error.message : "Не получилось, попробуйте ещё раз";
@@ -64,11 +67,12 @@ export function PhoneSignInForm({
 }) {
   const requestOtp = useRequestOtp();
   const checkPhone = useCheckPhone();
+  const { channel, choose, telegramAvailable } = useOtpChannel();
+  const where = OTP_CHANNEL_LABELS[channel];
   // Знаем ли номер: true — войдёт в свой аккаунт, false — создадим новый, null — не знаем
   const [known, setKnown] = useState<boolean | null>(null);
   const loginByOtp = useLoginByOtp();
   const registerByPhone = useRegisterByPhone();
-  const { endedReason } = useSession();
   const cooldown = useCooldown();
   const [step, setStep] = useState<Step>("phone");
   const [notice, setNotice] = useState<string | null>(null);
@@ -86,7 +90,7 @@ export function PhoneSignInForm({
   };
 
   const sendCode = async (phone: string) => {
-    await requestOtp.mutateAsync({ phone });
+    await requestOtp.mutateAsync({ phone, channel });
     cooldown.start();
   };
 
@@ -132,11 +136,11 @@ export function PhoneSignInForm({
             setNotice(
               exists === true
                 ? referralCode
-                  ? "Этот номер уже есть в Loal — вы войдёте в свой аккаунт. Бонус за приглашение достаётся только новым. Код отправили в WhatsApp."
-                  : "С возвращением! Отправили код в WhatsApp."
+                  ? `Этот номер уже есть в Loal — вы войдёте в свой аккаунт. Бонус за приглашение достаётся только новым. Код отправили в ${where}.`
+                  : `С возвращением! Отправили код в ${where}.`
                 : exists === false
-                  ? "Отправили код в WhatsApp — после него создадим аккаунт."
-                  : "Отправили код в WhatsApp.",
+                  ? `Отправили код в ${where} — после него создадим аккаунт.`
+                  : `Отправили код в ${where}.`,
             );
           } else {
             await submitCode(values, helpers);
@@ -151,16 +155,13 @@ export function PhoneSignInForm({
       {(form) => (
         <Form className="flex flex-col gap-6" noValidate>
           <FocusFirstError form={form} />
-          {endedReason && (
-            <p role="alert" className="rounded-2xl bg-cream px-4 py-3 text-base">
-              {endedReason}
-            </p>
-          )}
 
           <Field
             label="Телефон"
             hint={
-              step === "phone" ? "Пришлём код в WhatsApp. Если вы у нас впервые — просто зарегистрируем." : undefined
+              step === "phone"
+                ? `Пришлём код${telegramAvailable ? "" : " в WhatsApp"}. Если вы у нас впервые — просто зарегистрируем.`
+                : undefined
             }
             error={fieldError(form, "phone")}
           >
@@ -174,8 +175,10 @@ export function PhoneSignInForm({
             )}
           </Field>
 
+          <OtpChannelPicker channel={channel} onChange={choose} available={telegramAvailable} disabled={form.isSubmitting} />
+
           {step === "code" && (
-            <Field label="Код из WhatsApp" error={fieldError(form, "otp")}>
+            <Field label={`Код из ${where}`} error={fieldError(form, "otp")}>
               {(parts) => (
                 <OtpInput
                   {...parts}
@@ -217,7 +220,7 @@ export function PhoneSignInForm({
                   form.setStatus(undefined);
                   try {
                     await sendCode(form.values.phone);
-                    setNotice("Отправили код ещё раз.");
+                    setNotice(`Отправили код ещё раз в ${where}.`);
                   } catch (error) {
                     form.setStatus(readable(error));
                   }

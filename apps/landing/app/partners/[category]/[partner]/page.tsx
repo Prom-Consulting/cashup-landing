@@ -5,6 +5,7 @@ import { JsonLd } from "../../../_components/json-ld";
 import { SiteFooter } from "../../../_components/site-footer";
 import { SiteHeader } from "../../../_components/site-header";
 import { getPublicPartners } from "../../../_data/partners-api";
+import { PARTNER_AUDIENCES } from "@loal/api";
 import {
   CATEGORY_SEO,
   categoryIdOf,
@@ -17,7 +18,8 @@ import {
 } from "../../../_data/seo";
 import { CLIENT_APP_URL, SITE_URL } from "../../../_data/site";
 import { Breadcrumbs } from "../../breadcrumbs";
-import { PartnerCard, PartnerCover, PartnerLogo, PercentBadge } from "../../partner-card";
+import { LogoTile, PartnerCard, PartnerLogo, PercentBadge } from "../../partner-card";
+import { PartnerGallery } from "./partner-gallery";
 
 /** Страница на каждое заведение: статическая, обновляется раз в минуту и после сохранения витрины. */
 export const revalidate = 60;
@@ -103,23 +105,13 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
 
           <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr] lg:gap-10">
             <div className="flex flex-col gap-3">
-              <div className="overflow-hidden rounded-[28px]">
-                <PartnerCover partner={partner} large className="aspect-[16/10] w-full" />
-              </div>
-              {partner.photos.length > 1 && (
-                <ul className="no-scrollbar flex gap-3 overflow-x-auto">
-                  {partner.photos.slice(1).map((photo, index) => (
-                    <li key={photo} className="shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={photo}
-                        alt={`${partner.name}, фото ${index + 2}`}
-                        loading="lazy"
-                        className="h-28 w-40 rounded-2xl object-cover sm:h-32 sm:w-48"
-                      />
-                    </li>
-                  ))}
-                </ul>
+              {partner.photos.length > 0 || (partner.videos?.length ?? 0) > 0 ? (
+                <PartnerGallery partner={partner} />
+              ) : (
+                // Без фото — не пустой баннер, а сам логотип крупно: так выглядят карточки брендов
+                <div className="grid aspect-[16/10] place-items-center rounded-[28px] border border-smoke bg-[radial-gradient(circle_at_25%_15%,#fff_0,var(--cream)_75%)]">
+                  <LogoTile partner={partner} className="h-[64%]" />
+                </div>
               )}
             </div>
 
@@ -134,10 +126,29 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
                     </Link>
                     {" · Бишкек"}
                   </p>
+                  {audienceLabels(partner.audiences).length > 0 && (
+                    <ul aria-label="Для кого" className="mt-3 flex flex-wrap gap-2">
+                      {audienceLabels(partner.audiences).map((label) => (
+                        <li key={label} className="rounded-full bg-cream px-3 py-1 text-sm font-semibold">
+                          {label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
 
-              {partner.maxCoveragePercent ? (
+              {partner.acceptsBonuses === false ? (
+                <div className="flex items-center gap-4 rounded-[24px] bg-graphite px-5 py-4 text-paper">
+                  {partner.cashbackPercent ? (
+                    <span className="display text-[3rem] leading-none text-amber">{partner.cashbackPercent}%</span>
+                  ) : null}
+                  <span className="text-base leading-snug text-paper/85">
+                    {partner.cashbackPercent ? "кэшбэк бонусами за покупку деньгами. " : ""}
+                    Здесь бонусы не тратят — только копят, а потратить их можно у других партнёров Loal.
+                  </span>
+                </div>
+              ) : partner.maxCoveragePercent ? (
                 <div className="flex items-center gap-4 rounded-[24px] bg-graphite px-5 py-4 text-paper">
                   <span className="display text-[3rem] leading-none text-amber">{partner.maxCoveragePercent}%</span>
                   <span className="text-base leading-snug text-paper/85">
@@ -148,7 +159,7 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
                 <PercentBadge partner={partner} className="w-fit" />
               )}
 
-              {partner.tariff === "octopay" && (
+              {partner.tariff === "octopay" && partner.acceptsBonuses !== false && (
                 <p className="rounded-2xl bg-paper px-4 py-3 text-base leading-snug">
                   Здесь можно платить через OctōPAY: на странице оплаты вы сами решаете, сколько бонусов потратить.
                 </p>
@@ -247,4 +258,9 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
       <SiteFooter />
     </>
   );
+}
+
+/** «Для кого» подписями, в порядке списка платформы. */
+function audienceLabels(audiences: string[] | undefined) {
+  return PARTNER_AUDIENCES.filter((item) => audiences?.includes(item.id)).map((item) => item.label);
 }

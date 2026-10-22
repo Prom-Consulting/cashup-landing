@@ -52,8 +52,14 @@ export function CategoryChips({
   }, [categories.length]);
 
   // Выбранная категория всегда в поле зрения
+  // scrollIntoView двигал и панель, и страницу — сдвигаем только сам ряд и только к выбранной категории
   useEffect(() => {
-    row.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    const element = row.current;
+    const chip = element?.querySelector<HTMLElement>('[data-active="true"]');
+    if (!element || !chip || value === null) return;
+    const left = chip.offsetLeft - element.offsetLeft;
+    if (left < element.scrollLeft || left + chip.offsetWidth > element.scrollLeft + element.clientWidth)
+      element.scrollTo({ left: Math.max(0, left - 24), behavior: "smooth" });
   }, [value]);
 
   const mask = `linear-gradient(90deg, ${edges.left ? "transparent" : "#000"} 0, #000 28px, #000 calc(100% - 28px), ${

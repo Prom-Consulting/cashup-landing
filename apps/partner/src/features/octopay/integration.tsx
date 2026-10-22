@@ -113,6 +113,24 @@ export function OctopayIntegration({ merchantId }: { merchantId: string }) {
               Подключено {formatDateTime(integration.data.connectedAt)}
             </p>
           )}
+          {integration.data.subscription && !integration.data.subscription.active ? (
+            // Пакет оплачивается в OctōPAY: без оплаты он не действует, и бонусы Loal закрыты
+            <div role="alert" className="mt-3 rounded-2xl bg-primary/10 p-4 text-base">
+              <p className="font-semibold">Подписка OctōPAY не оплачена</p>
+              <p className="mt-1">
+                Пакет «OctōPAY + Loal» не действует: бонусы Loal не принимаются. Оплатите подписку в кабинете
+                OctōPAY или отдельную подписку Loal в разделе «Оплата».
+              </p>
+            </div>
+          ) : (
+            integration.data.subscription?.level === "trial" &&
+            integration.data.subscription.endsAt && (
+              <p className="mt-3 rounded-2xl bg-muted p-4 text-base">
+                Пробный период OctōPAY — до {formatDateTime(integration.data.subscription.endsAt)}. Чтобы бонусы Loal
+                работали дальше, оплатите подписку в кабинете OctōPAY.
+              </p>
+            )
+          )}
           {ready ? (
             <p className="mt-3 text-base text-muted-foreground">
               В счетах этого магазина доступна оплата бонусами Loal.

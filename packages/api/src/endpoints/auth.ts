@@ -17,7 +17,14 @@ import {
   type OtpRequestInput,
   type PhoneRegisterInput,
   type RegisterInput,
-  type UpdateProfileInput, phoneCheckResultSchema, googleLinkSchema } from "../schemas/auth";
+  type UpdateProfileInput, phoneCheckResultSchema, googleLinkSchema, notificationSettingsSchema,
+  otpChannelsSchema,
+  phonePasswordLoginInputSchema,
+  type PhonePasswordLoginInput,
+  type PasswordResetInput,
+  type ContactCodeInput,
+  type ContactVerifyInput,
+} from "../schemas/auth";
 
 /**
  * Вход один на все кабинеты: почта с паролем или телефон с кодом из WhatsApp.
@@ -37,7 +44,14 @@ export const authApi = (api: ApiClient) => ({
       anonymous: true,
     }),
 
-  /** Код живёт 5 минут, повторный запрос раньше 60 секунд — 429. На код даётся 5 попыток. */
+  /** Какие каналы кода включены: Telegram показываем, только если telegram: true. */
+  otpChannels: () => api.request(otpChannelsSchema, "/auth/otp/channels", { anonymous: true }),
+
+  /**
+   * Код живёт 5 минут, повторный запрос раньше 60 секунд — 429. На код даётся 5 попыток.
+   * channel — whatsapp (по умолчанию) или telegram; проверяет код тот же вход, канал сервер помнит.
+   * 502 OTP_DELIVERY_FAILED — Telegram не доставил, 503 OTP_CHANNEL_UNAVAILABLE — Telegram выключен.
+   */
   requestOtp: (input: OtpRequestInput) =>
     api.request(otpRequestResultSchema, "/auth/otp/request", {
       method: "POST",
@@ -71,6 +85,57 @@ export const authApi = (api: ApiClient) => ({
       anonymous: true,
     }),
 
+  /**
+   * Кабинет партнёра: номер и пароль. 401 INVALID_CREDENTIALS — одно на «нет номера», «нет пароля»
+   * и «неверный пароль»; 429 PASSWORD_LOCKED + retryAfter — десять ошибок подряд, номер закрыт на 15 минут.
+   */
+  loginByPassword: (input: PhonePasswordLoginInput) =>
+    api.request(authTokensSchema, "/auth/login", {
+      method: "POST",
+      body: { ...phonePasswordLoginInputSchema.parse(input), deviceId: getDeviceId() },
+      anonymous: true,
+    }),
+
+  /**
+   * Код для «нет пароля или забыли». Номер проверяется до отправки: 404 ACCOUNT_NOT_FOUND,
+   * 403 NOT_BUSINESS_ACCOUNT — код не уходит; 429 PHONE_CHECK_RATE_LIMITED — 10 в минуту с адреса.
+   */
+  requestPasswordCode: (input: OtpRequestInput) =>
+    api.request(otpRequestResultSchema, "/auth/password/code", {
+      method: "POST",
+      body: otpRequestInputSchema.parse(input),
+      anonymous: true,
+    }),
+
+  /**
+   * Нет пароля или забыли: код (requestPasswordCode) и новый пароль — и человек сразу внутри.
+   * 404 ACCOUNT_NOT_FOUND, 403 NOT_BUSINESS_ACCOUNT; код при этом уже израсходован.
+   */
+  resetPassword: ({ phone, otp, newPassword }: PasswordResetInput) =>
+    api.request(authTokensSchema, "/auth/password/reset", {
+      method: "POST",
+      body: { phone, otp, newPassword, deviceId: getDeviceId() },
+      anonymous: true,
+    }),
+
+  /** Свой пароль без текущего — только пока его нет или он временный, иначе 409 PASSWORD_ALREADY_SET. */
+  setupPassword: (newPassword: string) =>
+    api.request(z.looseObject({ ok: z.boolean() }), "/auth/me/password/setup", {
+      method: "POST",
+      body: { newPassword },
+    }),
+
+  /**
+   * Код для подтверждения контакта: номер — в WhatsApp или Telegram, почта — письмом.
+   * 409 CONTACT_TAKEN — номер или почта у другого аккаунта, код не уходит; 503 EMAIL_UNAVAILABLE.
+   */
+  requestContactCode: (input: ContactCodeInput) =>
+    api.request(otpRequestResultSchema, "/auth/me/contact/code", { method: "POST", body: input }),
+
+  /** Подтвердить код: новый номер или почта заменяют прежние. Отдаёт новую пару токенов. */
+  verifyContact: (input: ContactVerifyInput) =>
+    api.request(authTokensSchema, "/auth/me/contact/verify", { method: "POST", body: input }),
+
   loginByOtp: (input: OtpLoginInput) =>
     api.request(authTokensSchema, "/auth/login", {
       method: "POST",
@@ -91,6 +156,10 @@ export const authApi = (api: ApiClient) => ({
     }),
 
   /** Привязать Google к тому, кто вошёл. 409 IDENTITY_TAKEN — Google чужой или у человека уже другой. */
+  /** Канал уведомлений: whatsapp | telegram. Почта, если есть, получает их всегда. */
+  setNotificationChannel: (channel: "whatsapp" | "telegram") =>
+    api.request(notificationSettingsSchema, "/auth/me/notifications", { method: "PATCH", body: { channel } }),
+
   linkGoogle: (idToken: string) =>
     api.request(googleLinkSchema, "/auth/me/google", { method: "POST", body: { idToken } }),
 

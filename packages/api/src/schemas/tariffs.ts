@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /** Тарифы бизнеса, которые продаёт Loal: цены — у агентства, экран «Тарифы». */
 export const merchantTariffPlanSchema = z.looseObject({
-  /** loal — «Только Loal» (счёт выставляет Loal), loal_octopay — цену читает OctōPAY. */
+  /** more_clients | even_more_clients | very_many_clients (LOAL_TARIFFS). */
   code: z.string(),
   name: z.string().nullish(),
   /** Целые сомы за месяц; 0 — бесплатно. */
@@ -17,7 +17,7 @@ export const merchantTariffPlanSchema = z.looseObject({
 export type MerchantTariffPlan = z.infer<typeof merchantTariffPlanSchema>;
 
 export const publicMerchantTariffSchema = merchantTariffPlanSchema.extend({
-  code: z.enum(["loal", "loal_octopay"]),
+  code: z.enum(["more_clients", "even_more_clients", "very_many_clients"]),
   regularPriceKgs: z.number().int().nonnegative(),
   freeMerchantLimit: z.number().int().nonnegative(),
   enrolledMerchants: z.number().int().nonnegative(),
@@ -41,3 +41,22 @@ export const tariffPriceInputSchema = z.object({
     .max(1_000_000, "Слишком большой лимит")).optional(),
 });
 export type TariffPriceInput = { priceKgs: number | string; freeMerchantLimit?: number | string };
+
+/**
+ * Тарифы Loal (ТЗ №5, `loalTariff` у магазина, подписки, кассы и в каталоге). Решают цену,
+ * можно ли тратить бонусы в точке и даёт ли она кэшбэк. Цены — с сервера (`/admin/v1/tariffs`).
+ */
+export const LOAL_TARIFFS = ["more_clients", "even_more_clients", "very_many_clients"] as const;
+export type LoalTariff = (typeof LOAL_TARIFFS)[number];
+
+export const LOAL_TARIFF_LABELS: Record<LoalTariff, { title: string; about: string }> = {
+  more_clients: { title: "Больше клиентов", about: "Клиенты получают у вас кэшбэк и тратят бонусы у других партнёров." },
+  even_more_clients: { title: "Ещё больше клиентов", about: "Клиенты оплачивают часть чека бонусами, кэшбэка нет." },
+  very_many_clients: {
+    title: "Очень много клиентов",
+    about: "И оплата бонусами, и кэшбэк, плюс выделение в каталоге.",
+  },
+};
+
+export const isLoalTariff = (value: unknown): value is LoalTariff =>
+  typeof value === "string" && (LOAL_TARIFFS as readonly string[]).includes(value);

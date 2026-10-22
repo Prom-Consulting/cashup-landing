@@ -17,6 +17,10 @@ export const LEGAL_ADDRESS = "Кыргызская Республика, г. Б�
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://loal.promconsult.pro";
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://loal.kg";
 export const PARTNER_APP_URL = process.env.NEXT_PUBLIC_PARTNER_APP_URL ?? "https://partner.loal.kg";
+/** Приложение Loal для покупателей в App Store. */
+export const APP_STORE_URL = "https://apps.apple.com/kg/app/loal/id6815962995?l=ru";
+/** Loal Corporate в App Store — приложение для заведений: касса, счёт клиенту, витрина. */
+export const CORPORATE_APP_STORE_URL = "https://apps.apple.com/kg/app/loal-corporate/id6818202553?l=ru";
 export const CLIENT_APP_URL = process.env.NEXT_PUBLIC_CLIENT_APP_URL ?? "https://client.loal.kg";
 
 /**

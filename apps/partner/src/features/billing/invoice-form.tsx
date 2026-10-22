@@ -4,7 +4,7 @@ import { Button, FormStatus, cn } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useEffect, useState } from "react";
 import { usePublicTariffs } from "@loal/app-kit";
-import { useCreateInvoice } from "../../entities/merchant/api";
+import { useCreateInvoice, useMerchant } from "../../entities/merchant/api";
 
 const money = new Intl.NumberFormat("ru-RU");
 
@@ -23,7 +23,8 @@ export function InvoiceForm({ merchantId }: { merchantId: string }) {
   // Цена тарифа «Только Loal» — 0: счёт не нужен, бонусы и так принимаются
   const [free, setFree] = useState(false);
   const prices = usePublicTariffs();
-  const price = prices.isError ? undefined : prices.data?.find((item) => item.code === "loal")?.priceKgs;
+  const merchant = useMerchant(merchantId);
+  const price = prices.isError ? undefined : prices.data?.find((item) => item.code === merchant.data?.loalTariff)?.priceKgs;
   useEffect(() => { setFree(price === 0); }, [price, prices.dataUpdatedAt]);
   const initialValues: CreateInvoiceInput = { months: 1 };
 

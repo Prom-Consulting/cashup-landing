@@ -1,6 +1,9 @@
 import { RequireAuth, isSuperAdmin } from "@loal/app-kit";
 import { Route, Routes } from "react-router";
 import { LeadsPage } from "../pages/leads";
+import { SupportPage } from "../pages/support";
+import { RevenuePage } from "../pages/revenue";
+import { BusinessPasswordsPage } from "../pages/business-passwords";
 import { LoginPage } from "../pages/login";
 import { NotFoundPage } from "../pages/not-found";
 import { ProfilePage } from "../pages/profile";
@@ -17,6 +20,7 @@ import { TemplatesPage } from "../pages/templates";
 import { TariffsPage } from "../pages/tariffs";
 import { ExitRequestsPage } from "../pages/exit-requests";
 import { AppLayout } from "../widgets/app-layout";
+import { CardSuiteLayout } from "../widgets/card-suite";
 
 /** Все экраны, кроме входа, доступны только администратору платформы. */
 export function AppRouter() {
@@ -36,16 +40,23 @@ export function AppRouter() {
         <Route index element={<MerchantsPage />} />
         <Route path="merchants/:merchantId" element={<MerchantDetailsPage />} />
         <Route path="customers" element={<CustomersPage />} />
-        <Route path="templates" element={<TemplatesPage />} />
+        {/* Карты, программы, бонусные товары и сертификаты — вкладки одной страницы «Карта Loal» */}
+        <Route element={<CardSuiteLayout />}>
+          <Route path="templates" element={<TemplatesPage />} />
+          <Route path="programs" element={<ProgramsPage />} />
+          <Route path="bonus-items" element={<BonusItemsPage />} />
+          <Route path="certificates" element={<CertificatesPage />} />
+        </Route>
         <Route path="templates/:templateId" element={<TemplateEditorPage />} />
-        <Route path="programs" element={<ProgramsPage />} />
-        <Route path="certificates" element={<CertificatesPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="tariffs" element={<TariffsPage />} />
         <Route path="exit-requests" element={<ExitRequestsPage />} />
-        <Route path="bonus-items" element={<BonusItemsPage />} />
         <Route path="promo-codes" element={<PromoCodesPage />} />
         <Route path="leads" element={<LeadsPage />} />
+        <Route path="revenue" element={<RevenuePage />} />
+        <Route path="support" element={<SupportPage />} />
+        <Route path="support/:ticketId" element={<SupportPage />} />
+        <Route path="business-passwords" element={<BusinessPasswordsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

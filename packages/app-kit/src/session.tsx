@@ -5,6 +5,11 @@ import {
   createApiClient,
   createTokenStore,
   type ApiClient,
+  type OtpChannel,
+  type OtpChannels,
+  type PasswordResetInput,
+  type ContactCodeInput,
+  type ContactVerifyInput,
   type Session,
 } from "@loal/api";
 import { rememberWelcome } from "./welcome";
@@ -196,9 +201,62 @@ export function useCheckPhone() {
   };
 }
 
+/** Код в WhatsApp или Telegram. Повтор раньше минуты — 429 с тем, сколько ждать. */
 export function useRequestOtp() {
   const { api } = useSession();
-  return useMutation({ mutationFn: (input: { phone: string }) => authApi(api).requestOtp(input) });
+  return useMutation({
+    mutationFn: (input: { phone: string; channel?: OtpChannel }) => authApi(api).requestOtp(input),
+  });
+}
+
+const WHATSAPP_ONLY: OtpChannels = { whatsapp: true, telegram: false, email: false };
+
+/** Какие каналы кода включены. Пока не знаем или шлюз старый — только WhatsApp, как раньше. */
+export function useOtpChannels(): OtpChannels {
+  const { api } = useSession();
+  const query = useQuery({
+    queryKey: ["auth", "otp-channels"],
+    queryFn: () => authApi(api).otpChannels(),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  return query.data ?? WHATSAPP_ONLY;
+}
+
+/** Код для пароля: сервер сначала проверяет, что номер — сотрудник заведения. */
+export function useRequestPasswordCode() {
+  const { api } = useSession();
+  return useMutation({
+    mutationFn: (input: { phone: string; channel?: OtpChannel }) => authApi(api).requestPasswordCode(input),
+  });
+}
+
+/** Кабинет партнёра: номер и пароль. */
+export function useLoginByPassword() {
+  const { api, signIn } = useSession();
+  return useMutation({
+    mutationFn: (input: { phone: string; password: string }) => authApi(api).loginByPassword(input),
+    onSuccess: (tokens) => signIn(tokens),
+  });
+}
+
+/** Нет пароля или забыли: код и новый пароль — сразу внутри. */
+export function useResetPassword() {
+  const { api, signIn } = useSession();
+  return useMutation({
+    mutationFn: (input: PasswordResetInput) => authApi(api).resetPassword(input),
+    onSuccess: (tokens) => signIn(tokens),
+  });
+}
+
+/** Свой пароль вместо временного или впервые; профиль перечитываем — он снимает требование. */
+export function useSetupPassword() {
+  const { api } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (newPassword: string) => authApi(api).setupPassword(newPassword),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["session", "profile"] }),
+  });
 }
 
 /** Регистрация клиента по телефону и коду (и по приглашению — с referralCode): сразу выдаёт токен. */
@@ -230,5 +288,24 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: (input: { fullName: string; email: string }) => authApi(api).updateProfile(input),
     onSuccess: (tokens) => signIn(tokens),
+  });
+}
+
+/** Код для подтверждения номера (WhatsApp, Telegram) или почты. */
+export function useRequestContactCode() {
+  const { api } = useSession();
+  return useMutation({ mutationFn: (input: ContactCodeInput) => authApi(api).requestContactCode(input) });
+}
+
+/** Подтвердить контакт: новая пара токенов (почта лежит в токене) и свежий профиль. */
+export function useVerifyContact() {
+  const { api, signIn } = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ContactVerifyInput) => authApi(api).verifyContact(input),
+    onSuccess: async (tokens) => {
+      await signIn(tokens);
+      await queryClient.invalidateQueries({ queryKey: ["session", "profile"] });
+    },
   });
 }

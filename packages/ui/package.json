@@ -13,7 +13,9 @@
     "./inputs": "./src/inputs.tsx",
     "./select": "./src/select.tsx",
     "./app-shell": "./src/app-shell.tsx",
-    "./shadcn": "./src/shadcn/index.ts"
+    "./shadcn": "./src/shadcn/index.ts",
+    "./location-picker": "./src/location-picker.tsx",
+    "./storefront-images": "./src/storefront-images.tsx"
   },
   "peerDependencies": {
     "react": "^19"
@@ -38,6 +40,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "libphonenumber-js": "^1.13.14",
-    "tailwind-merge": "^3.7.0"
+    "tailwind-merge": "^3.7.0",
+    "maplibre-gl": "^6.10.0",
+    "@loal/api": "workspace:*"
   }
 }

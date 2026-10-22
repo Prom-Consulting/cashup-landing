@@ -3,7 +3,7 @@ import test from "node:test";
 import { tariffPriceInputSchema, publicMerchantTariffSchema } from "../src/schemas/tariffs.ts";
 import { businessPrice, getBusinessPricing } from "../../../apps/landing/app/_data/business-pricing.ts";
 
-const tariff = { code: "loal", name: "Больше клиентов", priceKgs: 0, regularPriceKgs: 8750,
+const tariff = { code: "more_clients", name: "Больше клиентов", priceKgs: 0, regularPriceKgs: 8750,
   freeMerchantLimit: 10, enrolledMerchants: 9, freePlacesRemaining: 1, freeOfferActive: true, currency: "KGS", period: "month" };
 
 test("tariff settings convert inputs but reject blank or invalid money and limits", () => {
@@ -16,10 +16,10 @@ test("tariff settings convert inputs but reject blank or invalid money and limit
 });
 
 test("landing switches from zero to the API price, with no hard-coded fallback", () => {
-  assert.equal(businessPrice("loyalty", [publicMerchantTariffSchema.parse(tariff)]), "0 сом");
-  assert.equal(businessPrice("loyalty", [{ ...tariff, priceKgs: 9123 }]).replaceAll(/\s/g, ""), "9123сом");
-  assert.equal(businessPrice("loyalty", null), "Уточняем цену");
-  assert.equal(businessPrice("bundle", [tariff]), "Уточняем цену");
+  assert.equal(businessPrice("more_clients", [publicMerchantTariffSchema.parse(tariff)]), "0 сом");
+  assert.equal(businessPrice("more_clients", [{ ...tariff, priceKgs: 9123 }]).replaceAll(/\s/g, ""), "9123сом");
+  assert.equal(businessPrice("more_clients", null), "Уточняем цену");
+  assert.equal(businessPrice("even_more_clients", [tariff]), "Уточняем цену");
 });
 
 test("landing reads fresh prices and never substitutes free access during an API outage", async (t) => {

@@ -78,6 +78,12 @@ export function CreateMerchantForm({ onCreated }: { onCreated?: (merchantId: str
           onCreated?.(merchant.id);
         } catch (error) {
           // Номер заблокированного, удалённого или служебного аккаунта владельцем не станет
+          // Один номер — одно живое заведение
+          if (error instanceof ApiError && error.code === "PHONE_HAS_ACTIVE_MERCHANT")
+            return helpers.setFieldError(
+              "contactPhone",
+              "Этот номер уже работает в другом заведении (владельцем или сотрудником). Сначала его нужно освободить.",
+            );
           if (error instanceof ApiError && error.code === "MERCHANT_OWNER_UNAVAILABLE")
             return helpers.setFieldError(
               "contactPhone",

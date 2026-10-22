@@ -1,5 +1,6 @@
 import { Badge, Card, ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
 import { Link } from "react-router";
+import { ClientHero } from "../../widgets/client-hero";
 import { useCashierOverview, useCashierRedemptions } from "../../entities/cashier/api";
 import { formatDate, formatDateTime } from "../../shared/lib/format";
 import { subscriptionState } from "../../shared/lib/subscription";
@@ -15,7 +16,7 @@ export function BranchOverview() {
   if (overview.isError) return <ErrorState error={overview.error} onRetry={() => overview.refetch()} />;
 
   const { branch, branches, merchant, cashier } = overview.data;
-  const { active, until, free, canRedeem } = subscriptionState(overview.data);
+  const { active, until, free, canOperate } = subscriptionState(overview.data);
   // Нескольким филиалам заголовок — магазин, а филиалы перечисляем ниже; ни одного — списывать нельзя
   const many = branches.length > 1;
   const unassigned = branches.length === 0 && !branch;
@@ -36,28 +37,17 @@ export function BranchOverview() {
       />
 
       <div className="grid gap-4 md:grid-cols-[1.4fr_1fr]">
-        {active && canRedeem ? (
-          <Card className="brand-gradient flex flex-col gap-4 text-white">
-            <h2 className="display text-[clamp(1.8rem,3vw,2.4rem)] leading-tight">Клиент с картой Loal?</h2>
-            <p className="max-w-[46ch] text-lg leading-snug text-white/90">
-              Отсканируйте QR с его карты, добавьте покупку — бонусы закроют часть цены.
-            </p>
-            <Link
-              to="/redeem"
-              className="inline-flex w-fit items-center rounded-full bg-graphite px-7 py-4 text-lg font-bold text-white transition-colors hover:bg-white hover:text-graphite"
-            >
-              Списать бонусы
-            </Link>
-          </Card>
+        {active && canOperate ? (
+          <ClientHero />
         ) : (
           <Card className="flex flex-col gap-3 border-2 border-destructive/30">
             <h2 className="text-xl font-bold">Бонусы сейчас не принимаются</h2>
             <p className="max-w-[52ch] text-lg leading-snug text-muted-foreground">
               {unassigned
                 ? "Вас пока не назначили ни в один филиал — без этого списывать нельзя. Попросите владельца отметить ваш филиал в разделе «Команда»."
-                : canRedeem
-                  ? "У заведения нет действующей подписки — списание не пройдёт. Скажите владельцу: продлить её можно в кабинете партнёра."
-                  : "Списывать бонусы вам сейчас не разрешено. Спросите владельца или администратора филиала."}
+                : canOperate
+                  ? "У заведения нет действующей подписки — операции не пройдут. Скажите владельцу: продлить её можно в кабинете партнёра."
+                  : "Проводить операции с бонусами вам сейчас не разрешено. Спросите владельца или администратора филиала."}
             </p>
           </Card>
         )}

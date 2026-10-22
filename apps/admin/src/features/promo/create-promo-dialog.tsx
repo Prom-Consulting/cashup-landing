@@ -1,4 +1,16 @@
-import { ApiError, PROMO_AUDIENCE_LABELS, PROMO_CLIENT_ELIGIBILITY_LABELS, PROMO_KIND_LABELS, createPromoFormSchema, type CreatePromoForm, type PromoAudience, type PromoKind } from "@loal/api";
+import {
+  ApiError,
+  PROMO_AUDIENCE_LABELS,
+  PROMO_CLIENT_ELIGIBILITY_LABELS,
+  PROMO_KIND_LABELS,
+  PROMO_REWARD_LABELS,
+  bonusesText,
+  daysText,
+  createPromoFormSchema,
+  type CreatePromoForm,
+  type PromoAudience,
+  type PromoKind,
+} from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Button, Dialog, DialogContent, FormField, FormStatus, Input, NativeSelect, Textarea } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
@@ -9,6 +21,9 @@ const initialValues: CreatePromoForm = {
   code: "",
   audience: "merchant",
   kind: "months",
+  reward: "months",
+  bonusAmount: "",
+  bonusDays: 30,
   months: 1,
   cycleBalance: 10_000,
   clientEligibility: "all",
@@ -16,6 +31,20 @@ const initialValues: CreatePromoForm = {
   expiresAt: "",
   note: "",
 };
+
+const BONUS_DAY_PRESETS = [7, 14, 30, 90];
+
+/** Как лягут бонусы — зависит от подписки клиента в момент применения. */
+function BonusRewardNote({ amount, days }: { amount: number | string; days: number | string }) {
+  const sum = Number(amount) > 0 ? bonusesText(Number(amount)) : "бонусы";
+  const term = Number(days) > 0 ? daysText(Number(days)) : "выбранный срок";
+  return (
+    <ul className="flex list-disc flex-col gap-1 rounded-2xl bg-muted/60 py-3 pr-4 pl-8 text-sm text-muted-foreground">
+      <li>Подписка идёт — {sum} добавятся сверху и сгорят через {term}. Оплаченные бонусы не тронем.</li>
+      <li>Подписки нет или карта заморожена — карта откроется на {term} ровно с {sum}, потом заморозится как обычно.</li>
+    </ul>
+  );
+}
 
 /** Новый промокод. Код можно не придумывать — сервер выдаст LOAL-XXXXXX. */
 export function CreatePromoDialog({ onCreated }: { onCreated?: (code: string) => void }) {
@@ -62,13 +91,13 @@ export function CreatePromoDialog({ onCreated }: { onCreated?: (code: string) =>
                       void form.setValues({
                         ...form.values,
                         audience,
-                        ...(audience === "merchant" ? { kind: "months", clientEligibility: "all" } : {}),
+                        ...(audience === "merchant" ? { kind: "months", reward: "months", clientEligibility: "all" } : {}),
                       });
                     }}
                     onBlur={form.handleBlur}
                     options={Object.entries(PROMO_AUDIENCE_LABELS).map(([value, label]) => ({
                       value,
-                      label: value === "merchant" ? `${label} — подписка магазина` : `${label} — подписка карты`,
+                      label: value === "merchant" ? `${label} — подписка магазина` : `${label} — карта Loal`,
                     }))}
                   />
                 )}
@@ -80,17 +109,19 @@ export function CreatePromoDialog({ onCreated }: { onCreated?: (code: string) =>
                       <NativeSelect
                         {...parts}
                         name="kind"
-                        value={form.values.kind}
+                        value={form.values.kind === "subscription_cycle" ? "subscription_cycle" : form.values.reward}
                         onChange={(event) => {
-                          const kind = event.target.value as PromoKind;
+                          const value = event.target.value;
+                          const kind: PromoKind = value === "subscription_cycle" ? "subscription_cycle" : "months";
                           void form.setValues({
                             ...form.values,
                             kind,
+                            reward: value === "bonuses" ? "bonuses" : "months",
                             ...(kind === "subscription_cycle" ? { months: 1, clientEligibility: "without_subscription" } : {}),
                           });
                         }}
                         onBlur={form.handleBlur}
-                        options={Object.entries(PROMO_KIND_LABELS).map(([value, label]) => ({ value, label }))}
+                        options={[...Object.entries(PROMO_KIND_LABELS).map(([value, label]) => ({ value, label })), { value: "bonuses", label: PROMO_REWARD_LABELS.bonuses }]}
                       />
                     )}
                   </FormField>
@@ -135,6 +166,53 @@ export function CreatePromoDialog({ onCreated }: { onCreated?: (code: string) =>
                   />
                 )}
               </FormField>
+              {form.values.reward === "bonuses" && (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField label="Сколько бонусов" hint="1 бонус = 1 сом в бонусной части покупки" error={fieldError(form, "bonusAmount")}>
+                      {(parts) => (
+                        <Input
+                          {...parts}
+                          name="bonusAmount"
+                          inputMode="numeric"
+                          placeholder="2000"
+                          value={String(form.values.bonusAmount)}
+                          onChange={form.handleChange}
+                          onBlur={form.handleBlur}
+                        />
+                      )}
+                    </FormField>
+                    <FormField label="На сколько дней" hint="От 1 до 365, считая с применения" error={fieldError(form, "bonusDays")}>
+                      {(parts) => (
+                        <div className="flex flex-col gap-2">
+                          <Input
+                            {...parts}
+                            name="bonusDays"
+                            inputMode="numeric"
+                            value={String(form.values.bonusDays)}
+                            onChange={form.handleChange}
+                            onBlur={form.handleBlur}
+                          />
+                          <div role="group" aria-label="Быстрый выбор срока" className="flex flex-wrap gap-1.5">
+                            {BONUS_DAY_PRESETS.map((days) => (
+                              <button
+                                key={days}
+                                type="button"
+                                aria-pressed={Number(form.values.bonusDays) === days}
+                                onClick={() => void form.setFieldValue("bonusDays", days)}
+                                className="min-h-8 rounded-full border-2 border-border px-3 text-sm aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:text-background"
+                              >
+                                {daysText(days)}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </FormField>
+                  </div>
+                  <BonusRewardNote amount={form.values.bonusAmount} days={form.values.bonusDays} />
+                </>
+              )}
               <div className="grid gap-4 sm:grid-cols-2">
                 {form.values.kind === "subscription_cycle" ? (
                   <>
@@ -155,7 +233,7 @@ export function CreatePromoDialog({ onCreated }: { onCreated?: (code: string) =>
                       )}
                     </FormField>
                   </>
-                ) : <FormField label="Бесплатных месяцев" hint="От 1 до 36" error={fieldError(form, "months")}>
+                ) : form.values.reward === "months" && <FormField label="Бесплатных месяцев" hint="От 1 до 36" error={fieldError(form, "months")}>
                   {(parts) => (
                     <Input
                       {...parts}

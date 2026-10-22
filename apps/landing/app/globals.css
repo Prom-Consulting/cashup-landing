@@ -351,6 +351,36 @@ html {
 .loal-pin {
   touch-action: none;
 }
+/* Ножка веера: тонкая линия от точки адреса (кончик острия, 32×67) до отодвинутой метки */
+.loal-pin__leg {
+  position: absolute;
+  top: 67px;
+  left: 32px;
+  width: var(--leg, 0px);
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 2px;
+  background: rgb(22 21 21 / 0.5);
+  opacity: 0;
+  transform: rotate(var(--leg-angle, 0rad));
+  transform-origin: 0 50%;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+.loal-pin__leg::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -5px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--paper);
+  border-radius: 999px;
+  background: var(--flame);
+}
+.loal-pin.is-spread .loal-pin__leg {
+  opacity: 1;
+}
 
 /* Несколько заведений рядом: одно касание — и карта приближается к ним */
 .loal-cluster {
@@ -465,5 +495,31 @@ html {
   .loal-pin.is-active .loal-pin__halo {
     animation: none;
     opacity: 0.6;
+  }
+}
+
+/* Видео в карточке каталога проявляется поверх обложки */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Счётчик мест по акции: полоса заполняется слева при загрузке страницы */
+.seat-fill {
+  transform-origin: left center;
+  animation: seat-fill 1.1s cubic-bezier(0.2, 0.9, 0.3, 1) 0.3s both;
+}
+@keyframes seat-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seat-fill {
+    animation: none;
   }
 }

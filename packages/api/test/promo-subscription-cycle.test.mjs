@@ -12,6 +12,7 @@ import {
   promoRedemptionSchema,
   promoRedeemResultSchema,
   promoSuccessText,
+  promoRewardText,
 } from "../src/schemas/promo.ts";
 
 const form = {
@@ -164,4 +165,16 @@ test("legacy success messages keep month pluralization", () => {
     const result = promoRedeemResultSchema.parse({ code: "OLD-CODE", audience: "client", months });
     assert.equal(promoSuccessText(result), `Промокод OLD-CODE принят: +${months} ${expected} подписки.`);
   }
+});
+
+test("existing bonus codes retain their creation contract and redemption display", () => {
+  const body = createPromoBody({ ...form, kind: "months", reward: "bonuses", bonusAmount: "2000", bonusDays: "14", clientEligibility: "all" });
+  assert.equal(body.reward, "bonuses");
+  assert.equal(body.bonusAmount, 2000);
+  assert.equal(body.bonusDays, 14);
+  for (const field of ["kind", "months", "cycleBalance"]) assert.equal(field in body, false);
+  const result = promoRedeemResultSchema.parse({ code: "GIFT-2000", audience: "client", reward: "bonuses", months: null, bonusAmount: 2000 });
+  assert.equal(promoSuccessText(result), "Промокод GIFT-2000 принят: +2 000 бонусов на карте.");
+  assert.equal(promoRewardText({ ...result, bonusDays: 14 }), "+2 000 бонусов на 14 дней");
+  assert.equal(createPromoFormSchema.safeParse({ ...form, kind: "months", reward: "bonuses", audience: "merchant", bonusAmount: 2000, bonusDays: 14 }).success, false);
 });

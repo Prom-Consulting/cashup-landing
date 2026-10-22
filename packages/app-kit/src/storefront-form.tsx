@@ -2,20 +2,23 @@ import {
   ApiError,
   STOREFRONT_IMAGE_ACCEPT,
   STOREFRONT_IMAGE_FORMATS,
+  PARTNER_AUDIENCES,
   PARTNER_CATEGORIES,
   coordsFrom2gis,
+  partnerAudiences,
   merchantProfileFormSchema,
   type MerchantProfile,
   type MerchantProfileForm,
 } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Delete02Icon, ImageAdd01Icon } from "@hugeicons/core-free-icons";
-import { Button, Icon, Input, Label, NativeSelect, Textarea } from "@loal/ui/shadcn";
+import { Button, ChipSelect, Icon, Input, Label, NativeSelect, Textarea } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useRef, useState } from "react";
 import { merchantCabinetApi } from "@loal/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "./session";
+import { StorefrontVideos } from "./storefront-videos";
 
 const profileKey = (merchantId: string) => ["merchants", merchantId, "profile"] as const;
 
@@ -49,13 +52,10 @@ function useUploadAsset(merchantId: string) {
 
 const MAX_PHOTOS = 10;
 
-/** Тот же список, что на лендинге. Старую свою категорию заведения не теряем — она остаётся в списке. */
-function categoryOptions(current: string | null) {
-  const options = PARTNER_CATEGORIES.map((category) => ({ value: category.label, label: category.label }));
-  return current && !options.some((option) => option.value === current)
-    ? [{ value: current, label: current }, ...options]
-    : options;
-}
+// Только категории платформы: другую бэкенд в профиль не пропустит (400)
+const categoryOptions = PARTNER_CATEGORIES.map((category) => ({ value: category.label, label: category.label }));
+const isListedCategory = (value: string | null) => categoryOptions.some((option) => option.value === value);
+const audienceOptions = PARTNER_AUDIENCES.map((audience) => ({ value: audience.id, label: audience.label }));
 
 /**
  * Точка на карте каталога — из ссылки 2ГИС. Ссылку убрали — убираем и точку; в ссылке
@@ -96,12 +96,16 @@ export function StorefrontForm({
   const upload = useUploadAsset(merchantId);
   const [logoUrl, setLogoUrl] = useState(profile.logoUrl);
   const [photos, setPhotos] = useState(profile.photos);
+  const [videos, setVideos] = useState(profile.videos ?? []);
+  const [audiences, setAudiences] = useState<string[]>(partnerAudiences(profile.audiences));
+  const [videoBusy, setVideoBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const logoInput = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
 
   const initialValues: MerchantProfileForm = {
-    category: profile.category ?? "",
+    // Своя категория не из списка: поле пустое, прежнее значение — подсказкой под ним
+    category: isListedCategory(profile.category) ? profile.category! : "",
     description: profile.description ?? "",
     instagramUrl: profile.instagramUrl ?? "",
     twogisUrl: profile.twogisUrl ?? "",
@@ -134,6 +138,8 @@ export function StorefrontForm({
             description: orNull(values.description),
             logoUrl,
             photos,
+            videos,
+            audiences: partnerAudiences(audiences),
             instagramUrl: orNull(values.instagramUrl),
             twogisUrl: orNull(values.twogisUrl),
             address: orNull(values.address),
@@ -163,8 +169,13 @@ export function StorefrontForm({
                 onChange={form.handleChange}
                 onBlur={form.handleBlur}
                 invalid={Boolean(fieldError(form, "category"))}
-                options={categoryOptions(profile.category)}
+                options={categoryOptions}
               />
+              {profile.category && !isListedCategory(profile.category) && !fieldError(form, "category") && (
+                <p className="mt-2 text-base text-muted-foreground">
+                  Сейчас указано «{profile.category}» — такой категории больше нет, выберите из списка.
+                </p>
+              )}
               {fieldError(form, "category") && (
                 <p className="mt-2 text-base text-destructive">{fieldError(form, "category")}</p>
               )}
@@ -185,6 +196,22 @@ export function StorefrontForm({
               {fieldError(form, "instagramUrl") && (
                 <p className="mt-2 text-base text-destructive">{fieldError(form, "instagramUrl")}</p>
               )}
+            </div>
+
+            <div className="sm:col-span-2">
+              <p className="text-base font-medium text-foreground">Для кого</p>
+              <p id="audiences-hint" className="mt-1 text-base text-muted-foreground">
+                Можно отметить несколько — по ним клиенты находят вас в каталоге.
+              </p>
+              <ChipSelect
+                id="audiences"
+                className="mt-2"
+                options={audienceOptions}
+                value={audiences}
+                onChange={setAudiences}
+                describedBy="audiences-hint"
+                label="Для кого"
+              />
             </div>
 
             <div className="sm:col-span-2">
@@ -316,9 +343,25 @@ export function StorefrontForm({
             )}
           </div>
 
+          <StorefrontVideos
+            merchantId={merchantId}
+            videos={videos}
+            onChange={(next) => {
+              setVideos(next);
+              // Прежнее «Витрина сохранена» больше не про эту витрину
+              form.setStatus(undefined);
+            }}
+            onBusyChange={setVideoBusy}
+            disabled={form.isSubmitting}
+          />
+
           <div className="flex flex-wrap items-center gap-4">
-            <Button type="submit" disabled={form.isSubmitting}>
-              {form.isSubmitting ? "Сохраняем…" : "Сохранить витрину"}
+            <Button type="submit" disabled={form.isSubmitting || videoBusy || upload.isPending}>
+              {form.isSubmitting
+                ? "Сохраняем…"
+                : videoBusy || upload.isPending
+                  ? "Дождитесь загрузки…"
+                  : "Сохранить витрину"}
             </Button>
             {formError(form) && (
               <p role="status" className="text-base text-muted-foreground">

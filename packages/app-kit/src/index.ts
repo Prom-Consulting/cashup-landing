@@ -18,4 +18,12 @@ export * from "./welcome";
 export * from "./client-payments";
 export * from "./work-branch";
 export * from "./google";
+export * from "./otp-channel";
+export * from "./business-login";
+export * from "./password-setup";
+export * from "./support";
+export * from "./contact-verify";
+export * from "./cashback-form";
+export * from "./notification-channel";
+
 export * from "./tariffs";

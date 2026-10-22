@@ -1,7 +1,7 @@
 import { RedeemForm, useCoverageLimit } from "@loal/app-kit";
 import { ErrorState, Loading, PageHeader } from "@loal/ui/shadcn";
-import { Link } from "react-router";
-import { useCashierOverview, useCashierSession, useRefreshAfterRedeem } from "../../entities/cashier/api";
+import { Link, Navigate } from "react-router";
+import { useCashierAbilities, useCashierOverview, useCashierSession, useRefreshAfterRedeem } from "../../entities/cashier/api";
 import { subscriptionState } from "../../shared/lib/subscription";
 
 const DESCRIPTION = "Отсканируйте карту и добавьте покупку — бонусы закроют часть цены, остальное клиент платит как обычно.";
@@ -13,6 +13,9 @@ const DESCRIPTION = "Отсканируйте карту и добавьте п�
  */
 export function RedeemPage() {
   const { kind } = useCashierSession();
+  const abilities = useCashierAbilities();
+  // «Больше клиентов» бонусы не списывает — только начисляет кэшбэк
+  if (!abilities.isPending && !abilities.redeem) return <Navigate to="/cashback" replace />;
   return (
     <section className="flex flex-col gap-6">
       <PageHeader title="Списать бонусы" description={DESCRIPTION} />

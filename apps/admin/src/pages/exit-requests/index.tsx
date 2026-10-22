@@ -53,6 +53,15 @@ function RequestCard({ request }: { request: ExitRequest }) {
         <Badge tone={TONE[status] ?? "quiet"}>{EXIT_REQUEST_STATUS_LABELS[status] ?? request.status}</Badge>
       </div>
 
+      {request.octopay && (
+        <p className="text-base">
+          {request.octopay === "delete" ? (
+            <b>Уходит из Loal и из OctōPAY — аккаунт OctōPAY тоже закроется.</b>
+          ) : (
+            "Уходит только из Loal — аккаунт OctōPAY останется."
+          )}
+        </p>
+      )}
       <p className="max-w-[70ch] text-lg leading-snug">
         {request.reason ? `«${request.reason}»` : <span className="text-muted-foreground">Причину не указали</span>}
       </p>

@@ -285,8 +285,7 @@ export const bonusItemPageSchema = z.looseObject({
 export const platformSettingsSchema = z.looseObject({
   infoText: z.string().nullish(),
   infoUrl: z.string().nullish(),
-  /** Цены платформы, целые сомы за месяц: доступ магазина и подписка клиента. */
-  merchantAccessPriceKgs: z.number().nullish(),
+  /** Цена подписки клиента, целые сомы за месяц. Цены магазинов — /admin/v1/tariffs. */
   cardSubscriptionPriceKgs: z.number().nullish(),
 });
 export type PlatformSettings = z.infer<typeof platformSettingsSchema>;
@@ -307,7 +306,7 @@ const priceKgs = z.coerce
   .max(10_000_000, "Слишком большая цена");
 
 /** Цена подписки клиента. Новая цена действует со следующего счёта, выставленные не меняются. */
-// Цена доступа магазина (merchantAccessPriceKgs) устарела: она теперь тариф «Только Loal» — /admin/v1/tariffs
+// Цен магазинов здесь нет: они в /admin/v1/tariffs, а поле merchantAccessPriceKgs сервер отклоняет (400)
 export const platformPricesInputSchema = z.object({
   cardSubscriptionPriceKgs: priceKgs,
 });
@@ -319,8 +318,13 @@ export const auditLogSchema = z.looseObject({
   id: z.string(),
   action: z.string().nullish(),
   entity: z.string().nullish(),
+  entityType: z.string().nullish(),
   entityId: z.string().nullish(),
   userId: z.string().nullish(),
+  diff: z.record(z.string(), z.unknown()).nullish(),
+  /** Заведение записи и кто сделал — у старого шлюза полей нет. */
+  merchantName: z.string().nullish(),
+  actorName: z.string().nullish(),
   createdAt: z.string().nullish(),
 });
 export type AuditLog = z.infer<typeof auditLogSchema>;

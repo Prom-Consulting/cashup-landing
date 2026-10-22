@@ -1,5 +1,7 @@
+import { LOAL_TARIFF_LABELS, isLoalTariff } from "./tariffs";
 import { z } from "zod";
 import { phoneSchema } from "./phone";
+import type { PartnerAudienceId } from "./categories";
 
 /**
  * Мерчант — заведение, принимающее бонусы. Раньше назывался store; карты, клиенты
@@ -29,6 +31,54 @@ export const WORKFLOW_STATUS_LABELS: Record<MerchantWorkflowStatus, string> = {
   done: "Готово",
 };
 
+/**
+ * Состояние заведения одним словом (docs/API.md, «Состояние на экране «Заведения»»): сводит status,
+ * workflowStatus и архив. Строкой — новое значение бэкенда не уронит экран.
+ */
+export const MERCHANT_LIFECYCLE_LABELS: Record<string, { label: string; tone: "good" | "warn" | "neutral" | "quiet" }> = {
+  pending_review: { label: "Ждёт проверки", tone: "warn" },
+  active: { label: "Работает", tone: "good" },
+  trial: { label: "Пробный", tone: "good" },
+  suspended: { label: "Приостановлен", tone: "neutral" },
+  rejected: { label: "Отклонён", tone: "quiet" },
+  deleted: { label: "Удалён", tone: "quiet" },
+  erased: { label: "Данные стёрты", tone: "quiet" },
+  // Заявки, за которыми ещё нет заведения
+  processing: { label: "Заявка обрабатывается", tone: "neutral" },
+  action_required: { label: "Заявка ждёт действий", tone: "warn" },
+  octopay_only: { label: "Только OctōPAY", tone: "neutral" },
+};
+
+/** Модель подключения из заявки с лендинга. */
+export const APPLICATION_PLAN_LABELS: Record<string, string> = {
+  loyalty: "Только Loal",
+  bundle: "Loal + OctōPAY",
+  octopay: "Только OctōPAY",
+};
+
+/** Открытие аккаунта OctōPAY после одобрения заявки «Loal + OctōPAY». */
+export const OCTOPAY_STATE_LABELS: Record<string, string> = {
+  pending: "аккаунт OctōPAY открывается",
+  done: "аккаунт OctōPAY готов",
+  action_required: "OctōPAY ждёт пароль владельца",
+  blocked: "OctōPAY не открыт",
+};
+
+export const OCTOPAY_BLOCKER_LABELS: Record<string, string> = {
+  ACCOUNT_LINKED_ELSEWHERE: "Аккаунт OctōPAY этого номера связан с другим заведением — перенесите его сюда.",
+  ACCOUNT_PENDING_DELETION: "Аккаунт OctōPAY этого номера удалён меньше 30 дней назад — дождитесь окончания срока или верните заведение, которому он принадлежал.",
+};
+
+/** Заявка с лендинга, из которой создан магазин (только в списке). null — заведён вручную. */
+export const merchantApplicationSchema = z.looseObject({
+  id: z.string(),
+  plan: z.string(),
+  submittedAt: z.string().nullish(),
+  octopayState: z.string().nullish(),
+  octopayBlocker: z.string().nullish(),
+});
+export type MerchantApplication = z.infer<typeof merchantApplicationSchema>;
+
 export const merchantSchema = z.looseObject({
   id: z.string(),
   slug: z.string(),
@@ -40,11 +90,119 @@ export const merchantSchema = z.looseObject({
   logoUrl: z.string().nullish(),
   /** octopay — OctōPAY + Loal, loal — только Loal (см. tariffOf). */
   tariff: z.string().nullish(),
+  /** Тариф Loal (ТЗ №5): more_clients | even_more_clients | very_many_clients (LOAL_TARIFFS). */
+  loalTariff: z.string().nullish(),
+  /** Действующий процент кэшбэка; null — тариф кэшбэк не даёт. */
+  cashbackPercent: z.number().nullish(),
   createdAt: z.string(),
   /** Архив: магазин удалён агентством, его можно только смотреть. */
   deletedAt: z.string().nullish(),
+  /** Состояние одним словом (MERCHANT_LIFECYCLE_LABELS); старый шлюз не присылает — lifecycleOf. */
+  lifecycle: z.string().nullish(),
+  /** До какого момента архив можно вернуть; null — нельзя. */
+  restorableUntil: z.string().nullish(),
+  rejectionReason: z.string().nullish(),
+  application: merchantApplicationSchema.nullish(),
+  kind: z.literal("merchant").optional(),
 });
 export type Merchant = z.infer<typeof merchantSchema>;
+
+/** Состояние заведения: из ответа, а у старого шлюза — по status и архиву. */
+export function lifecycleOf(merchant: Pick<Merchant, "lifecycle" | "deletedAt" | "status" | "workflowStatus">): string {
+  if (merchant.lifecycle) return merchant.lifecycle;
+  if (merchant.deletedAt) return "deleted";
+  if (merchant.status === "suspended" && merchant.workflowStatus === "approval") return "pending_review";
+  return merchant.status;
+}
+
+/** Заявка без заведения (застряла или «только OctōPAY») — в списке с includeApplications. Страницы у неё нет. */
+export const applicationListItemSchema = z.looseObject({
+  kind: z.literal("application"),
+  id: z.string(),
+  name: z.string(),
+  contactPhone: z.string().nullish(),
+  lifecycle: z.string(),
+  rejectionReason: z.string().nullish(),
+  createdAt: z.string().nullish(),
+  application: merchantApplicationSchema.nullish(),
+});
+export type ApplicationListItem = z.infer<typeof applicationListItemSchema>;
+
+export const merchantListItemSchema = z.union([applicationListItemSchema, merchantSchema]);
+export type MerchantListItem = z.infer<typeof merchantListItemSchema>;
+
+/** Отклонение заведения или заявки: ownerNotified false — WhatsApp не дошёл, повтор пошлёт снова. */
+export const rejectResultSchema = z.looseObject({
+  id: z.string(),
+  rejectedAt: z.string().nullish(),
+  rejectionReason: z.string().nullish(),
+  ownerNotified: z.boolean().nullish(),
+});
+
+export const rejectInputSchema = z.object({
+  reason: z.string().trim().min(1, "Напишите причину — её получит владелец").max(1000, "Не длиннее 1000 символов"),
+});
+export type RejectInput = z.infer<typeof rejectInputSchema>;
+
+/** Что делать с аккаунтом OctōPAY при удалении: keep — только разорвать связь, delete — закрыть и его. */
+export type OctopayFate = "keep" | "delete";
+
+/** Предпросмотр возврата архивного магазина (до 30 дней). */
+export const restorePreviewSchema = z.looseObject({
+  restorableUntil: z.string().nullish(),
+  ownerMissing: z.boolean().default(false),
+  /** restore | relink_required | linked | none */
+  octopay: z.string().nullish(),
+  members: z
+    .array(
+      z.looseObject({
+        memberId: z.string(),
+        fullName: z.string().nullish(),
+        phone: z.string().nullish(),
+        role: z.string(),
+        /** active_elsewhere | application_in_progress | account_closed | null */
+        blocker: z.string().nullish(),
+      }),
+    )
+    .default([]),
+});
+export type RestorePreview = z.infer<typeof restorePreviewSchema>;
+
+export const restoreResultSchema = z.looseObject({
+  merchant: z.looseObject({ id: z.string() }).nullish(),
+  restoredMembers: z.array(z.unknown()).nullish(),
+  replacedMembers: z.array(z.looseObject({ previousMemberId: z.string().nullish(), memberId: z.string(), phone: z.string().nullish() })).nullish(),
+  skippedMembers: z.array(z.unknown()).nullish(),
+  /** restored | gone | linked_elsewhere | restored_phone_not_synced | relink_required | linked | none */
+  octopay: z.string().nullish(),
+});
+export type RestoreResult = z.infer<typeof restoreResultSchema>;
+
+export const RESTORE_BLOCKER_LABELS: Record<string, string> = {
+  active_elsewhere: "номер работает в другом заведении",
+  application_in_progress: "по номеру обрабатывается заявка",
+  account_closed: "аккаунт закрыт",
+};
+
+export const RESTORE_OCTOPAY_LABELS: Record<string, string> = {
+  restore: "OctōPAY вернётся вместе с заведением.",
+  relink_required: "Связь с OctōPAY только разорвали — владелец заново привяжет аккаунт кодом из OctōPAY.",
+  linked: "Связь с OctōPAY цела.",
+  none: "OctōPAY у заведения не было.",
+  restored: "Аккаунт OctōPAY вернулся.",
+  gone: "OctōPAY вернуть нельзя — заведение без OctōPAY, аккаунт привязывают заново или переносят.",
+  linked_elsewhere: "Аккаунт OctōPAY уже у другого заведения — заведение вернулось без него, при необходимости перенесите аккаунт.",
+  restored_phone_not_synced: "Аккаунт OctōPAY вернулся, но со старым номером входа: новый номер владельца в OctōPAY занят.",
+};
+
+export const octopayTransferResultSchema = z.looseObject({
+  merchantId: z.string(),
+  fromMerchantId: z.string(),
+  businessId: z.string().nullish(),
+  connected: z.boolean().nullish(),
+});
+
+export const codeSentSchema = z.looseObject({ ok: z.boolean().nullish(), expiresInSeconds: z.number().nullish() });
 
 /**
  * Тариф магазина — следует из связи с OctōPAY, его не выбирают (docs/API.md, «Тариф магазина»):
@@ -59,13 +217,13 @@ export const tariffOf = (value: string | null | undefined): MerchantTariff =>
 
 export const TARIFF_LABELS: Record<MerchantTariff, { title: string; short: string; about: string }> = {
   octopay: {
-    title: "Ещё больше клиентов",
-    short: "Ещё больше клиентов",
+    title: "OctōPAY + Loal",
+    short: "OctōPAY + Loal",
     about: "Клиенты платят через OctōPAY и сами решают, сколько бонусов потратить. Лояльность включена в подписку на пакет, оплата — в OctōPAY.",
   },
   loal: {
-    title: "Больше клиентов",
-    short: "Больше клиентов",
+    title: "Только Loal",
+    short: "Только Loal",
     about: "Бонусы списывает касса по QR-коду карты. Loal оплачивается помесячно.",
   },
 };
@@ -150,11 +308,19 @@ export type UpdateMerchantInput = z.infer<typeof updateMerchantInputSchema>;
  * Адрес и координаты — необязательные: без них сервер оставит прежние; lat и lng
  * ходят только парой (или оба null).
  */
+/** Видео витрины: MP4 на CDN и кадр-обложка (загружен как фото; null — нет). */
+export const merchantVideoSchema = z.object({ url: z.string(), posterUrl: z.string().nullable() });
+export type MerchantVideo = z.infer<typeof merchantVideoSchema>;
+
 export const merchantProfileSchema = z.object({
   category: z.string().trim().min(1).max(60).nullable(),
   description: z.string().trim().min(1).max(2000).nullable(),
   logoUrl: z.string().nullable(),
   photos: z.array(z.string()).max(10),
+  /** До трёх видео. Не прислать поле — сервер оставит прежние (старые кабинеты их не стирают). */
+  videos: z.array(merchantVideoSchema).max(3).optional(),
+  /** «Для кого»: men | women | kids | family. Не прислать — сервер оставит прежнее, [] — очистить. */
+  audiences: z.array(z.string()).optional(),
   instagramUrl: z.string().nullable(),
   twogisUrl: z.string().nullable(),
   address: z.string().nullish(),
@@ -192,8 +358,14 @@ export const publicPartnerSchema = merchantProfileSchema.extend({
   contactPhone: z.string().nullable(),
   /** Потолок процента — «до N%» на карточке; null — магазин его не задал. */
   maxCoveragePercent: z.number().nullish(),
-  /** octopay — бонусы можно тратить прямо при оплате через OctōPAY. */
+  /** octopay — у магазина подключён OctōPAY (оплата бонусами при оплате через него). */
   tariff: z.string().nullish(),
+  /** Тариф Loal: по нему бейдж «Очень много клиентов». */
+  loalTariff: z.string().nullish(),
+  /** false — «Больше клиентов»: бонусы здесь только копят, тратить нельзя. Нет поля — принимает. */
+  acceptsBonuses: z.boolean().nullish(),
+  /** Кэшбэк за оплату целиком деньгами, %; null — тариф кэшбэк не даёт. */
+  cashbackPercent: z.number().nullish(),
 });
 export type PublicPartner = z.infer<typeof publicPartnerSchema>;
 
@@ -265,4 +437,54 @@ export function coordsFrom2gis(url: string | null | undefined): { lat: number; l
     if (b >= 69 && b <= 81 && a >= 39 && a <= 44) return { lng: b, lat: a };
   }
   return null;
+}
+
+/**
+ * Анкета агентства (docs/API.md, «Новое заведение анкетой агентства»): та же, что на лендинге,
+ * но без кода — номер владельца подтверждает агентство. Владелец получает в WhatsApp логин и
+ * временный пароль (один для Loal и OctōPAY).
+ */
+export const AGENCY_PLANS = ["loyalty", "bundle", "octopay"] as const;
+export type AgencyPlan = (typeof AGENCY_PLANS)[number];
+
+export type AgencyRegistrationInput = {
+  phone: string;
+  requestId: string;
+  plan: AgencyPlan;
+  /** Тариф по Доп. №5; без него — прежняя модель. */
+  tariff?: "more_clients" | "even_more_clients" | "very_many_clients";
+  name: string;
+  contactName: string;
+  category: string;
+  comment: string;
+  storefront?: {
+    description: string | null;
+    address: string | null;
+    instagramUrl: string | null;
+    twogisUrl: string | null;
+    logoUrl: string | null;
+    photos: string[];
+    lat: number | null;
+    lng: number | null;
+    /** «Для кого» (`PARTNER_AUDIENCES`); пустой список не шлём. */
+    audiences?: PartnerAudienceId[];
+  };
+};
+
+export const agencyRegistrationResultSchema = z.looseObject({
+  id: z.string(),
+  plan: z.string(),
+  state: z.string(),
+  /** null у «Только OctōPAY»: заведения Loal нет. */
+  merchantId: z.string().nullish(),
+  /** Дошёл ли WhatsApp с логином и паролем. false — отправьте пароль снова на «Пароли партнёров». */
+  ownerNotified: z.boolean(),
+});
+export type AgencyRegistrationResult = z.infer<typeof agencyRegistrationResultSchema>;
+
+/** Подпись тарифа Loal заведения; у старого шлюза поля нет — прежняя подпись по связи с OctōPAY. */
+export function merchantTariffBadge(merchant: { tariff?: string | null; loalTariff?: string | null }) {
+  if (isLoalTariff(merchant.loalTariff)) return { label: LOAL_TARIFF_LABELS[merchant.loalTariff].title, good: true };
+  const tariff = tariffOf(merchant.tariff);
+  return { label: TARIFF_LABELS[tariff].short, good: tariff === "octopay" };
 }

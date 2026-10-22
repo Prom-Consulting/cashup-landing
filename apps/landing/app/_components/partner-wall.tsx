@@ -1,20 +1,22 @@
 import Link from "next/link";
+import type { PartnerCategoryId } from "@loal/api";
 import { getPublicPartners, monogram } from "../_data/partners-api";
+import { categoryPath } from "../_data/seo";
 
 /** Сколько плиток показываем на главной: остальных смотрят в каталоге. */
 const LIMIT = 24;
 
 /** Пока витрина пуста, показываем, где бонусы принимают по смыслу — а не пустое место. */
 const categories = [
-  { label: "Кофейни и рестораны", icon: "coffee" },
-  { label: "Салоны красоты", icon: "beauty" },
-  { label: "Магазины одежды", icon: "bag" },
-  { label: "Фитнес и спорт", icon: "sport" },
-  { label: "Автосервисы", icon: "car" },
-  { label: "Услуги для дома", icon: "home" },
-  { label: "Уходовая косметика", icon: "beauty" },
-  { label: "Другое", icon: "bag" },
-];
+  { id: "cafe", label: "Кофейни и рестораны", icon: "coffee" },
+  { id: "beauty", label: "Салоны красоты", icon: "beauty" },
+  { id: "shop", label: "Магазины одежды", icon: "bag" },
+  { id: "sport", label: "Фитнес и спорт", icon: "sport" },
+  { id: "auto", label: "Автосервисы", icon: "car" },
+  { id: "home", label: "Услуги для дома", icon: "home" },
+  { id: "skincare", label: "Уходовая косметика", icon: "beauty" },
+  { id: "other", label: "Другое", icon: "bag" },
+] as const satisfies readonly { id: PartnerCategoryId; label: string; icon: string }[];
 
 function plural(count: number, one: string, few: string, many: string) {
   const mod10 = count % 10;
@@ -78,13 +80,15 @@ export async function PartnerWall() {
         {empty ? (
           <ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 lg:grid-cols-6">
             {categories.map((category) => (
-              <li key={category.icon} className="flex flex-col items-center text-center">
+              <li key={category.id}>
+                <Link href={categoryPath(category.id)} className="flex flex-col items-center text-center">
                 <span className={tile}>
                   {/* Иконки лежат рядом со страницей и не нуждаются в оптимизации */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={`/images/landing/icon-${category.icon}.svg`} alt={category.label} aria-hidden="true" className="h-9 w-9" />
                 </span>
                 <span className="mt-3 min-h-[2.5em] text-base leading-tight font-medium">{category.label}</span>
+                </Link>
               </li>
             ))}
           </ul>

@@ -39,6 +39,10 @@ export function useRedeem(onDone?: () => void) {
 function redeemErrorText(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === "BRANCH_REQUIRED") return "Выберите филиал, где вы сейчас работаете. Ничего не списано.";
+    if (error.code === "TARIFF_NO_REDEEM")
+      return "На тарифе «Больше клиентов» бонусы здесь не тратят — клиенту можно дать кэшбэк. Ничего не списано.";
+    if (error.code === "MERCHANT_ACCESS_INACTIVE")
+      return "Доступ заведения к Loal не оплачен — принимать бонусы сейчас нельзя. Ничего не списано.";
     // Филиал закрыли или сняли с человека — сервер называет причину сам
     if (error.status === 403 && /филиал/i.test(error.message)) return `${error.message}. Ничего не списано.`;
     if (error.status === 403)

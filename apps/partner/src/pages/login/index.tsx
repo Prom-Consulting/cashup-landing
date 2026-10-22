@@ -1,4 +1,4 @@
-import { GoogleSignIn, LoginForm } from "@loal/app-kit";
+import { BusinessLoginForm, GoogleSignIn } from "@loal/app-kit";
 import { Logo } from "@loal/ui/logo";
 import { Link, useNavigate } from "react-router";
 import { GOOGLE_CLIENT_ID, SITE_URL } from "../../shared/config/env";
@@ -12,9 +12,15 @@ export function LoginPage() {
         <Logo />
         <h1 className="display mt-6 text-[2rem]">Кабинет магазина</h1>
         <p className="mt-2 text-lg text-slate">Вход для заведений, принимающих бонусы Loal.</p>
+        {/* С октября 2026 вход владельцев и администраторов — по паролю; объясняем, откуда его взять */}
+        <div className="mt-6 rounded-2xl bg-cream px-4 py-3 text-base leading-snug">
+          <p className="font-semibold">Вход — по номеру или почте и паролю</p>
+          <p className="mt-1 text-slate">
+            Временный пароль мы прислали в WhatsApp. Нет пароля или забыли — войдите по коду и задайте свой.
+          </p>
+        </div>
         <div className="mt-8">
-          {/* Владельцев теперь заводят по телефону — основной вход по коду из WhatsApp */}
-          <LoginForm defaultMode="phone" onDone={() => navigate("/", { replace: true })} />
+          <BusinessLoginForm onDone={() => navigate("/", { replace: true })} />
         </div>
         <div className="mt-6">
           <GoogleSignIn clientId={GOOGLE_CLIENT_ID} onDone={() => navigate("/", { replace: true })} />
@@ -28,7 +34,7 @@ export function LoginPage() {
         <p className="mt-2 text-base text-slate">
           Ещё не партнёр?{" "}
           <a href={`${SITE_URL}/become-partner`} className="text-flame-ink underline underline-offset-4">
-            Оставить заявку
+            Стать партнером
           </a>
         </p>
       </div>

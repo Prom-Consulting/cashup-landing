@@ -97,6 +97,7 @@ export function PartnersPanel({
   const desktop = useDesktop();
   const panel = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
+  const header = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
@@ -183,10 +184,16 @@ export function PartnersPanel({
       y: Math.min(Math.max(y, 12), Math.max(12, box.height - 96)),
     };
   };
+  /**
+   * Положения шторки: min — только ручка и заголовок (карта почти целиком), peek — с поиском
+   * и первой строкой, half и full — список.
+   */
   const sheetStops = () => {
     const height = bounds()?.height ?? 700;
-    const peek = Math.min(232, Math.round(height * 0.45));
-    return { peek, half: Math.max(peek, Math.round(height * 0.6)), full: Math.max(peek, height - 56) };
+    const safe = panel.current ? parseFloat(getComputedStyle(panel.current).paddingBottom) || 0 : 0;
+    const min = Math.round((header.current?.offsetHeight ?? 88) + safe);
+    const peek = Math.max(min, Math.min(232, Math.round(height * 0.45)));
+    return { min, peek, half: Math.max(peek, Math.round(height * 0.6)), full: Math.max(peek, height - 56) };
   };
 
   // Поворот телефона и клавиатура меняют доступную высоту, даже без window.resize.
@@ -197,7 +204,7 @@ export function PartnersPanel({
       if (!parent.clientHeight) return;
       setPosition((current) => clamp(current.x, current.y));
       const stops = sheetStops();
-      setSheet((current) => Math.min(stops.full, Math.max(stops.peek, current ?? stops.peek)));
+      setSheet((current) => Math.min(stops.full, Math.max(stops.min, current ?? stops.peek)));
     };
     resize();
     const observer = new ResizeObserver(resize);
@@ -282,7 +289,7 @@ export function PartnersPanel({
     if (desktop) setPosition(clamp(start.x + event.clientX - start.px, start.y + event.clientY - start.py));
     else {
       const stops = sheetStops();
-      setSheet(Math.min(stops.full, Math.max(96, start.h - (event.clientY - start.py))));
+      setSheet(Math.min(stops.full, Math.max(stops.min, start.h - (event.clientY - start.py))));
     }
   };
   const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
@@ -291,17 +298,17 @@ export function PartnersPanel({
     setDragging(false);
     if (!start) return;
     if (desktop) return remember(position);
-    // Шторка встаёт в ближайшее положение; короткое касание — переключает
+    // Смахнули — шторка едет дальше в ту же сторону, до следующего положения; чуть сдвинули —
+    // встаёт в ближайшее; короткое касание — переключает
     const stops = sheetStops();
-    const moved = Math.abs(event.clientY - start.py) > 6;
+    const order = [stops.min, stops.peek, stops.half, stops.full];
+    const delta = start.py - event.clientY;
     const current = sheet ?? stops.peek;
-    const next = moved
-      ? [stops.peek, stops.half, stops.full].reduce((best, stop) =>
-          Math.abs(stop - current) < Math.abs(best - current) ? stop : best,
-        )
-      : current < stops.half
-        ? stops.half
-        : stops.peek;
+    let next: number;
+    if (Math.abs(delta) <= 6) next = current < stops.half ? stops.half : stops.min;
+    else if (delta < -40) next = [...order].reverse().find((stop) => stop < start.h - 4) ?? stops.min;
+    else if (delta > 40) next = order.find((stop) => stop > start.h + 4) ?? stops.full;
+    else next = order.reduce((best, stop) => (Math.abs(stop - current) < Math.abs(best - current) ? stop : best));
     setSheet(next);
   };
 
@@ -322,6 +329,7 @@ export function PartnersPanel({
       }`}
     >
       <div
+        ref={header}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -347,21 +355,22 @@ export function PartnersPanel({
             type="button"
             onClick={() => {
               if (!desktop) {
+                // Открытая шторка уходит вниз до заголовка, свёрнутая — раскрывается
                 const stops = sheetStops();
-                setSheet((sheet ?? stops.peek) > stops.peek ? stops.peek : stops.full);
+                setSheet((sheet ?? stops.peek) > stops.min + 4 ? stops.min : stops.half);
                 return;
               }
               setCollapsed(!collapsed);
               remember(position, !collapsed);
             }}
-            aria-expanded={desktop ? !collapsed : (sheet ?? 0) > sheetStops().peek}
-            aria-label={(desktop ? collapsed : (sheet ?? 0) <= sheetStops().peek) ? "Развернуть список" : "Свернуть список"}
+            aria-expanded={desktop ? !collapsed : (sheet ?? 0) > sheetStops().min + 4}
+            aria-label={(desktop ? collapsed : (sheet ?? 0) <= sheetStops().min + 4) ? "Развернуть список" : "Свернуть список"}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-cream transition-colors outline-none hover:bg-graphite hover:text-paper focus-visible:ring-3 focus-visible:ring-flame"
           >
             <svg
               viewBox="0 0 24 24"
               aria-hidden="true"
-              className={`h-5 w-5 transition-transform duration-150 ${(desktop ? !collapsed : (sheet ?? 0) > sheetStops().peek) ? "rotate-180" : ""}`}
+              className={`h-5 w-5 transition-transform duration-150 ${(desktop ? !collapsed : (sheet ?? 0) > sheetStops().min + 4) ? "rotate-180" : ""}`}
             >
               <path
                 d="m6 15 6-6 6 6"

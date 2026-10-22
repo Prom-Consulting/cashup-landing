@@ -3,12 +3,46 @@ import { z } from "zod";
 /**
  * Промокод на месяцы подписки или один клиентский цикл с заданным балансом. Многоразовый, но
  * каждый магазин или клиент применяет его один раз. Регистр не важен — сервер хранит
- * код заглавными.
+ * код заглавными. Также поддерживаются бонусные коды reward: "bonuses".
  */
 export const promoAudienceSchema = z.enum(["merchant", "client"]);
 export type PromoAudience = z.infer<typeof promoAudienceSchema>;
 
 export const PROMO_AUDIENCE_LABELS: Record<PromoAudience, string> = { merchant: "Магазинам", client: "Клиентам" };
+
+/** Что даёт код. Старый шлюз поля не присылает — значит, месяцы. */
+export const promoRewardSchema = z.enum(["months", "bonuses"]);
+export type PromoReward = z.infer<typeof promoRewardSchema>;
+
+export const PROMO_REWARD_LABELS: Record<PromoReward, string> = {
+  months: "Бесплатные месяцы подписки",
+  bonuses: "Бонусы на срок",
+};
+
+const plural = (n: number, one: string, few: string, many: string) =>
+  n % 10 === 1 && n % 100 !== 11 ? one : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? few : many;
+const count = new Intl.NumberFormat("ru-RU");
+
+export const monthsText = (n: number) => `${n} ${plural(n, "месяц", "месяца", "месяцев")}`;
+export const daysText = (n: number) => `${n} ${plural(n, "день", "дня", "дней")}`;
+export const bonusesText = (n: number) => `${count.format(n)} ${plural(n, "бонус", "бонуса", "бонусов")}`;
+
+/** «+3 месяца» или «+2 000 бонусов на 14 дней» — что даёт код или одно его применение. */
+export function promoRewardText(promo: {
+  kind?: PromoKind;
+  cycleBalance?: number | null;
+  reward?: PromoReward | null;
+  months?: number | null;
+  bonusAmount?: number | null;
+  bonusDays?: number | null;
+}): string {
+  if (promo.kind === "subscription_cycle")
+    return `Подписка на 30 дней${promo.cycleBalance == null ? "" : ` · ${count.format(promo.cycleBalance)} баллов`}`;
+  if (promo.reward === "bonuses" && promo.bonusAmount != null) {
+    return `+${bonusesText(promo.bonusAmount)}${promo.bonusDays != null ? ` на ${daysText(promo.bonusDays)}` : ""}`;
+  }
+  return promo.months != null ? `+${monthsText(promo.months)}` : "—";
+}
 
 export const promoKindSchema = z.enum(["months", "subscription_cycle"]);
 export type PromoKind = z.infer<typeof promoKindSchema>;
@@ -33,8 +67,11 @@ export const promoCodeSchema = z.looseObject({
   code: z.string(),
   audience: promoAudienceSchema,
   ...promoBenefitFields,
+  reward: promoRewardSchema.default("months"),
+  bonusAmount: z.number().nullish(),
+  bonusDays: z.number().nullish(),
   clientEligibility: promoClientEligibilitySchema.nullish(),
-  months: z.number(),
+  months: z.number().nullish(),
   maxUses: z.number().nullish(),
   uses: z.number(),
   expiresAt: z.string().nullish(),
@@ -51,9 +88,12 @@ export const promoRedemptionSchema = z.looseObject({
   merchantName: z.string().nullish(),
   userId: z.string().nullish(),
   userPhone: z.string().nullish(),
-  months: z.number(),
+  months: z.number().nullish(),
   createdAt: z.string(),
   ...promoBenefitFields,
+  reward: promoRewardSchema.default("months"),
+  bonusAmount: z.number().nullish(),
+  bonusDays: z.number().nullish(),
 });
 export type PromoRedemption = z.infer<typeof promoRedemptionSchema>;
 
@@ -71,6 +111,9 @@ export type CreatePromoForm = {
   code: string;
   audience: PromoAudience;
   kind: PromoKind;
+  reward: PromoReward;
+  bonusAmount: number | string;
+  bonusDays: number | string;
   months: number | string;
   cycleBalance: number | string;
   clientEligibility: PromoClientEligibility;
@@ -94,10 +137,36 @@ const createPromoCommonSchema = z.object({
 
 export const createPromoFormSchema = z.discriminatedUnion("kind", [
   createPromoCommonSchema.extend({
-    kind: z.literal("months"),
+    kind: z.literal("months").default("months"),
     audience: promoAudienceSchema,
-    months: z.coerce.number({ error: "Введите число" }).int("Целое число").min(1, "Хотя бы месяц").max(36, "Не больше 36"),
-    clientEligibility: promoClientEligibilitySchema,
+    reward: promoRewardSchema.default("months"),
+    months: z.union([
+      z.literal(""),
+      z.coerce.number({ error: "Введите число" }).int("Целое число").min(1, "Хотя бы месяц").max(36, "Не больше 36"),
+    ]),
+    bonusAmount: z.union([
+      z.literal(""),
+      z.coerce
+        .number({ error: "Введите число" })
+        .int("Целое число")
+        .min(1, "Хотя бы один бонус")
+        .max(1_000_000, "Не больше 1 000 000"),
+    ]).default(""),
+    bonusDays: z.union([
+      z.literal(""),
+      z.coerce.number({ error: "Введите число" }).int("Целое число").min(1, "Хотя бы день").max(365, "Не больше 365"),
+    ]).default(30),
+
+    clientEligibility: promoClientEligibilitySchema.default("all"),
+  }).superRefine((values, ctx) => {
+    if (values.reward === "bonuses" && values.audience !== "client")
+      ctx.addIssue({ code: "custom", path: ["reward"], message: "Бонусы даёт только клиентский промокод" });
+    if (values.reward === "months" && values.months === "")
+      ctx.addIssue({ code: "custom", path: ["months"], message: "Сколько месяцев даёт код" });
+    if (values.reward === "bonuses" && values.bonusAmount === "")
+      ctx.addIssue({ code: "custom", path: ["bonusAmount"], message: "Сколько бонусов даёт код" });
+    if (values.reward === "bonuses" && values.bonusDays === "")
+      ctx.addIssue({ code: "custom", path: ["bonusDays"], message: "На сколько дней" });
   }),
   createPromoCommonSchema.extend({
     kind: z.literal("subscription_cycle"),
@@ -114,9 +183,11 @@ export function createPromoBody(values: CreatePromoForm) {
   return {
     ...(parsed.code === "" ? {} : { code: parsed.code }),
     audience: parsed.audience,
-    kind: parsed.kind,
-    months: parsed.months,
-    ...(parsed.kind === "subscription_cycle" ? { cycleBalance: parsed.cycleBalance } : {}),
+    ...(parsed.kind === "subscription_cycle"
+      ? { kind: parsed.kind, months: parsed.months, cycleBalance: parsed.cycleBalance }
+      : parsed.reward === "bonuses"
+        ? { reward: "bonuses" as const, bonusAmount: parsed.bonusAmount, bonusDays: parsed.bonusDays }
+        : { kind: parsed.kind, months: parsed.months }),
     ...(parsed.audience === "client" ? { clientEligibility: parsed.clientEligibility } : {}),
     maxUses: parsed.maxUses === "" ? null : parsed.maxUses,
     // Дата из поля — конец выбранного дня по местному времени
@@ -182,8 +253,12 @@ export type RedeemPromoInput = { code: string };
 export const promoRedeemResultSchema = z.looseObject({
   code: z.string(),
   audience: promoAudienceSchema,
-  months: z.number(),
+  months: z.number().nullish(),
   ...promoBenefitFields,
+  reward: promoRewardSchema.default("months"),
+  bonusAmount: z.number().nullish(),
+  bonusDays: z.number().nullish(),
+  expiresAt: z.string().nullish(),
   subscription: z.looseObject({}).nullish(),
 });
 export type PromoRedeemResult = z.infer<typeof promoRedeemResultSchema>;
@@ -191,8 +266,10 @@ export type PromoRedeemResult = z.infer<typeof promoRedeemResultSchema>;
 export function promoSuccessText(result: PromoRedeemResult): string {
   if (result.kind === "subscription_cycle")
     return `Промокод ${result.code} принят: подписка на 30 дней${result.cycleBalance == null ? "" : `, ${new Intl.NumberFormat("ru-RU").format(result.cycleBalance)} баллов`}.`;
-  const n = result.months;
-  const word = n % 10 === 1 && n % 100 !== 11 ? "месяц"
-    : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? "месяца" : "месяцев";
-  return `Промокод ${result.code} принят: +${n} ${word} подписки.`;
+  if (result.reward === "bonuses" && result.bonusAmount != null) {
+    const until = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" });
+    const date = result.expiresAt ? ` — потратьте до ${until.format(new Date(result.expiresAt))}` : "";
+    return `Промокод ${result.code} принят: +${bonusesText(result.bonusAmount)} на карте${date}.`;
+  }
+  return `Промокод ${result.code} принят: +${monthsText(result.months ?? 0)} подписки.`;
 }

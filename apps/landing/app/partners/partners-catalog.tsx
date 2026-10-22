@@ -1,6 +1,6 @@
 "use client";
 
-import { PARTNER_CATEGORIES, type PublicPartner } from "@loal/api";
+import { PARTNER_AUDIENCES, PARTNER_CATEGORIES, type PartnerAudienceId, type PublicPartner } from "@loal/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
@@ -14,13 +14,15 @@ import { SearchField, Suggestions, type SearchOption } from "./smart-search";
  * Прайм — самое выгодное заведение с фото: оно задаёт тон всей витрине. Нет фото ни у кого —
  * просто самое выгодное. Порядок остальных — как отдал сервер.
  */
-function pickPrime(partners: PublicPartner[]) {
-  const best = (list: PublicPartner[]) =>
-    list.reduce<PublicPartner | null>(
-      (top, partner) => (!top || (partner.maxCoveragePercent ?? 0) > (top.maxCoveragePercent ?? 0) ? partner : top),
-      null,
-    );
-  return best(partners.filter((partner) => partner.photos.length > 0)) ?? best(partners);
+/**
+ * Крупная карточка сверху. Пока нет платного продвижения — случайное заведение из всех при
+ * каждом заходе. `roll` — число 0…1, выбранное в браузере; без него (HTML с сервера) — заведение
+ * с наибольшим процентом.
+ */
+function pickPrime(partners: PublicPartner[], roll: number | null) {
+  if (partners.length === 0) return null;
+  if (roll !== null) return partners[Math.floor(roll * partners.length)] ?? partners[0]!;
+  return partners.reduce((top, partner) => ((partner.maxCoveragePercent ?? 0) > (top.maxCoveragePercent ?? 0) ? partner : top));
 }
 
 /**
@@ -47,6 +49,7 @@ export function PartnersCatalog({
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [audience, setAudience] = useState<PartnerAudienceId | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
   const categories = useMemo(() => {
@@ -61,16 +64,25 @@ export function PartnersCatalog({
   );
   const count = (label: string) => partners.filter((partner) => partner.category === label).length;
   const result = useMemo(() => searchPartners(query, partners, allCategories), [query, partners, allCategories]);
-  const filtering = Boolean(query.trim() || category);
+  // «Для кого» — фильтр на месте; ряд появляется, когда хоть одно заведение его заполнило
+  const audienceCounts = PARTNER_AUDIENCES.map((item) => ({
+    ...item,
+    count: partners.filter((partner) => partner.audiences?.includes(item.id)).length,
+  })).filter((item) => item.count > 0);
+  const filtering = Boolean(query.trim() || category || audience);
   const inCategory = category ? partners.filter((partner) => partner.category === category).length : partners.length;
   const shown = useMemo(
     () =>
       (query.trim() ? result.partners.map((hit) => hit.partner) : partners).filter(
-        (partner) => !category || partner.category === category,
+        (partner) =>
+          (!category || partner.category === category) && (!audience || Boolean(partner.audiences?.includes(audience))),
       ),
-    [query, result, partners, category],
+    [query, result, partners, category, audience],
   );
-  const prime = filtering ? null : pickPrime(partners);
+  // Случайный выбор — только после загрузки в браузере, иначе HTML сервера и первый рендер разойдутся
+  const [roll, setRoll] = useState<number | null>(null);
+  useEffect(() => setRoll(Math.random()), []);
+  const prime = filtering ? null : pickPrime(partners, roll);
   const grid = prime ? shown.filter((partner) => partner.id !== prime.id) : shown;
   const topPercent = Math.max(0, ...partners.map((partner) => partner.maxCoveragePercent ?? 0));
 
@@ -156,6 +168,26 @@ export function PartnersCatalog({
               </div>
             )}
           </div>
+          {audienceCounts.length > 0 && (
+            <div role="group" aria-label="Для кого" className="flex flex-wrap gap-2">
+              {audienceCounts.map((item) => {
+                const on = audience === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setAudience(on ? null : item.id)}
+                    className={`rounded-full px-4 py-2 text-base font-semibold transition-colors ${
+                      on ? "bg-graphite text-paper" : "bg-paper text-graphite hover:bg-smoke/40"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {categories.length > 0 && (
             <CategoryChips
               categories={category && !categories.some((item) => item.name === category) ? [...categories, { name: category }] : categories}
@@ -169,7 +201,11 @@ export function PartnersCatalog({
       )}
 
       {prime && (
-        <div className="mt-4">
+        // Проявляется, когда карточка выбрана: без скрипта видна сразу (noscript ниже)
+        <div data-prime className={`mt-4 transition-opacity duration-300 ${roll === null ? "opacity-0" : "opacity-100"}`}>
+          <noscript>
+            <style>{"[data-prime]{opacity:1!important}"}</style>
+          </noscript>
           <PrimeCard
             partner={prime}
             label={prime.maxCoveragePercent && prime.maxCoveragePercent === topPercent ? "Больше всего бонусами" : "В каталоге Loal"}
@@ -198,13 +234,16 @@ export function PartnersCatalog({
       {partners.length > 0 && shown.length === 0 && (
         <div className="mt-8 flex flex-col items-center gap-4 rounded-[28px] bg-paper px-6 py-12 text-center">
           <p className="max-w-[44ch] text-lg text-slate">
-            {category && !query.trim()
+            {category && !query.trim() && !audience
               ? `В «${category}» заведений пока нет — скоро появятся.`
               : "По этому запросу ничего нет. Попробуйте другое слово или категорию."}
           </p>
           <Link
             href="/partners?view=catalog"
-            onClick={() => setQuery("")}
+            onClick={() => {
+              setQuery("");
+              setAudience(null);
+            }}
             className="rounded-full bg-graphite px-6 py-3 text-base font-bold text-paper transition-colors hover:bg-flame"
           >
             Показать все заведения

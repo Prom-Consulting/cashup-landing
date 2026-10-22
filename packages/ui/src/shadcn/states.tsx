@@ -11,15 +11,19 @@ export function PageHeader({
   title,
   description,
   action,
+  as = "h1",
 }: {
   title: string;
   description?: ReactNode;
   action?: ReactNode;
+  /** h2 — раздел внутри страницы с общим заголовком (вкладки), он мельче. */
+  as?: "h1" | "h2";
 }) {
+  const Heading = as;
   return (
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 className="display text-[clamp(1.75rem,3vw,2.5rem)]">{title}</h1>
+        <Heading className={as === "h1" ? "display text-[clamp(1.75rem,3vw,2.5rem)]" : "text-2xl font-bold"}>{title}</Heading>
         {description && <p className="mt-2 max-w-[70ch] text-lg text-muted-foreground">{description}</p>}
       </div>
       {action}
@@ -75,6 +79,38 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
           Повторить
         </Button>
       )}
+    </div>
+  );
+}
+
+/**
+ * Скелетон всего кабинета, пока узнаём, кто вошёл: та же раскладка, что у AppShell
+ * (меню слева на десктопе, узкая шапка на телефоне), чтобы экран не прыгал после загрузки.
+ */
+export function CabinetSkeleton({ label = "Загружаем кабинет…" }: { label?: string }) {
+  return (
+    <div role="status" aria-label={label} className="min-h-dvh bg-cream lg:grid lg:grid-cols-[272px_1fr]">
+      <div className="hidden flex-col gap-6 bg-graphite px-5 py-6 lg:flex lg:h-dvh">
+        <Skeleton className="h-9 w-32 bg-white/10" />
+        <div className="mt-6 flex flex-col gap-3">
+          {Array.from({ length: 8 }, (_, index) => (
+            <Skeleton key={index} className="h-11 w-full bg-white/10" />
+          ))}
+        </div>
+      </div>
+      <div className="flex h-16 items-center justify-between bg-graphite px-5 lg:hidden">
+        <Skeleton className="h-8 w-28 bg-white/10" />
+        <Skeleton className="h-10 w-10 rounded-full bg-white/10" />
+      </div>
+      <div className="flex flex-col gap-6 px-5 pt-6 lg:px-10 lg:pt-12">
+        <Skeleton className="h-11 w-[min(420px,80%)]" />
+        <Skeleton className="h-6 w-[min(560px,90%)]" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <Skeleton className="h-56" />
+          <Skeleton className="h-56" />
+        </div>
+        <Skeleton className="h-40" />
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { PROMO_AUDIENCE_LABELS, PROMO_CLIENT_ELIGIBILITY_LABELS, PROMO_KIND_LABELS, editPromoBody, editPromoFormSchema, editPromoInitialValues, type PromoCode } from "@loal/api";
+import { PROMO_AUDIENCE_LABELS, PROMO_CLIENT_ELIGIBILITY_LABELS, PROMO_KIND_LABELS, PROMO_REWARD_LABELS, promoRewardText, editPromoBody, editPromoFormSchema, editPromoInitialValues, type PromoCode } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Button, Checkbox, Dialog, DialogContent, DialogTrigger, FormField, FormStatus, Input, NativeSelect, Textarea } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
@@ -24,8 +24,8 @@ export function EditPromoDialog({ promo }: { promo: PromoCode }) {
           <FocusFirstError form={form} />
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
             <dt className="text-muted-foreground">Кому</dt><dd>{PROMO_AUDIENCE_LABELS[promo.audience]}</dd>
-            <dt className="text-muted-foreground">Вид</dt><dd>{PROMO_KIND_LABELS[promo.kind]}</dd>
-            <dt className="text-muted-foreground">Срок подписки</dt><dd>{promo.kind === "subscription_cycle" ? "30 дней" : `${promo.months} мес.`}</dd>
+            <dt className="text-muted-foreground">Вид</dt><dd>{promo.reward === "bonuses" ? PROMO_REWARD_LABELS.bonuses : PROMO_KIND_LABELS[promo.kind]}</dd>
+            <dt className="text-muted-foreground">Что даёт</dt><dd>{promoRewardText(promo)}</dd>
             <dt className="text-muted-foreground">Количество баллов</dt><dd>{promo.cycleBalance == null ? "—" : new Intl.NumberFormat("ru-RU").format(promo.cycleBalance)}</dd>
           </dl>
           {promo.audience === "client" && (

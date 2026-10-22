@@ -17,11 +17,11 @@ const ACCOUNT = {
   business: { label: "Мой бизнес", href: PARTNER_APP_URL },
 } as const;
 
-/** Кнопка ведёт в кабинет клиента: там оформляют подписку и получают карту. */
+/** Кнопка «Моя карта» ведёт в кабинет клиента, ссылка рядом — «Мой бизнес» в кабинет партнёра. */
 export function SiteHeader({
-  cta = { label: "Оформить подписку", href: CLIENT_APP_URL },
+  cta = { label: "Моя карта", href: CLIENT_APP_URL },
   tone = "dark",
-  audience = "client",
+  audience = "business",
 }: {
   cta?: { label: string; href: string };
   /** business — страницы для бизнеса: вместо «Моя карта» вход в кабинет партнёра. */

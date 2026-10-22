@@ -57,14 +57,21 @@ function pinElement(partner: PublicPartner, index: number, onClick: () => void) 
   }
   drop.append(make("span", "loal-pin__ripple"), lift);
   spread.append(drop);
-  root.append(spread);
+  // Ножка веера: от настоящего адреса к отодвинутой метке — видно, где заведение на самом деле
+  root.append(make("span", "loal-pin__leg"), spread);
   return root;
 }
 
 // Точка — 64×80 px: ближе этого по любой оси карточки налезают друг на друга
 const CLUSTER_PX = 78;
+/** Острие метки — на 13 px выше низа её коробки (64×80): сдвигаем, чтобы острие стояло ровно на адресе. */
+const PIN_TIP_OFFSET: [number, number] = [0, 13];
+/** Между остриями соседей в веере — не меньше этого: метка 64 px плюс плашка процента. */
+const SPREAD_GAP_PX = 86;
 /** С этого приближения близкие точки больше не собираем — раскладываем веером. */
 const SPREAD_ZOOM = 17;
+/** Веер вокруг выбранной точки — только вблизи, где соседей немного. */
+const SPREAD_NEAR_ZOOM = 14;
 
 /** Кружок «несколько заведений здесь»: число и лучший процент; клик приближает к ним. */
 function clusterElement(group: PublicPartner[], onClick: () => void) {
@@ -123,6 +130,8 @@ export function PartnerMap({
   const markers = useRef(new Map<string, Marker>());
   const [hasSize, setHasSize] = useState(false);
   const [ready, setReady] = useState(false);
+  // Браузер без WebGL2 (старый телефон, часть ботов): карты нет, остаётся каталог
+  const [noMap, setNoMap] = useState(false);
   const select = useRef(onSelect);
   select.current = onSelect;
   const paddingRef = useRef(padding);
@@ -158,22 +167,38 @@ export function PartnerMap({
       .map((item) => ({ ...item, point: instance.project(item.coords) }));
     const used = new Set<string>();
     const wanted = new Set<string>();
+    // Выбранную точку в общий кружок не берём: на отдалении в одну группу попадал весь город,
+    // и «веер» вокруг выбранной разворачивал кольцо из всех заведений
+    const selected = items.find((item) => item.partner.id === selectedRef.current) ?? null;
+    const groups: (typeof items)[] = [];
     for (const item of items) {
-      if (used.has(item.partner.id)) continue;
+      if (item === selected || used.has(item.partner.id)) continue;
       used.add(item.partner.id);
       const group = [item];
       for (const other of items) {
-        if (used.has(other.partner.id)) continue;
+        if (other === selected || used.has(other.partner.id)) continue;
         if (Math.hypot(other.point.x - item.point.x, other.point.y - item.point.y) < CLUSTER_PX) {
           group.push(other);
           used.add(other.partner.id);
         }
       }
+      groups.push(group);
+    }
+    if (selected) {
+      // Вблизи и среди нескольких соседей выбранная раскладывается веером вместе с ними; иначе стоит отдельно
+      const near = groups.find(
+        (group) =>
+          group.length <= 5 &&
+          group.some((member) => Math.hypot(member.point.x - selected.point.x, member.point.y - selected.point.y) < CLUSTER_PX),
+      );
+      if (near && zoom >= SPREAD_NEAR_ZOOM) near.push(selected);
+      else groups.push([selected]);
+    }
+    for (const group of groups) {
 
       // Выбранное заведение не прячем в кружок: его группа раскрывается веером
       const spread =
-        group.length > 1 &&
-        (zoom >= SPREAD_ZOOM || group.some((member) => member.partner.id === selectedRef.current));
+        group.length > 1 && (zoom >= SPREAD_ZOOM || (selected !== null && group.includes(selected)));
       const lng = group.reduce((sum, member) => sum + member.coords[0], 0) / group.length;
       const lat = group.reduce((sum, member) => sum + member.coords[1], 0) / group.length;
       const center = instance.project([lng, lat]);
@@ -188,13 +213,18 @@ export function PartnerMap({
           dx = center.x - member.point.x;
           dy = center.y - member.point.y;
         } else if (spread) {
+          // Радиус такой, чтобы соседние метки не касались: хорда между ними ≥ SPREAD_GAP_PX
           const angle = (index / group.length) * Math.PI * 2 - Math.PI / 2;
-          const radius = 34 + group.length * 6;
+          const radius = Math.max(44, SPREAD_GAP_PX / 2 / Math.sin(Math.PI / group.length));
           dx = center.x - member.point.x + Math.cos(angle) * radius;
           dy = center.y - member.point.y + Math.sin(angle) * radius;
         }
+        const fanned = spread && Math.hypot(dx, dy) > 4;
+        element.classList.toggle("is-spread", fanned);
         element.style.setProperty("--dx", `${dx.toFixed(1)}px`);
         element.style.setProperty("--dy", `${dy.toFixed(1)}px`);
+        element.style.setProperty("--leg", `${Math.hypot(dx, dy).toFixed(1)}px`);
+        element.style.setProperty("--leg-angle", `${Math.atan2(dy, dx).toFixed(4)}rad`);
       });
       if (group.length < 2 || spread) continue;
 
@@ -266,30 +296,36 @@ export function PartnerMap({
     const points = placedRef.current;
     const lngs = points.map(({ coords }) => coords[0]);
     const lats = points.map(({ coords }) => coords[1]);
-    const instance = new MapLibreMap({
-      container: container.current,
-      style,
-      // Сразу загружаем нужный район: без облёта и запросов тайлов промежуточных масштабов.
-      center: CITY_CENTER,
-      zoom: 12.2,
-      ...(points.length > 0
-        ? {
-            bounds: [
-              [Math.min(...lngs), Math.min(...lats)],
-              [Math.max(...lngs), Math.max(...lats)],
-            ] as [[number, number], [number, number]],
-            fitBoundsOptions: { padding: paddingRef.current, maxZoom: points.length === 1 ? 15 : 14.5, duration: 0 },
-          }
-        : {}),
-      // Храним уже просмотренные тайлы при переключении на каталог и обратно.
-      maxTileCacheSize: 64,
-      pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
-      attributionControl: { compact: true },
-      dragRotate: false,
-      pitchWithRotate: false,
-      // Карта на весь экран: колесо и щипок тачпада масштабируют карту, а не страницу
-      scrollZoom: true,
-    });
+    let instance: MapLibreMap;
+    try {
+      instance = new MapLibreMap({
+        container: container.current,
+        style,
+        // Сразу загружаем нужный район: без облёта и запросов тайлов промежуточных масштабов.
+        center: CITY_CENTER,
+        zoom: 12.2,
+        ...(points.length > 0
+          ? {
+              bounds: [
+                [Math.min(...lngs), Math.min(...lats)],
+                [Math.max(...lngs), Math.max(...lats)],
+              ] as [[number, number], [number, number]],
+              fitBoundsOptions: { padding: paddingRef.current, maxZoom: points.length === 1 ? 15 : 14.5, duration: 0 },
+            }
+          : {}),
+        // Храним уже просмотренные тайлы при переключении на каталог и обратно.
+        maxTileCacheSize: 64,
+        pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+        attributionControl: { compact: true },
+        dragRotate: false,
+        pitchWithRotate: false,
+        // Карта на весь экран: колесо и щипок тачпада масштабируют карту, а не страницу
+        scrollZoom: true,
+      });
+    } catch {
+      setNoMap(true);
+      return;
+    }
     instance.touchZoomRotate.disableRotation();
     instance.scrollZoom.setWheelZoomRate(1 / 300);
     instance.scrollZoom.setZoomRate(1 / 80);
@@ -326,7 +362,7 @@ export function PartnerMap({
     if (!ready || !instance) return;
     placed.forEach(({ partner, coords }, index) => {
       const element = pinElement(partner, index, () => select.current(partner));
-      const marker = new Marker({ element, anchor: "bottom" }).setLngLat(coords).addTo(instance);
+      const marker = new Marker({ element, anchor: "bottom", offset: PIN_TIP_OFFSET }).setLngLat(coords).addTo(instance);
       markers.current.set(partner.id, marker);
     });
     reclusterRef.current();
@@ -383,6 +419,11 @@ export function PartnerMap({
     <>
       <div className="absolute inset-0 touch-none">
         <div ref={container} className="map-osm h-full w-full" />
+        {noMap && (
+          <p className="absolute inset-0 grid place-items-center bg-cream p-6 text-center text-base font-medium">
+            Этот браузер не показывает карту. Все заведения есть в «Каталоге».
+          </p>
+        )}
       </div>
       <div
         role="group"

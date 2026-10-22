@@ -3,7 +3,7 @@ import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate 
 import { Badge, Button, Card, ErrorState, FormField, FormStatus, Loading, Textarea } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useState } from "react";
-import { useExitRequest, useRequestExit } from "../../entities/merchant/api";
+import { useExitRequest, useRequestExit, useTariff } from "../../entities/merchant/api";
 import { formatDateTime } from "../../shared/lib/format";
 
 /**
@@ -15,7 +15,9 @@ export function ExitRequestCard({ merchantId }: { merchantId: string }) {
   const current = useExitRequest(merchantId, true);
   const request = useRequestExit(merchantId);
   const [writing, setWriting] = useState(false);
-  const initialValues: ExitRequestInput = { reason: "" };
+  const { tariff } = useTariff(merchantId);
+  const withOctopay = tariff === "octopay";
+  const initialValues: ExitRequestInput = { reason: "", octopay: "keep" };
 
   return (
     <Card className="flex flex-col gap-3">
@@ -30,8 +32,9 @@ export function ExitRequestCard({ merchantId }: { merchantId: string }) {
           </div>
           <p className="max-w-[60ch] text-base text-muted-foreground">
             Подана {formatDateTime(current.data.createdAt)}
-            {current.data.reason ? ` с причиной «${current.data.reason}»` : ""}. Решение придёт в WhatsApp. Пока
-            заявку рассматривают, магазин работает как обычно.
+            {current.data.reason ? ` с причиной «${current.data.reason}»` : ""}
+            {current.data.octopay === "delete" ? " — уйти из Loal и закрыть OctōPAY" : withOctopay ? " — уйти только из Loal, OctōPAY остаётся" : ""}.
+            Решение придёт в WhatsApp. Пока заявку рассматривают, магазин работает как обычно.
           </p>
         </>
       )}
@@ -78,6 +81,37 @@ export function ExitRequestCard({ merchantId }: { merchantId: string }) {
                 После подтверждения магазин отключится сразу: пропадёт из каталога, перестанет принимать бонусы,
                 сотрудники не смогут войти. Через 30 дней контакты и витрина удалятся. Отменить это нельзя.
               </p>
+              {withOctopay && (
+                <fieldset className="flex flex-col gap-2">
+                  <legend className="mb-1 text-base font-bold">Откуда уходите</legend>
+                  {(
+                    [
+                      { value: "keep", title: "Только из Loal", text: "OctōPAY продолжит работать: приём платежей без бонусов Loal." },
+                      { value: "delete", title: "Из Loal и из OctōPAY", text: "Аккаунт OctōPAY тоже закроется: вход и приём платежей остановятся, история сохранится." },
+                    ] as const
+                  ).map((choice) => (
+                    <label
+                      key={choice.value}
+                      className={`flex cursor-pointer gap-3 rounded-2xl border-2 p-3 transition-colors ${
+                        form.values.octopay === choice.value ? "border-foreground bg-muted" : "border-border hover:border-foreground/40"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="octopay"
+                        value={choice.value}
+                        checked={form.values.octopay === choice.value}
+                        onChange={() => form.setFieldValue("octopay", choice.value)}
+                        className="mt-1 h-5 w-5 accent-[var(--primary)]"
+                      />
+                      <span>
+                        <span className="block text-base font-bold">{choice.title}</span>
+                        <span className="mt-0.5 block text-sm text-muted-foreground">{choice.text}</span>
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
+              )}
               <FormField label="Почему уходите" hint="Необязательно" error={fieldError(form, "reason")}>
                 {(parts) => (
                   <Textarea

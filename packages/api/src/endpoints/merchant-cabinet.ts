@@ -9,13 +9,17 @@ import {
 } from "../schemas/client-payment";
 import {
   buyMonthsInputSchema,
+  grantMonthsInputSchema,
   connectOctopayInputSchema,
   createInvoiceInputSchema,
   invoiceSchema,
+  tariffChangeInputSchema,
+  type TariffChangeInput,
   merchantSubscriptionSchema,
   octopayIntegrationSchema,
   onecIntegrationSchema,
   type BuyMonthsInput,
+  type GrantMonthsInput,
   type ConnectOctopayInput,
   type CreateInvoiceInput,
 } from "../schemas/billing";
@@ -75,10 +79,10 @@ export const merchantCabinetApi = (api: ApiClient) => ({
     api.request(merchantSubscriptionSchema, `/admin/v1/merchants/${merchantId}/subscription`),
 
   /** Выдача доступа агентством без оплаты. Обычный путь продления — через счёт. */
-  grantSubscription: (merchantId: string, input: BuyMonthsInput) =>
+  grantSubscription: (merchantId: string, input: GrantMonthsInput) =>
     api.request(merchantSubscriptionSchema, `/admin/v1/merchants/${merchantId}/subscription`, {
       method: "POST",
-      body: buyMonthsInputSchema.parse(input),
+      body: grantMonthsInputSchema.parse(input),
     }),
 
   octopayIntegration: (merchantId: string) =>
@@ -97,6 +101,13 @@ export const merchantCabinetApi = (api: ApiClient) => ({
     }),
 
   invoices: (merchantId: string) => api.request(z.array(invoiceSchema), `/admin/v1/merchants/${merchantId}/payments`),
+
+  /** Сменить тариф оплатой: счёт (`paymentUrl`) или сразу `{ loalTariff }`, если новый тариф бесплатный. */
+  changeTariff: (merchantId: string, input: TariffChangeInput) =>
+    api.request(z.union([z.looseObject({ loalTariff: z.string() }), invoiceSchema]), `/admin/v1/merchants/${merchantId}/tariff-change`, {
+      method: "POST",
+      body: tariffChangeInputSchema.parse(input),
+    }),
 
   createInvoice: (merchantId: string, input: CreateInvoiceInput) =>
     api.request(invoiceSchema, `/admin/v1/merchants/${merchantId}/payments`, {

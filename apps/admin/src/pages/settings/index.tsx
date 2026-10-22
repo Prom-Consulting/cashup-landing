@@ -28,6 +28,8 @@ import {
   useSavePlatformSettings,
 } from "../../entities/platform/api";
 import { formatDateTime } from "../../shared/lib/format";
+import type { AuditLog } from "@loal/api";
+import { auditText } from "../../entities/platform/audit-text";
 
 const money = new Intl.NumberFormat("ru-RU");
 
@@ -225,18 +227,27 @@ export function SettingsPage() {
         {audit.isSuccess && audit.data.length === 0 && (
           <p className="mt-3 text-base text-muted-foreground">Записей пока нет.</p>
         )}
-        <ul className="mt-4 flex flex-col gap-2">
+        <ul className="mt-4 flex flex-col">
           {(audit.data ?? []).slice(0, 30).map((entry) => (
-            <li key={entry.id} className="flex flex-wrap justify-between gap-3 text-base">
-              <span>
-                {entry.action ?? "действие"}
-                {entry.entity ? ` · ${entry.entity}` : ""}
-              </span>
-              <span className="text-muted-foreground">{formatDateTime(entry.createdAt)}</span>
-            </li>
+            <AuditRow key={entry.id} entry={entry} />
           ))}
         </ul>
       </Card>
     </section>
+  );
+}
+
+function AuditRow({ entry }: { entry: AuditLog }) {
+  const { title, subject, details } = auditText(entry);
+  return (
+    <li className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-border py-2 text-base last:border-0">
+      <span className="min-w-0">
+        <span className="font-semibold">{title}</span>
+        {subject && <span> — {subject}</span>}
+        {details && <span className="text-muted-foreground"> ({details})</span>}
+        {entry.actorName && <span className="block text-sm text-muted-foreground">{entry.actorName}</span>}
+      </span>
+      <span className="shrink-0 text-muted-foreground">{formatDateTime(entry.createdAt)}</span>
+    </li>
   );
 }
