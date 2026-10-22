@@ -1,4 +1,4 @@
-import { PROMO_AUDIENCE_LABELS, promoRewardText, type PromoAudience, type PromoCode } from "@loal/api";
+import { PROMO_AUDIENCE_LABELS, PROMO_CLIENT_ELIGIBILITY_LABELS, PROMO_KIND_LABELS, PROMO_REWARD_LABELS, promoRewardText, type PromoAudience, type PromoCode } from "@loal/api";
 import {
   Badge,
   Card,
@@ -29,7 +29,7 @@ function Redemptions({ promo, onClose }: { promo: PromoCode | null; onClose: () 
       {promo && (
         <DialogContent
           title={`Кто применил ${promo.code}`}
-          description={`${PROMO_AUDIENCE_LABELS[promo.audience]}: ${promoRewardText(promo)}`}
+          description={`${PROMO_AUDIENCE_LABELS[promo.audience]}: ${promoRewardText(promo)} · Вид: ${promo.reward === "bonuses" ? PROMO_REWARD_LABELS.bonuses : PROMO_KIND_LABELS[promo.kind]} · Баллов: ${promo.cycleBalance == null ? "—" : money.format(promo.cycleBalance)}`}
           className="w-[min(640px,calc(100vw-2rem))]"
         >
           <div className="mt-5">
@@ -44,8 +44,8 @@ function Redemptions({ promo, onClose }: { promo: PromoCode | null; onClose: () 
                       {row.merchantName ?? row.userPhone ?? row.merchantId ?? row.userId ?? "—"}
                     </span>
                     <span className="text-sm text-muted-foreground tabular-nums">
-                      {promoRewardText({ reward: row.bonusAmount != null ? "bonuses" : "months", ...row })} ·{" "}
-                      {formatDateTime(row.createdAt)}
+                      {promoRewardText({ ...row, reward: row.bonusAmount != null ? "bonuses" : row.reward })} ·{" "}
+                      Вид: {row.bonusAmount != null ? PROMO_REWARD_LABELS.bonuses : PROMO_KIND_LABELS[row.kind]} · Баллов: {row.cycleBalance == null ? "—" : money.format(row.cycleBalance)} · {formatDateTime(row.createdAt)}
                     </span>
                   </li>
                 ))}
@@ -114,6 +114,12 @@ function PromoRow({ promo, onOpen }: { promo: PromoCode; onOpen: () => void }) {
           <Badge tone={promo.audience === "client" ? "neutral" : "quiet"}>{PROMO_AUDIENCE_LABELS[promo.audience]}</Badge>
           <span>{promoRewardText(promo)}</span>
         </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Вид: {promo.reward === "bonuses" ? PROMO_REWARD_LABELS.bonuses : PROMO_KIND_LABELS[promo.kind]} · Баллов: {promo.cycleBalance == null ? "—" : money.format(promo.cycleBalance)}
+        </p>
+        {promo.audience === "client" && <p className="mt-1 text-sm text-muted-foreground">
+          {PROMO_CLIENT_ELIGIBILITY_LABELS[promo.kind === "subscription_cycle" ? "without_subscription" : promo.clientEligibility ?? "all"]}
+        </p>}
         {promo.note && <p className="mt-1 truncate text-sm text-muted-foreground">{promo.note}</p>}
       </div>
 
@@ -154,7 +160,7 @@ export function PromoCodesPage() {
     <section className="flex flex-col gap-6">
       <PageHeader
         title="Промокоды"
-        description="Бесплатные месяцы подписки или, клиентам, бонусы на срок. Магазин вводит код в разделе «Оплата», клиент — в настройках кабинета или по ссылке."
+        description="Бесплатные месяцы, подписка на 30 дней с баллами или бонусы на срок. Магазин вводит код в разделе «Оплата», клиент — в настройках кабинета или по ссылке."
         action={<CreatePromoDialog onCreated={setCreated} />}
       />
 

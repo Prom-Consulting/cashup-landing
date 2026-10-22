@@ -1,28 +1,11 @@
-import {
-  bonusesText,
-  monthsText,
-  promoErrorText,
-  redeemPromoInputSchema,
-  type PromoRedeemResult,
-  type RedeemPromoInput,
-} from "@loal/api";
+import { promoErrorText, promoSuccessText, redeemPromoInputSchema, type PromoRedeemResult, type RedeemPromoInput } from "@loal/api";
 import { FocusFirstError, fieldError, zodValidate } from "@loal/forms";
 import { Button, FormField, FormStatus, Input } from "@loal/ui/shadcn";
 import { Form, Formik } from "formik";
 import { useState, type ReactNode } from "react";
 
-const until = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" });
-
-function acceptedText(result: PromoRedeemResult): string {
-  if (result.reward === "bonuses" && result.bonusAmount != null) {
-    const date = result.expiresAt ? ` — потратьте до ${until.format(new Date(result.expiresAt))}` : "";
-    return `Промокод ${result.code} принят: +${bonusesText(result.bonusAmount)} на карте${date}.`;
-  }
-  return `Промокод ${result.code} принят: +${monthsText(result.months ?? 0)} подписки.`;
-}
-
 /**
- * Поле «Промокод» на бесплатные месяцы подписки или бонусы — у магазина и у держателя карты.
+ * Поле «Промокод» на месяцы подписки, клиентский цикл с баллами или бонусы на срок.
  * Каждый код — один раз на магазин или человека; регистр неважен, сервер хранит заглавными.
  * `renderHint` показывает под полем подсказку к ошибке — например, «Купить подписку».
  */
@@ -45,7 +28,7 @@ export function PromoCodeForm({
         try {
           const result = await redeem(values);
           helpers.resetForm();
-          setDone(acceptedText(result));
+          setDone(promoSuccessText(result));
         } catch (error) {
           helpers.setFieldError("code", promoErrorText(error));
         } finally {

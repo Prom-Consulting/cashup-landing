@@ -32,7 +32,7 @@ export function SettingsPage() {
       <Card className="flex flex-col gap-3">
         <div>
           <h2 className="text-lg font-bold">Промокод</h2>
-          <p className="text-sm text-muted-foreground">Бесплатные месяцы подписки добавятся к вашей карте.</p>
+          <p className="text-sm text-muted-foreground">Активируйте бесплатную подписку по условиям вашего промокода.</p>
         </div>
         <PromoCodeForm
           redeem={(input) => redeemPromo.mutateAsync(input)}

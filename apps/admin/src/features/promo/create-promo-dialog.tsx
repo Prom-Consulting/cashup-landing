@@ -1,11 +1,15 @@
 import {
   ApiError,
   PROMO_AUDIENCE_LABELS,
+  PROMO_CLIENT_ELIGIBILITY_LABELS,
+  PROMO_KIND_LABELS,
   PROMO_REWARD_LABELS,
   bonusesText,
-  createPromoFormSchema,
   daysText,
+  createPromoFormSchema,
   type CreatePromoForm,
+  type PromoAudience,
+  type PromoKind,
 } from "@loal/api";
 import { FocusFirstError, applyServerIssues, fieldError, formError, zodValidate } from "@loal/forms";
 import { Button, Dialog, DialogContent, FormField, FormStatus, Input, NativeSelect, Textarea } from "@loal/ui/shadcn";
@@ -16,10 +20,13 @@ import { useCreatePromo } from "../../entities/promo/api";
 const initialValues: CreatePromoForm = {
   code: "",
   audience: "merchant",
+  kind: "months",
   reward: "months",
-  months: 1,
   bonusAmount: "",
   bonusDays: 30,
+  months: 1,
+  cycleBalance: 10_000,
+  clientEligibility: "all",
   maxUses: "",
   expiresAt: "",
   note: "",
@@ -80,9 +87,12 @@ export function CreatePromoDialog({ onCreated }: { onCreated?: (code: string) =>
                     name="audience"
                     value={form.values.audience}
                     onChange={(event) => {
-                      form.handleChange(event);
-                      // Магазину бонусы не нужны: его код — только месяцы доступа
-                      if (event.target.value === "merchant") void form.setFieldValue("reward", "months");
+                      const audience = event.target.value as PromoAudience;
+                      void form.setValues({
+                        ...form.values,
+                        audience,
+                        ...(audience === "merchant" ? { kind: "months", reward: "months", clientEligibility: "all" } : {}),
+                      });
                     }}
                     onBlur={form.handleBlur}
                     options={Object.entries(PROMO_AUDIENCE_LABELS).map(([value, label]) => ({
@@ -93,18 +103,49 @@ export function CreatePromoDialog({ onCreated }: { onCreated?: (code: string) =>
                 )}
               </FormField>
               {form.values.audience === "client" && (
-                <FormField label="Что даёт" error={fieldError(form, "reward")}>
-                  {(parts) => (
-                    <NativeSelect
-                      {...parts}
-                      name="reward"
-                      value={form.values.reward}
-                      onChange={form.handleChange}
-                      onBlur={form.handleBlur}
-                      options={Object.entries(PROMO_REWARD_LABELS).map(([value, label]) => ({ value, label }))}
-                    />
-                  )}
-                </FormField>
+                <>
+                  <FormField label="Вид промокода" error={fieldError(form, "kind")}>
+                    {(parts) => (
+                      <NativeSelect
+                        {...parts}
+                        name="kind"
+                        value={form.values.kind === "subscription_cycle" ? "subscription_cycle" : form.values.reward}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          const kind: PromoKind = value === "subscription_cycle" ? "subscription_cycle" : "months";
+                          void form.setValues({
+                            ...form.values,
+                            kind,
+                            reward: value === "bonuses" ? "bonuses" : "months",
+                            ...(kind === "subscription_cycle" ? { months: 1, clientEligibility: "without_subscription" } : {}),
+                          });
+                        }}
+                        onBlur={form.handleBlur}
+                        options={[...Object.entries(PROMO_KIND_LABELS).map(([value, label]) => ({ value, label })), { value: "bonuses", label: PROMO_REWARD_LABELS.bonuses }]}
+                      />
+                    )}
+                  </FormField>
+                  <FormField
+                    label="Доступность"
+                    hint={form.values.clientEligibility === "without_subscription"
+                      ? "Даже истёкшая, отменённая или бесплатная подписка считается предыдущей."
+                      : undefined}
+                    error={fieldError(form, "clientEligibility")}
+                  >
+                    {(parts) => form.values.kind === "subscription_cycle" ? (
+                      <Textarea {...parts} name="clientEligibility" readOnly rows={2} className="resize-none" value={PROMO_CLIENT_ELIGIBILITY_LABELS.without_subscription} />
+                    ) : (
+                      <NativeSelect
+                        {...parts}
+                        name="clientEligibility"
+                        value={form.values.clientEligibility}
+                        onChange={form.handleChange}
+                        onBlur={form.handleBlur}
+                        options={Object.entries(PROMO_CLIENT_ELIGIBILITY_LABELS).map(([value, label]) => ({ value, label }))}
+                      />
+                    )}
+                  </FormField>
+                </>
               )}
               <FormField
                 label="Код"
@@ -173,20 +214,37 @@ export function CreatePromoDialog({ onCreated }: { onCreated?: (code: string) =>
                 </>
               )}
               <div className="grid gap-4 sm:grid-cols-2">
-                {form.values.reward === "months" && (
-                  <FormField label="Бесплатных месяцев" hint="От 1 до 36" error={fieldError(form, "months")}>
-                    {(parts) => (
-                      <Input
-                        {...parts}
-                        name="months"
-                        inputMode="numeric"
-                        value={String(form.values.months)}
-                        onChange={form.handleChange}
-                        onBlur={form.handleBlur}
-                      />
-                    )}
-                  </FormField>
-                )}
+                {form.values.kind === "subscription_cycle" ? (
+                  <>
+                    <FormField label="Срок" hint="Фиксированный срок подписки">
+                      {(parts) => <Input {...parts} readOnly value="30 дней" />}
+                    </FormField>
+                    <FormField label="Количество баллов" hint="Обязательное положительное целое число" error={fieldError(form, "cycleBalance")}>
+                      {(parts) => (
+                        <Input
+                          {...parts}
+                          name="cycleBalance"
+                          required
+                          inputMode="numeric"
+                          value={form.values.cycleBalance}
+                          onChange={form.handleChange}
+                          onBlur={form.handleBlur}
+                        />
+                      )}
+                    </FormField>
+                  </>
+                ) : form.values.reward === "months" && <FormField label="Бесплатных месяцев" hint="От 1 до 36" error={fieldError(form, "months")}>
+                  {(parts) => (
+                    <Input
+                      {...parts}
+                      name="months"
+                      inputMode="numeric"
+                      value={String(form.values.months)}
+                      onChange={form.handleChange}
+                      onBlur={form.handleBlur}
+                    />
+                  )}
+                </FormField>}
                 <FormField
                   label="Сколько раз можно применить"
                   hint="Пусто — без лимита"
