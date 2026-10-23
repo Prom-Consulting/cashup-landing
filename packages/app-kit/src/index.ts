@@ -27,3 +27,4 @@ export * from "./cashback-form";
 export * from "./notification-channel";
 
 export * from "./tariffs";
+export * from "./legal";

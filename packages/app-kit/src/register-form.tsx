@@ -4,6 +4,7 @@ import { Field } from "@loal/ui/field";
 import { Button, PhoneInput, Spinner, TextInput, OtpInput, PasswordInput } from "@loal/ui/inputs";
 import { Form, Formik } from "formik";
 import { useState } from "react";
+import { ConsentNote } from "./legal";
 import { useRequestOtp, useSession } from "./session";
 
 const initialValues: RegisterInput = { fullName: "", email: "", password: "", phone: "", otp: "", inviteCode: "" };
@@ -24,7 +25,7 @@ function errorText(error: unknown): string {
  * Регистрация владельца заведения по коду приглашения. Без кода платформа заводит
  * обычного сотрудника без доступа к кабинету, поэтому код здесь обязателен.
  */
-export function RegisterForm({ onDone }: { onDone?: () => void }) {
+export function RegisterForm({ onDone, siteUrl }: { onDone?: () => void; siteUrl?: string }) {
   const { api, signIn } = useSession();
   const requestOtp = useRequestOtp();
   const [codeSent, setCodeSent] = useState(false);
@@ -150,6 +151,8 @@ export function RegisterForm({ onDone }: { onDone?: () => void }) {
           <Button type="submit" disabled={form.isSubmitting}>
             {form.isSubmitting ? <Spinner /> : codeSent ? "Зарегистрироваться" : "Получить код"}
           </Button>
+
+          {siteUrl && <ConsentNote siteUrl={siteUrl} action={codeSent ? "Зарегистрироваться" : "Получить код"} />}
         </Form>
       )}
     </Formik>

@@ -9,6 +9,7 @@ import { Select } from "@loal/ui/select";
 import { z } from "zod";
 import dynamic from "next/dynamic";
 import { StorefrontImages } from "./storefront-images";
+import { ConsentNote } from "../_components/consent-note";
 import type { Point } from "./location-picker";
 import { PARTNER_AUDIENCES, toPhoneDigits, coordsFrom2gis, merchantProfileFormSchema, type PartnerAudienceId } from "@loal/api";
 import { categories } from "../_data/categories";
@@ -704,9 +705,12 @@ export function PartnerForm() {
                 {sending ? "Отправляем код…" : token ? "Продолжить" : "Получить код в WhatsApp"}
               </Button>
               {!recovering && (
-                <p className="max-w-[52ch] text-sm leading-relaxed opacity-75">
-                  {`После кода создадим кабинет. Тариф — ${businessPrice(tariff, pricing)}/мес. Заведение начнёт работу после проверки Loal.`}
-                </p>
+                <>
+                  <p className="max-w-[52ch] text-sm leading-relaxed opacity-75">
+                    {`После кода создадим кабинет. Тариф — ${businessPrice(tariff, pricing)}/мес. Заведение начнёт работу после проверки Loal.`}
+                  </p>
+                  <ConsentNote action={token ? "Продолжить" : "Получить код в WhatsApp"} />
+                </>
               )}
               <button
                 type="button"

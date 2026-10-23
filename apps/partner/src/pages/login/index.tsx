@@ -1,4 +1,4 @@
-import { BusinessLoginForm, GoogleSignIn } from "@loal/app-kit";
+import { BusinessLoginForm, GoogleSignIn, LegalLinks } from "@loal/app-kit";
 import { Logo } from "@loal/ui/logo";
 import { Link, useNavigate } from "react-router";
 import { GOOGLE_CLIENT_ID, SITE_URL } from "../../shared/config/env";
@@ -37,6 +37,7 @@ export function LoginPage() {
             Стать партнером
           </a>
         </p>
+        <LegalLinks siteUrl={SITE_URL} className="mt-8" />
       </div>
     </div>
   );

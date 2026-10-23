@@ -4,6 +4,7 @@ import { Field } from "@loal/ui/field";
 import { Button, OtpInput, PhoneInput, Spinner } from "@loal/ui/inputs";
 import { Form, Formik, type FormikHelpers } from "formik";
 import { useEffect, useState } from "react";
+import { ConsentNote } from "./legal";
 import { OtpChannelPicker, otpChannelErrorText, useOtpChannel } from "./otp-channel";
 import { useCheckPhone, useLoginByOtp, useRegisterByPhone, useRequestOtp } from "./session";
 
@@ -57,6 +58,7 @@ export function PhoneSignInForm({
   onDone,
   referralCode,
   onReferralRejected,
+  siteUrl,
 }: {
   /** phone — номер, с которым вошли, цифрами с кодом страны: кабинет может его запомнить. */
   onDone?: (result: { isNewAccount: boolean; phone: string }) => void;
@@ -64,6 +66,8 @@ export function PhoneSignInForm({
   referralCode?: string;
   /** Приглашение не приняли (404 — недействительно, 409 — своё же): кабинет забывает код. */
   onReferralRejected?: () => void;
+  /** Адрес сайта для ссылок на правовые документы под кнопкой. Нет — строку согласия не показываем. */
+  siteUrl?: string;
 }) {
   const requestOtp = useRequestOtp();
   const checkPhone = useCheckPhone();
@@ -210,6 +214,8 @@ export function PhoneSignInForm({
           <Button type="submit" disabled={form.isSubmitting}>
             {form.isSubmitting ? <Spinner /> : step === "phone" ? "Получить код" : known === false ? "Создать аккаунт" : "Войти"}
           </Button>
+
+          {step === "phone" && siteUrl && <ConsentNote siteUrl={siteUrl} action="Получить код" />}
 
           {step === "code" && (
             <div className="flex flex-wrap items-center justify-between gap-3">

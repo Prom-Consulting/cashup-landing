@@ -1,6 +1,7 @@
 import { RegisterForm } from "@loal/app-kit";
 import { Logo } from "@loal/ui/logo";
 import { Link, useNavigate } from "react-router";
+import { SITE_URL } from "../../shared/config/env";
 
 /**
  * Регистрация по коду приглашения — прежний путь для старых заведений. Новых владельцев Loal
@@ -25,7 +26,7 @@ export function RegisterPage() {
           — регистрироваться не нужно.
         </p>
         <div className="mt-8">
-          <RegisterForm onDone={() => navigate("/", { replace: true })} />
+          <RegisterForm siteUrl={SITE_URL} onDone={() => navigate("/", { replace: true })} />
         </div>
         <p className="mt-6 text-base text-slate">
           Уже есть доступ?{" "}

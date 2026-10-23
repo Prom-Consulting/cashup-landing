@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@loal/ui/logo";
+import { LEGAL_DOCS, legalPath } from "../legal/docs";
 import {
   CITY,
   CLIENT_APP_URL,
@@ -112,7 +113,18 @@ export function SiteFooter() {
             </address>
           </div>
 
-          <div className="mt-12 flex flex-col gap-2 border-t border-slate-soft/50 pt-6 text-base text-slate sm:mt-14 sm:flex-row sm:justify-between sm:text-xl">
+          <nav
+            aria-label="Правовые документы"
+            className="mt-12 flex flex-wrap gap-x-6 gap-y-2 border-t border-slate-soft/50 pt-6 text-base text-slate sm:mt-14"
+          >
+            {LEGAL_DOCS.map((doc) => (
+              <Link key={doc.slug} href={legalPath(doc.slug)} className={`${link} hover:text-flame`}>
+                {doc.nav}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="mt-6 flex flex-col gap-2 pt-2 text-base text-slate sm:flex-row sm:justify-between sm:text-xl">
             <div>
               <p>© 2026 Loal. Все права защищены.</p>
               <p className="mt-1 text-sm sm:text-base">

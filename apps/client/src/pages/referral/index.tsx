@@ -4,6 +4,7 @@ import { Button, Loading } from "@loal/ui/shadcn";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useReferralVisit } from "../../entities/referral/api";
+import { SITE_URL } from "../../shared/config/env";
 import { forgetReferral, rememberReferral } from "../../shared/lib/referral";
 import { rememberPhone } from "../../shared/lib/remembered-phone";
 
@@ -64,6 +65,7 @@ export function ReferralPage() {
         </p>
       </div>
       <PhoneSignInForm
+        siteUrl={SITE_URL}
         referralCode={referral}
         onReferralRejected={() => {
           forgetReferral();

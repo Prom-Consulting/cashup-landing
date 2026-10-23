@@ -1,6 +1,7 @@
 import { PARTNER_CATEGORIES } from "@loal/api";
 import type { MetadataRoute } from "next";
 import { getPublicPartners } from "./_data/partners-api";
+import { LEGAL_DOCS, legalPath } from "./legal/docs";
 import { categoryIdOf, categoryPath, partnerPath } from "./_data/seo";
 import { SITE_URL } from "./_data/site";
 
@@ -28,5 +29,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     { url: `${SITE_URL}/become-partner`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/about`, changeFrequency: "yearly", priority: 0.5 },
+    { url: `${SITE_URL}/legal`, changeFrequency: "yearly", priority: 0.4 },
+    ...LEGAL_DOCS.map((doc) => ({
+      url: `${SITE_URL}${legalPath(doc.slug)}`,
+      changeFrequency: "yearly" as const,
+      priority: 0.3,
+    })),
   ];
 }

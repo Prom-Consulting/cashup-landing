@@ -1,6 +1,7 @@
 import { promoFromSearch } from "@loal/api";
-import { PhoneSignInForm, useSession } from "@loal/app-kit";
+import { LegalLinks, PhoneSignInForm, useSession } from "@loal/app-kit";
 import { useLocation, useNavigate } from "react-router";
+import { SITE_URL } from "../../shared/config/env";
 import { pendingPromo } from "../../shared/lib/promo-link";
 import { rememberPhone } from "../../shared/lib/remembered-phone";
 import { forgetReferral, recallReferral } from "../../shared/lib/referral";
@@ -33,6 +34,7 @@ export function LoginPage() {
       </p>}
       <div className="mt-8">
         <PhoneSignInForm
+          siteUrl={SITE_URL}
           // Открывали ссылку приглашения, а регистрируются отсюда — код всё равно учитываем
           referralCode={referral}
           onReferralRejected={() => {
@@ -46,6 +48,7 @@ export function LoginPage() {
           }}
         />
       </div>
+      <LegalLinks siteUrl={SITE_URL} className="mt-8" />
     </div>
   );
 }

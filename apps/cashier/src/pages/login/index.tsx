@@ -1,7 +1,7 @@
-import { GoogleSignIn, LoginForm } from "@loal/app-kit";
+import { GoogleSignIn, LegalLinks, LoginForm } from "@loal/app-kit";
 import { Logo } from "@loal/ui/logo";
 import { useNavigate } from "react-router";
-import { GOOGLE_CLIENT_ID, PARTNER_APP_URL } from "../../shared/config/env";
+import { GOOGLE_CLIENT_ID, PARTNER_APP_URL, SITE_URL } from "../../shared/config/env";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -26,6 +26,7 @@ export function LoginPage() {
             Кабинет партнёра
           </a>
         </p>
+        <LegalLinks siteUrl={SITE_URL} className="mt-8" />
       </div>
     </div>
   );
