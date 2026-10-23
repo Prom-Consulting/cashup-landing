@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { CorporateHero } from "../_components/business-section";
+import { CorporateHeader } from "../_components/corporate-header";
 import { SiteFooter } from "../_components/site-footer";
-import { SiteHeader } from "../_components/site-header";
 import { ScrollToHash } from "../_components/scroll-to-hash";
 import { models } from "../_data/models";
 import { getBusinessPricing } from "../_data/business-pricing";
@@ -84,7 +84,7 @@ export default async function BecomePartnerPage() {
 
   return (
     <BusinessPricingProvider initialPricing={pricing}>
-      <SiteHeader audience="business" cta={{ label: "Стать партнером", href: "#form" }} />
+      <CorporateHeader cta={{ label: "Стать партнером", href: "#form" }} />
 
       <main className="flex-1 overflow-x-clip">
         <CorporateHero formHref="#form" />

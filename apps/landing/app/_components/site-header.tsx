@@ -3,7 +3,7 @@ import { Logo } from "@loal/ui/logo";
 import { CLIENT_APP_URL, PARTNER_APP_URL } from "../_data/site";
 import { MobileMenu } from "./mobile-menu";
 
-const nav = [
+export const NAV = [
   { label: "Что за бонусы", href: "/#bonuses" },
   { label: "Как работает", href: "/#how" },
   { label: "Партнёры", href: "/partners" },
@@ -12,7 +12,7 @@ const nav = [
 ];
 
 /** Вход в свой кабинет: покупателю — карта, бизнесу — кабинет партнёра. */
-const ACCOUNT = {
+export const ACCOUNT = {
   client: { label: "Моя карта", href: CLIENT_APP_URL },
   business: { label: "Мой бизнес", href: PARTNER_APP_URL },
 } as const;
@@ -38,7 +38,7 @@ export function SiteHeader({
       </Link>
       <nav aria-label="Разделы" className="hidden lg:block">
         <ul className={`flex gap-6 text-lg font-bold ${light ? "text-white" : ""}`}>
-          {nav.map((item) => (
+          {NAV.map((item) => (
             <li key={item.href}>
               <Link
                 href={item.href}
@@ -68,7 +68,7 @@ export function SiteHeader({
           {cta.label}
         </Link>
       </div>
-      <MobileMenu nav={nav} cta={cta} account={account} />
+      <MobileMenu nav={NAV} cta={cta} account={account} />
     </header>
   );
 }
