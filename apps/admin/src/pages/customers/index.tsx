@@ -21,7 +21,7 @@ import {
 } from "@loal/ui/shadcn";
 import { useEffect, useState } from "react";
 import { BulkIssueDialog } from "../../features/customer/bulk-issue-dialog";
-import { DeleteCustomerDialog } from "../../features/customer/delete-customer-dialog";
+import { CustomerArchiveAction } from "../../features/customer/customer-archive-action";
 import { CustomerDialog } from "../../features/customer/customer-dialog";
 import { cardPageUrl } from "../../shared/config/env";
 import { formatDate } from "../../shared/lib/format";
@@ -33,21 +33,27 @@ const PAGE_SIZE = 20;
  * и виден он только агентству.
  */
 export function CustomersPage() {
+  const [view, setView] = useState<"active" | "archived">("active");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const customers = useCustomers({ page, pageSize: PAGE_SIZE, search: search.trim() || undefined });
+  const customers = useCustomers({
+    page,
+    pageSize: PAGE_SIZE,
+    search: search.trim() || undefined,
+    archived: view === "archived" ? true : undefined,
+  });
   const [selected, setSelected] = useState<string[]>([]);
   const [opened, setOpened] = useState<Customer | null>(null);
 
-  const rows = customers.data?.items ?? [];
-  const total = customers.data?.total ?? 0;
+  const rows = customers.isPlaceholderData ? [] : customers.data?.items ?? [];
+  const total = customers.isPlaceholderData ? 0 : customers.data?.total ?? 0;
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   useEffect(() => {
     if (customers.isSuccess && !customers.isPlaceholderData && page > lastPage) setPage(lastPage);
   }, [customers.isSuccess, customers.isPlaceholderData, page, lastPage]);
 
-  const onDeleted = (id: string) => {
+  const onStatusChange = (id: string) => {
     setSelected((current) => current.filter((selectedId) => selectedId !== id));
     setOpened((current) => current?.id === id ? null : current);
   };
@@ -56,9 +62,28 @@ export function CustomersPage() {
     <section className="flex flex-col gap-6">
       <PageHeader
         title="Клиенты"
-        description={total > 0 ? `Всего держателей карт: ${total}` : "Держатели карт Loal и их карты."}
-        action={<IssueCardDialog cardUrl={cardPageUrl} />}
+        description={view === "archived" ? `Клиентов в архиве: ${total}` : total > 0 ? `Всего держателей карт: ${total}` : "Держатели карт Loal и их карты."}
+        action={view === "active" ? <IssueCardDialog cardUrl={cardPageUrl} /> : undefined}
       />
+
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Статус клиентов">
+        <Button type="button" role="tab" aria-selected={view === "active"} variant={view === "active" ? "primary" : "outline"} size="sm" onClick={() => {
+          setView("active");
+          setPage(1);
+          setSelected([]);
+          setOpened(null);
+        }}>
+          Активные
+        </Button>
+        <Button type="button" role="tab" aria-selected={view === "archived"} variant={view === "archived" ? "primary" : "outline"} size="sm" onClick={() => {
+          setView("archived");
+          setPage(1);
+          setSelected([]);
+          setOpened(null);
+        }}>
+          Архив
+        </Button>
+      </div>
 
       <div className="relative max-w-[420px]">
         <Icon icon={Search01Icon} className="absolute top-1/2 left-4 -translate-y-1/2 text-muted-foreground" />
@@ -74,16 +99,16 @@ export function CustomersPage() {
         />
       </div>
 
-      {customers.isPending && <Loading />}
+      {(customers.isPending || customers.isPlaceholderData) && <Loading />}
       {customers.isError && <ErrorState error={customers.error} onRetry={() => customers.refetch()} />}
-      {customers.isSuccess && rows.length === 0 && (
+      {customers.isSuccess && !customers.isPlaceholderData && rows.length === 0 && (
         <EmptyState
-          title={search ? "Никого не нашли" : "Клиентов пока нет"}
-          description={search ? "Попробуйте другой запрос." : "Выпустите первую карту — клиент появится здесь."}
+          title={search ? "Никого не нашли" : view === "archived" ? "Архив пуст" : "Клиентов пока нет"}
+          description={search ? "Попробуйте другой запрос." : view === "archived" ? "Отправленные в архив клиенты появятся здесь." : "Выпустите первую карту — клиент появится здесь."}
         />
       )}
 
-      {rows.length > 0 && (
+      {view === "active" && rows.length > 0 && (
         <div className="flex flex-wrap items-center gap-3">
           <BulkIssueDialog customerIds={selected} onDone={() => setSelected([])} />
           {selected.length > 0 && (
@@ -99,7 +124,7 @@ export function CustomersPage() {
           <Table className="sm:min-w-[620px]">
             <TableHead>
               <TableRow>
-                <TableHeaderCell className="w-12">
+                {view === "active" && <TableHeaderCell className="w-12">
                   <Checkbox
                     aria-label="Выбрать всех на странице"
                     checked={rows.length > 0 && rows.every((row) => selected.includes(row.id))}
@@ -111,18 +136,18 @@ export function CustomersPage() {
                       )
                     }
                   />
-                </TableHeaderCell>
+                </TableHeaderCell>}
                 <TableHeaderCell>Клиент</TableHeaderCell>
                 <TableHeaderCell>Телефон</TableHeaderCell>
                 <TableHeaderCell>Почта</TableHeaderCell>
-                <TableHeaderCell>Заведён</TableHeaderCell>
+                <TableHeaderCell>{view === "archived" ? "В архиве с" : "Заведён"}</TableHeaderCell>
                 <TableHeaderCell>Действия</TableHeaderCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {rows.map((customer) => (
                 <TableRow key={customer.id}>
-                  <TableCell>
+                  {view === "active" && <TableCell>
                     <Checkbox
                       aria-label="Выбрать клиента"
                       disabled={Boolean(customer.archivedAt)}
@@ -133,7 +158,7 @@ export function CustomersPage() {
                         )
                       }
                     />
-                  </TableCell>
+                  </TableCell>}
                   <TableCell primary>
                     <button
                       type="button"
@@ -150,9 +175,9 @@ export function CustomersPage() {
                   </TableCell>
                   <TableCell label="Телефон" className="tabular-nums">{customer.phone ?? "—"}</TableCell>
                   <TableCell label="Почта" className="break-all">{customer.email ?? "—"}</TableCell>
-                  <TableCell label="Заведён" className="text-base text-muted-foreground">{formatDate(customer.createdAt)}</TableCell>
+                  <TableCell label={view === "archived" ? "В архиве с" : "Заведён"} className="text-base text-muted-foreground">{formatDate(view === "archived" ? customer.archivedAt ?? customer.createdAt : customer.createdAt)}</TableCell>
                   <TableCell label="Действия">
-                    <DeleteCustomerDialog customer={customer} onDeleted={onDeleted} />
+                    <CustomerArchiveAction customer={customer} onDone={onStatusChange} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -161,7 +186,7 @@ export function CustomersPage() {
         </Card>
       )}
 
-      <CustomerDialog key={opened?.id ?? "closed"} customer={opened} onClose={() => setOpened(null)} onDeleted={onDeleted} />
+      <CustomerDialog key={opened?.id ?? "closed"} customer={opened} onClose={() => setOpened(null)} onStatusChange={onStatusChange} />
 
       {lastPage > 1 && (
         <div className="flex items-center gap-4">

@@ -90,13 +90,13 @@ export const platformApi = (api: ApiClient) => ({
       ),
     }),
 
-  /** Архивация необратима: карты клиента отзываются тем же запросом. */
+  /** Отправить клиента в архив: карты отзываются, данные сохраняются. */
   archiveCustomer: (customerId: string) =>
-    api.request(customerSchema, `/admin/v1/customers/${customerId}/archive`, { method: "POST", body: {} }),
+    api.request(customerSchema, `/admin/v1/customers/${encodeURIComponent(customerId)}/archive`, { method: "POST" }),
 
-  /** Erases the account too, freeing the phone and email for a new registration. */
-  deleteCustomer: (customerId: string) =>
-    api.request(z.undefined(), `/admin/v1/customers/${encodeURIComponent(customerId)}`, { method: "DELETE" }),
+  /** Вернуть клиента из архива и открыть аккаунт; сервер выдаст новую карту при необходимости. */
+  restoreCustomer: (customerId: string) =>
+    api.request(customerSchema, `/admin/v1/customers/${encodeURIComponent(customerId)}/restore`, { method: "POST" }),
 
   customerCards: (customerId: string) => api.request(z.array(cardSchema), `/admin/v1/customers/${customerId}/cards`),
 

@@ -65,14 +65,11 @@ export function useArchiveCustomer() {
   });
 }
 
-export function useDeleteCustomer() {
+export function useRestoreCustomer() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (customerId: string) => platformApi(api).deleteCustomer(customerId),
-    onSuccess: async (_, customerId) => {
-      queryClient.removeQueries({ queryKey: customerKeys.cards(customerId) });
-      await queryClient.invalidateQueries({ queryKey: customerKeys.all });
-    },
+    mutationFn: (customerId: string) => platformApi(api).restoreCustomer(customerId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: customerKeys.all }),
   });
 }

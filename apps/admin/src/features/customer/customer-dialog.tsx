@@ -18,7 +18,6 @@ import {
 import { Form, Formik } from "formik";
 import { useState } from "react";
 import {
-  useArchiveCustomer,
   useCancelCardSubscription,
   useCardSubscription,
   useSetCardTier,
@@ -27,7 +26,7 @@ import {
 import { useTiers } from "../../entities/platform/api";
 import { cardPageUrl } from "../../shared/config/env";
 import { formatDate } from "../../shared/lib/format";
-import { DeleteCustomerDialog } from "./delete-customer-dialog";
+import { CustomerArchiveAction } from "./customer-archive-action";
 import { IssueCardPanel } from "./issue-card-panel";
 
 const money = new Intl.NumberFormat("ru-RU");
@@ -204,10 +203,9 @@ function CardRow({ card, customer }: { card: Card; customer: Customer }) {
 }
 
 /** Всё о держателе: его карты, подписка, уровень, выдача новой карты и архив. */
-export function CustomerDialog({ customer, onClose, onDeleted }: { customer: Customer | null; onClose: () => void; onDeleted: (id: string) => void }) {
+export function CustomerDialog({ customer, onClose, onStatusChange }: { customer: Customer | null; onClose: () => void; onStatusChange: (id: string) => void }) {
   const cards = useCustomerCards(customer?.id ?? null);
   const [issuing, setIssuing] = useState(false);
-  const archive = useArchiveCustomer();
   const name = customer ? [customer.firstName, customer.lastName].filter(Boolean).join(" ") || "Без имени" : "";
   const hasActive = cards.data?.some((card) => card.status === "active");
 
@@ -230,7 +228,7 @@ export function CustomerDialog({ customer, onClose, onDeleted }: { customer: Cus
             </ul>
 
             <div className="border-t border-border pt-5">
-              <DeleteCustomerDialog customer={customer} onDeleted={onDeleted} />
+              <CustomerArchiveAction customer={customer} onDone={onStatusChange} />
             </div>
 
             {!customer.archivedAt && (
@@ -248,16 +246,6 @@ export function CustomerDialog({ customer, onClose, onDeleted }: { customer: Cus
                     {hasActive ? "Перевыпустить карту" : "Выдать карту"}
                   </Button>
                 )}
-                <ConfirmDialog
-                  trigger={<Button variant="ghost">В архив</Button>}
-                  title="Отправить клиента в архив?"
-                  description="Это необратимо: его карты будут отозваны тем же действием."
-                  confirmLabel="В архив"
-                  onConfirm={async () => {
-                    await archive.mutateAsync(customer.id);
-                    onClose();
-                  }}
-                />
               </div>
             )}
           </div>
