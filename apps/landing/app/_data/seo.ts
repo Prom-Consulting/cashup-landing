@@ -6,6 +6,7 @@ import {
   type PartnerCategoryId,
   type PublicPartner,
 } from "@loal/api";
+import type { City } from "./cities";
 
 /**
  * SEO лендинга в одном месте: адреса страниц заведений и категорий, шаблоны title и
@@ -125,6 +126,21 @@ export function partnerDescription(partner: PublicPartner) {
 // Description: {Категория} Бишкека, которые принимают бонусы Loal: N заведений. Процент оплаты бонусами, адреса и карта.
 export function categoryTitle(id: PartnerCategoryId) {
   return `${CATEGORY_SEO[id].title} ${CITY_IN} — где платить бонусами Loal`;
+}
+
+// ── Шаблон: город ────────────────────────────────────────────────────────────
+// Title: Бонусы Loal в Бишкеке — где платить бонусами
+// Description: Программа лояльности Loal в Бишкеке: N заведений в M категориях принимают бонусы. …
+export function cityTitle(city: City) {
+  return `Бонусы Loal ${city.nameIn} — где платить бонусами`;
+}
+
+export function cityDescription(city: City, count: number, categories: number) {
+  const venues = count > 0 ? `${count} ${plural(count, "заведение", "заведения", "заведений")}` : "заведения";
+  const cats = categories > 0 ? ` в ${categories} ${plural(categories, "категории", "категориях", "категориях")}` : "";
+  return clip(
+    `Программа лояльности Loal ${city.nameIn}: ${venues}${cats} принимают бонусы. Подписка 990 сом за 30 дней — 15 000 бонусов, ими закрывается часть покупки у партнёров.`,
+  );
 }
 
 export function categoryDescription(id: PartnerCategoryId, count: number) {

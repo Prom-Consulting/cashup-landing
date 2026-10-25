@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@loal/ui/logo";
+import { ACTIVE_CITIES, cityPath } from "../_data/cities";
 import { LEGAL_DOCS, legalPath } from "../legal/docs";
 import {
   CITY,
@@ -19,6 +20,7 @@ const product = [
   { label: "Как это работает?", href: "/#how" },
   { label: "Тарифы", href: "/#price" },
   { label: "Партнёры", href: "/partners" },
+  ...ACTIVE_CITIES.map((city) => ({ label: `Бонусы ${city.nameIn}`, href: cityPath(city.slug) })),
   { label: "Loal Corporate", href: "/become-partner" },
   { label: "О компании", href: "/about" },
 ];

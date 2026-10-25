@@ -1,6 +1,7 @@
 import { PARTNER_CATEGORIES } from "@loal/api";
 import type { MetadataRoute } from "next";
 import { getPublicPartners } from "./_data/partners-api";
+import { ACTIVE_CITIES, cityPath } from "./_data/cities";
 import { LEGAL_DOCS, legalPath } from "./legal/docs";
 import { categoryIdOf, categoryPath, partnerPath } from "./_data/seo";
 import { SITE_URL } from "./_data/site";
@@ -16,6 +17,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: SITE_URL, changeFrequency: "weekly", priority: 1 },
     { url: `${SITE_URL}/partners`, changeFrequency: "daily", priority: 0.9 },
+    ...ACTIVE_CITIES.map((city) => ({
+      url: `${SITE_URL}${cityPath(city.slug)}`,
+      changeFrequency: "daily" as const,
+      priority: 0.9,
+    })),
     ...categories.map((item) => ({
       url: `${SITE_URL}${categoryPath(item.id)}`,
       changeFrequency: "daily" as const,
