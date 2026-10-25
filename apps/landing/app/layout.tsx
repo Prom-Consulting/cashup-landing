@@ -1,22 +1,24 @@
 import type { Metadata } from "next";
-import { Nunito, Nunito_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { JsonLd } from "./_components/json-ld";
 import { EMAIL, PHONE, SITE_URL, SOCIAL_LINKS } from "./_data/site";
 import { AppBanner } from "./_components/app-banner";
 
-// Шрифты брендбука Loal 2026: Nunito Sans — заголовки, Nunito — основной текст.
-// cyrillic-ext нужен кыргызскому: Ң, Ө, Ү.
-const heading = Nunito_Sans({
+// Шрифты брендбука Loal 2026 хранятся локально: сборке не нужен Google Fonts.
+// Полные файлы содержат латиницу, кириллицу и кыргызские буквы Ң, Ө, Ү.
+const heading = localFont({
+  src: "./fonts/nunito-sans-variable.ttf",
   variable: "--font-heading",
-  subsets: ["latin", "cyrillic", "cyrillic-ext"],
-  weight: ["600", "700", "800", "900"],
+  weight: "600 900",
+  display: "swap",
 });
 
-const body = Nunito({
+const body = localFont({
+  src: "./fonts/nunito-variable.ttf",
   variable: "--font-body",
-  subsets: ["latin", "cyrillic", "cyrillic-ext"],
-  weight: ["400", "500", "600", "700"],
+  weight: "400 700",
+  display: "swap",
 });
 
 const MOTION_PENDING_SCRIPT = `(function(){var d=document.documentElement;if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;d.classList.add("motion-pending");setTimeout(function(){d.classList.remove("motion-pending")},4000)})();`;
