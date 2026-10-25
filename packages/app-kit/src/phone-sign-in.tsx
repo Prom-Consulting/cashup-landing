@@ -3,7 +3,7 @@ import { FocusFirstError, fieldError, zodValidate } from "@loal/forms";
 import { Field } from "@loal/ui/field";
 import { Button, OtpInput, PhoneInput, Spinner } from "@loal/ui/inputs";
 import { Form, Formik, type FormikHelpers } from "formik";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ConsentNote } from "./legal";
 import { OtpChannelPicker, otpChannelErrorText, useOtpChannel } from "./otp-channel";
 import { useCheckPhone, useLoginByOtp, useRegisterByPhone, useRequestOtp } from "./session";
@@ -32,7 +32,8 @@ function readable(error: unknown): string {
     // 503 — недоступно хранилище кодов (или WhatsApp): это не «неверный код», а временный сбой
     if (error.code === "OTP_UNAVAILABLE" || error.status === 503)
       return "Сервис кодов временно недоступен. Попробуйте через минуту.";
-    if (error.status === 502) return "WhatsApp сейчас не отвечает. Попробуйте через минуту или выберите Telegram.";
+    if (error.status === 502) return /[А-Яа-яЁё]/.test(error.message)
+      ? error.message : "Сервис временно не отвечает. Попробуйте ещё раз.";
     return error.message;
   }
   return error instanceof Error ? error.message : "Не получилось, попробуйте ещё раз";
@@ -71,7 +72,7 @@ export function PhoneSignInForm({
 }) {
   const requestOtp = useRequestOtp();
   const checkPhone = useCheckPhone();
-  const { channel, choose, telegramAvailable } = useOtpChannel();
+  const { channel, choose, telegramAvailable, telegramChecking, telegramCheckFailed } = useOtpChannel();
   const where = OTP_CHANNEL_LABELS[channel];
   // Знаем ли номер: true — войдёт в свой аккаунт, false — создадим новый, null — не знаем
   const [known, setKnown] = useState<boolean | null>(null);
@@ -80,6 +81,7 @@ export function PhoneSignInForm({
   const cooldown = useCooldown();
   const [step, setStep] = useState<Step>("phone");
   const [notice, setNotice] = useState<string | null>(null);
+  const codeSubmissionInFlight = useRef(false);
   const initialValues: OtpLoginInput = { phone: "", otp: "" };
 
   /** Новый код — чистое поле: без красной ошибки, пока человек ничего не ввёл. */
@@ -99,6 +101,8 @@ export function PhoneSignInForm({
   };
 
   const submitCode = async (values: OtpLoginInput, helpers: FormikHelpers<OtpLoginInput>) => {
+    if (codeSubmissionInFlight.current) return;
+    codeSubmissionInFlight.current = true;
     try {
       const tokens = referralCode
         ? await registerByPhone.mutateAsync({ ...values, referralCode })
@@ -119,7 +123,13 @@ export function PhoneSignInForm({
         clearCode(helpers);
         return helpers.setStatus("Код истёк или уже использован. Запросите новый.");
       }
+      if (error instanceof ApiError && error.status >= 500) {
+        clearCode(helpers);
+        return helpers.setStatus(`${readable(error)} Запросите новый код для входа.`);
+      }
       helpers.setStatus(readable(error));
+    } finally {
+      codeSubmissionInFlight.current = false;
     }
   };
 
@@ -179,7 +189,7 @@ export function PhoneSignInForm({
             )}
           </Field>
 
-          <OtpChannelPicker channel={channel} onChange={choose} available={telegramAvailable} disabled={form.isSubmitting} />
+          <OtpChannelPicker channel={channel} onChange={choose} available={telegramAvailable} checking={telegramChecking} checkFailed={telegramCheckFailed} disabled={form.isSubmitting} />
 
           {step === "code" && (
             <Field label={`Код из ${where}`} error={fieldError(form, "otp")}>

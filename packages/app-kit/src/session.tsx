@@ -211,16 +211,20 @@ export function useRequestOtp() {
 
 const WHATSAPP_ONLY: OtpChannels = { whatsapp: true, telegram: false, email: false };
 
-/** Какие каналы кода включены. Пока не знаем или шлюз старый — только WhatsApp, как раньше. */
-export function useOtpChannels(): OtpChannels {
+/** Запрос доступных каналов: краткий сетевой сбой на телефоне не выключает Telegram надолго. */
+export function useOtpChannelsQuery() {
   const { api } = useSession();
-  const query = useQuery({
+  return useQuery({
     queryKey: ["auth", "otp-channels"],
     queryFn: () => authApi(api).otpChannels(),
     staleTime: 5 * 60_000,
-    retry: false,
+    retry: 2,
   });
-  return query.data ?? WHATSAPP_ONLY;
+}
+
+/** Какие каналы кода включены. Пока не знаем или шлюз старый — только WhatsApp. */
+export function useOtpChannels(): OtpChannels {
+  return useOtpChannelsQuery().data ?? WHATSAPP_ONLY;
 }
 
 /** Код для пароля: сервер сначала проверяет, что номер — сотрудник заведения. */

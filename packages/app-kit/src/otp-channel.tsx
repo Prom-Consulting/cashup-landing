@@ -1,6 +1,6 @@
 import { ApiError, OTP_CHANNEL_LABELS, OTP_CHANNELS, type OtpChannel } from "@loal/api";
 import { useId, useState } from "react";
-import { useOtpChannels } from "./session";
+import { useOtpChannelsQuery } from "./session";
 
 const STORAGE_KEY = "loal.otp-channel";
 
@@ -18,9 +18,10 @@ function readStored(): OtpChannel | null {
  * его и в следующий раз. Если Telegram на сервере выключен — всегда WhatsApp.
  */
 export function useOtpChannel() {
-  const channels = useOtpChannels();
+  const query = useOtpChannelsQuery();
+  const channels = query.data;
   const [chosen, setChosen] = useState<OtpChannel | null>(readStored);
-  const channel: OtpChannel = chosen === "telegram" && channels.telegram ? "telegram" : "whatsapp";
+  const channel: OtpChannel = chosen === "telegram" && channels?.telegram ? "telegram" : "whatsapp";
   const choose = (next: OtpChannel) => {
     setChosen(next);
     try {
@@ -29,7 +30,7 @@ export function useOtpChannel() {
       // Приватный режим: выбор просто не запомнится
     }
   };
-  return { channel, choose, telegramAvailable: channels.telegram };
+  return { channel, choose, telegramAvailable: channels?.telegram === true, telegramChecking: query.isPending && query.isFetching, telegramCheckFailed: query.isError };
 }
 
 /**
@@ -40,11 +41,15 @@ export function OtpChannelPicker({
   channel,
   onChange,
   available,
+  checking = false,
+  checkFailed = false,
   disabled,
 }: {
   channel: OtpChannel;
   onChange: (channel: OtpChannel) => void;
   available: boolean;
+  checking?: boolean;
+  checkFailed?: boolean;
   disabled?: boolean;
 }) {
   const labelId = useId();
@@ -74,7 +79,9 @@ export function OtpChannelPicker({
       </div>
       {!available && (
         <span id={hintId} className="text-sm text-muted-foreground">
-          Код в Telegram скоро — пока присылаем в WhatsApp.
+          {checking ? "Проверяем доступность Telegram…" : checkFailed
+            ? "Не удалось проверить Telegram. Обновите страницу или используйте WhatsApp."
+            : "Telegram сейчас отключён — получите код в WhatsApp."}
         </span>
       )}
     </div>
