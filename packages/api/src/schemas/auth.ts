@@ -151,10 +151,26 @@ export const referralCodeSchema = z
 export const phoneRegisterInputSchema = z.object({
   phone: phoneSchema,
   otp: otpSchema,
+  /** Клиент задаёт пароль при регистрации — потом вход по телефону и паролю. */
+  password: z.string().min(8, "Не короче 8 символов").max(72, "Не длиннее 72 символов").optional(),
   /** REF-01: по приглашению. Тот же deviceId, что ушёл в visit, — по нему сервер отсекает самореферал. */
   referralCode: referralCodeSchema.optional(),
 });
-export type PhoneRegisterInput = { phone: string; otp: string; referralCode?: string };
+export type PhoneRegisterInput = { phone: string; otp: string; password?: string; referralCode?: string };
+
+// Форма регистрации клиента: телефон + пароль (шаг 1) и код (шаг 2). Пароли должны совпасть.
+const clientSignUpBase = z.object({
+  phone: phoneSchema,
+  password: z.string().min(8, "Не короче 8 символов").max(72, "Не длиннее 72 символов"),
+  repeatPassword: z.string(),
+});
+export const clientSignUpStartSchema = clientSignUpBase.superRefine((v, ctx) => {
+  if (v.password !== v.repeatPassword) ctx.addIssue({ code: "custom", path: ["repeatPassword"], message: "Пароли не совпадают" });
+});
+export const clientSignUpSchema = clientSignUpBase.extend({ otp: otpSchema }).superRefine((v, ctx) => {
+  if (v.password !== v.repeatPassword) ctx.addIssue({ code: "custom", path: ["repeatPassword"], message: "Пароли не совпадают" });
+});
+export type ClientSignUpInput = { phone: string; password: string; repeatPassword: string; otp: string };
 
 /**
  * Регистрация владельца заведения по коду приглашения: почта, пароль, телефон и код

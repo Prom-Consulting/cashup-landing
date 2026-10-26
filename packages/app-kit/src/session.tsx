@@ -267,7 +267,7 @@ export function useSetupPassword() {
 export function useRegisterByPhone() {
   const { api, signIn } = useSession();
   return useMutation({
-    mutationFn: (input: { phone: string; otp: string; referralCode?: string }) => authApi(api).registerByPhone(input),
+    mutationFn: (input: { phone: string; otp: string; password?: string; referralCode?: string }) => authApi(api).registerByPhone(input),
     onSuccess: (tokens) => signIn(tokens),
   });
 }

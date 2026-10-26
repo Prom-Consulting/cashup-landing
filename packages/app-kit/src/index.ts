@@ -28,3 +28,5 @@ export * from "./notification-channel";
 
 export * from "./tariffs";
 export * from "./legal";
+
+export * from "./client-auth";

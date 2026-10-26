@@ -1,5 +1,5 @@
 import { ApiError } from "@loal/api";
-import { PhoneSignInForm } from "@loal/app-kit";
+import { ClientAuthForm } from "@loal/app-kit";
 import { Button, Loading } from "@loal/ui/shadcn";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -16,7 +16,7 @@ export function ReferralPage() {
   const { code = "" } = useParams();
   const navigate = useNavigate();
   const visit = useReferralVisit(code);
-  const [referral, setReferral] = useState<string | undefined>(code);
+  const [referral] = useState<string | undefined>(code);
 
   const status = visit.error instanceof ApiError ? visit.error.status : null;
   useEffect(() => {
@@ -64,13 +64,9 @@ export function ReferralPage() {
           закрывать часть покупки у партнёров.
         </p>
       </div>
-      <PhoneSignInForm
+      <ClientAuthForm
         siteUrl={SITE_URL}
         referralCode={referral}
-        onReferralRejected={() => {
-          forgetReferral();
-          setReferral(undefined);
-        }}
         onDone={({ isNewAccount, phone }) => {
           forgetReferral();
           rememberPhone(phone);
