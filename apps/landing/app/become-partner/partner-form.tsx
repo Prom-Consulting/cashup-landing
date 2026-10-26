@@ -138,7 +138,7 @@ async function call(path: string, body?: unknown, token?: string) {
  */
 const DRAFT_KEY = "loal.partner-onboarding";
 const TOKEN_TTL = 29 * 60_000;
-type Draft = { tariff?: BusinessTariff; values: Values; requestId: string | null; token: string | null; tokenUntil: number; point?: Point | null };
+type Draft = { tariff?: BusinessTariff; values: Values; requestId: string | null; token: string | null; tokenUntil: number; point?: Point | null; referralCode?: string | null };
 
 function readDraft(): Partial<Draft> {
   try {
@@ -188,6 +188,8 @@ export function PartnerForm() {
   const [resendAt, setResendAt] = useState(0);
   const [resendSeconds, setResendSeconds] = useState(0);
   const requestId = useRef<string | null>(null);
+  // «Приведи заведение»: код реферера из ссылки (?ref=…), едет в заявку.
+  const referralCode = useRef<string | null>(null);
   const restored = useRef(false);
   const root = useRef<HTMLDivElement>(null);
 
@@ -202,14 +204,17 @@ export function PartnerForm() {
       setToken(draft.token);
       setTokenUntil(draft.tokenUntil ?? 0);
     }
-    const selected = new URLSearchParams(window.location.search).get("tariff");
+    const params = new URLSearchParams(window.location.search);
+    const selected = params.get("tariff");
     if (isTariff(selected)) setTariff(selected);
+    // Код реферера живёт в ссылке через весь поток; черновик — запасной путь на перезагрузку.
+    referralCode.current = params.get("ref")?.slice(0, 64) ?? draft.referralCode ?? null;
     restored.current = true;
   }, []);
 
   useEffect(() => {
     if (!restored.current) return;
-    writeDraft({ tariff, values, requestId: requestId.current, token, tokenUntil, point });
+    writeDraft({ tariff, values, requestId: requestId.current, token, tokenUntil, point, referralCode: referralCode.current });
   }, [tariff, values, token, tokenUntil, sent, point]);
 
   // Вставили ссылку 2ГИС с координатами — сразу ставим по ним точку на карте
@@ -389,6 +394,7 @@ export function PartnerForm() {
         comment: values.comment.trim(),
         ...(storefront ? { storefront } : {}),
         ...(plan !== "loyalty" ? { password } : {}),
+        ...(referralCode.current ? { referralCode: referralCode.current } : {}),
       },
       proof,
     );

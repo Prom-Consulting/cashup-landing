@@ -16,6 +16,7 @@ import { CashbackPage } from "../pages/cashback";
 import { SettingsPage } from "../pages/settings";
 import { StorefrontPage } from "../pages/storefront";
 import { SupportPage } from "../pages/support";
+import { BusinessReferralsPage } from "../pages/business-referrals";
 import { TeamPage } from "../pages/team";
 import { WebhooksPage } from "../pages/webhooks";
 import { AppLayout } from "../widgets/app-layout";
@@ -91,6 +92,14 @@ export function AppRouter() {
           element={
             <OwnerOnly title="Обмен с 1С">
               <OnecPage />
+            </OwnerOnly>
+          }
+        />
+        <Route
+          path="business-referrals"
+          element={
+            <OwnerOnly title="Пригласить заведение">
+              <BusinessReferralsPage />
             </OwnerOnly>
           }
         />

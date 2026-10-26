@@ -7,6 +7,7 @@ import {
   NfcIcon,
   Settings02Icon,
   Store01Icon,
+  UserAdd01Icon,
   UserGroupIcon,
   UserSettings01Icon,
 } from "@hugeicons/core-free-icons";
@@ -31,6 +32,14 @@ export type SettingsSection = {
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   { to: "/storefront", label: "Витрина", about: "Как заведение выглядит в каталоге Loal", icon: Store01Icon, group: "Заведение" },
   { to: "/billing", label: "Оплата", about: "Подписка Loal и счета", icon: Invoice01Icon, group: "Заведение", access: "owner" },
+  {
+    to: "/business-referrals",
+    label: "Пригласить заведение",
+    about: "Приведите заведение — получите бесплатные месяцы тарифа",
+    icon: UserAdd01Icon,
+    group: "Заведение",
+    access: "owner",
+  },
   {
     to: "/checkout-points",
     label: "NFC-кассы",
