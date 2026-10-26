@@ -17,6 +17,8 @@ type ShellProps = {
   renderLink: (item: NavItem) => ReactNode;
   userLabel?: string;
   onLogout: () => void;
+  /** Элемент в шапке справа (например колокольчик уведомлений). Рисует приложение. */
+  headerSlot?: ReactNode;
   children: ReactNode;
 };
 
@@ -66,7 +68,7 @@ function Panel({
  * приходят снаружи: пакет не знает про react-router.
  */
 export function AppShell(props: ShellProps) {
-  const { title, direction, children } = props;
+  const { title, direction, children, headerSlot } = props;
   const corporate = direction === "corporate";
   const [open, setOpen] = useState(false);
   const panelTone = corporate ? "bg-graphite text-white" : "bg-paper text-graphite";
@@ -81,6 +83,7 @@ export function AppShell(props: ShellProps) {
           corporate ? "bg-graphite text-white" : "border-r border-smoke bg-paper"
         }`}
       >
+        {headerSlot && <div className="flex justify-end">{headerSlot}</div>}
         <Panel {...props} />
       </aside>
 
@@ -92,14 +95,17 @@ export function AppShell(props: ShellProps) {
           }`}
         >
           <Logo size="sm" direction={direction} tone={corporate ? "light" : "dark"} />
-          <DialogPrimitive.Trigger
-            className={`-mr-2 inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-base font-semibold ${
-              corporate ? "hover:bg-white/10" : "hover:bg-graphite/5"
-            }`}
-          >
-            <Icon icon={Menu01Icon} size={22} />
-            Меню
-          </DialogPrimitive.Trigger>
+          <div className="flex items-center gap-1">
+            {headerSlot}
+            <DialogPrimitive.Trigger
+              className={`-mr-2 inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-base font-semibold ${
+                corporate ? "hover:bg-white/10" : "hover:bg-graphite/5"
+              }`}
+            >
+              <Icon icon={Menu01Icon} size={22} />
+              Меню
+            </DialogPrimitive.Trigger>
+          </div>
         </header>
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-graphite/45 data-[state=open]:animate-[shell-fade_160ms_ease-out] lg:hidden" />

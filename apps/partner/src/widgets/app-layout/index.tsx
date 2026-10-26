@@ -9,6 +9,7 @@ import { type MerchantTariff } from "@loal/api";
 import { useTariff } from "../../entities/merchant/api";
 import { useSupportTickets } from "../../entities/support/api";
 import { useCurrentMerchant } from "../../entities/session/model";
+import { NotificationsBell } from "../notifications-bell";
 import { CASHIER_APP_URL } from "../../shared/config/env";
 import { isSettingsPath } from "../../shared/config/settings-sections";
 import { SettingsAside } from "./settings-aside";
@@ -57,6 +58,7 @@ export function AppLayout() {
       nav={items}
       userLabel={label}
       onLogout={logout}
+      headerSlot={<NotificationsBell />}
       renderLink={(item) => {
         const withIcon = items.find((entry) => entry.to === item.to);
         return (
