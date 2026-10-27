@@ -168,6 +168,13 @@ export const authApi = (api: ApiClient) => ({
 
   me: () => api.request(sessionSchema, "/auth/me"),
 
+  /**
+   * Пруф для онбординга из текущей сессии (филиализация): вошедший владелец открывает ещё одно
+   * заведение без кода из WhatsApp — телефон сервер берёт из сессии. Токен живёт 30 минут.
+   */
+  partnerOnboardingSessionProof: () =>
+    api.request(z.object({ token: z.string().min(1) }), "/auth/partner-onboarding/session-proof", { method: "POST" }),
+
   profile: () => api.request(profileSchema, "/auth/me/profile"),
 
   /** Гасит сессию на сервере: и access, и refresh этого входа дальше получат 401. Ответ — 204. */

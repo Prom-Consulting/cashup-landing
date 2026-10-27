@@ -8,6 +8,7 @@ export * from "./phone-sign-in";
 export * from "./register-form";
 export * from "./session";
 export * from "./storefront-form";
+export * from "./open-store-form";
 export * from "./promo-code-form";
 export * from "./profile-form";
 export * from "./qr-scanner";

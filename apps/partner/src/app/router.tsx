@@ -16,6 +16,7 @@ import { CashbackPage } from "../pages/cashback";
 import { SettingsPage } from "../pages/settings";
 import { StorefrontPage } from "../pages/storefront";
 import { StoresPage } from "../pages/stores";
+import { OpenStorePage } from "../pages/open-store";
 import { SupportPage } from "../pages/support";
 import { BusinessReferralsPage } from "../pages/business-referrals";
 import { NotificationsPage } from "../pages/notifications";
@@ -68,6 +69,14 @@ export function AppRouter() {
           element={
             <OwnerOnly title="Мои заведения">
               <StoresPage />
+            </OwnerOnly>
+          }
+        />
+        <Route
+          path="stores/new"
+          element={
+            <OwnerOnly title="Новое заведение">
+              <OpenStorePage />
             </OwnerOnly>
           }
         />

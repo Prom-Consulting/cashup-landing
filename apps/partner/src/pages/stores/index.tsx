@@ -1,8 +1,7 @@
 import { Add01Icon, ArrowRight01Icon, CheckmarkCircle02Icon, Store02Icon } from "@hugeicons/core-free-icons";
 import { Badge, Button, Card, Icon, PageHeader } from "@loal/ui/shadcn";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useCurrentMerchant } from "../../entities/session/model";
-import { SITE_URL } from "../../shared/config/env";
 
 const roleLabel = (role: string) =>
   role === "admin" ? "Владелец" : role === "branch_admin" ? "Администратор филиала" : "Кассир";
@@ -58,13 +57,13 @@ export function StoresPage() {
       </Card>
 
       {canManage && (
-        <a
-          href={`${SITE_URL.replace(/\/$/, "")}/become-partner`}
+        <Link
+          to="/stores/new"
           className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border p-4 text-base font-semibold text-flame-ink transition-colors hover:border-flame/40"
         >
           <Icon icon={Add01Icon} size={20} />
           Открыть новое заведение
-        </a>
+        </Link>
       )}
     </section>
   );
