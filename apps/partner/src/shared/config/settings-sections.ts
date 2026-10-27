@@ -7,6 +7,7 @@ import {
   NfcIcon,
   Settings02Icon,
   Store01Icon,
+  Store02Icon,
   UserAdd01Icon,
   UserGroupIcon,
   UserSettings01Icon,
@@ -30,6 +31,7 @@ export type SettingsSection = {
 };
 
 export const SETTINGS_SECTIONS: SettingsSection[] = [
+  { to: "/stores", label: "Мои заведения", about: "Заведения на аккаунте: переключение и новое", icon: Store02Icon, group: "Заведение", access: "owner" },
   { to: "/storefront", label: "Витрина", about: "Как заведение выглядит в каталоге Loal", icon: Store01Icon, group: "Заведение" },
   { to: "/billing", label: "Оплата", about: "Подписка Loal и счета", icon: Invoice01Icon, group: "Заведение", access: "owner" },
   {
