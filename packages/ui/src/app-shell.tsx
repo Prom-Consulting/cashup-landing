@@ -31,7 +31,8 @@ function Panel({
   userLabel,
   onLogout,
   onNavigate,
-}: Omit<ShellProps, "children"> & { onNavigate?: () => void }) {
+  topRight,
+}: Omit<ShellProps, "children" | "headerSlot"> & { onNavigate?: () => void; topRight?: ReactNode }) {
   const corporate = direction === "corporate";
   // Ссылки рисует приложение, поэтому закрываем меню по клику на любую из них
   const closeOnLink = (event: MouseEvent<HTMLElement>) => {
@@ -39,9 +40,12 @@ function Panel({
   };
   return (
     <>
-      <div>
-        <Logo direction={direction} tone={corporate ? "light" : "dark"} />
-        <p className={`mt-3 text-base ${corporate ? "text-slate-soft" : "text-slate"}`}>{title}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <Logo direction={direction} tone={corporate ? "light" : "dark"} />
+          <p className={`mt-3 text-base ${corporate ? "text-slate-soft" : "text-slate"}`}>{title}</p>
+        </div>
+        {topRight && <div className="-mr-1 shrink-0">{topRight}</div>}
       </div>
       <nav className="flex flex-col gap-1" onClick={closeOnLink}>
         {nav.map((item) => renderLink(item))}
@@ -83,8 +87,7 @@ export function AppShell(props: ShellProps) {
           corporate ? "bg-graphite text-white" : "border-r border-smoke bg-paper"
         }`}
       >
-        {headerSlot && <div className="flex justify-end">{headerSlot}</div>}
-        <Panel {...props} />
+        <Panel {...props} topRight={headerSlot} />
       </aside>
 
       {/* Телефон: разделов десяток — в шапке только знак и кнопка, сами разделы в выезжающем меню */}
