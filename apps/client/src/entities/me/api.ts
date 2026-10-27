@@ -5,9 +5,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 export const meKeys = {
   card: ["me", "card"] as const,
   history: (page: number) => ["me", "history", page] as const,
+  spending: ["me", "spending"] as const,
   offer: ["me", "subscription", "offer"] as const,
   payment: (id: string) => ["me", "subscription", "payment", id] as const,
 };
+
+/** «Где я трачу»: общий итог и разбивка по заведениям. 404 — карты ещё нет. */
+export function useSpending() {
+  const api = useApi();
+  return useQuery({ queryKey: meKeys.spending, queryFn: () => meApi(api).spending(), retry: false });
+}
 
 /** 404 значит «карты ещё нет» — это состояние экрана, а не ошибка. */
 export function useMyCard() {

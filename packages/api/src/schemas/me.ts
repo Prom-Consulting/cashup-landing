@@ -101,6 +101,22 @@ export const historyPageSchema = z.looseObject({
 });
 export type HistoryPage = z.infer<typeof historyPageSchema>;
 
+/** «Где я трачу»: сколько потрачено бонусами всего и по каждому заведению. */
+export const spendingMerchantSchema = z.looseObject({
+  merchantId: z.string(),
+  merchantName: z.string().nullable(),
+  spent: z.number(),
+  visits: z.number(),
+  lastAt: z.string(),
+});
+export type SpendingMerchant = z.infer<typeof spendingMerchantSchema>;
+
+export const spendingSchema = z.looseObject({
+  total: z.number(),
+  byMerchant: z.array(spendingMerchantSchema),
+});
+export type Spending = z.infer<typeof spendingSchema>;
+
 /** Оплата подписки человеком, у которого карты ещё нет: карта заводится по телефону. */
 export const paySubscriptionByPhoneInputSchema = z.object({
   phone: phoneSchema,

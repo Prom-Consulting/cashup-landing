@@ -3,6 +3,7 @@ import {
   historyPageSchema,
   myCardSchema,
   referralDashboardSchema,
+  spendingSchema,
   subscriptionOfferSchema,
   subscriptionPaymentSchema,
 } from "../schemas/me";
@@ -14,6 +15,9 @@ export const meApi = (api: ApiClient) => ({
 
   history: (query: { page?: number; pageSize?: number } = {}) =>
     api.request(historyPageSchema, "/v1/me/history", { query }),
+
+  /** «Где я трачу»: общий итог и разбивка по заведениям. */
+  spending: () => api.request(spendingSchema, "/v1/me/spending"),
 
   /** Предложение подписки для того, кто вошёл. Без карты — 404: сначала первая карта. */
   subscriptionOffer: () => api.request(subscriptionOfferSchema, "/v1/me/subscription/offer"),

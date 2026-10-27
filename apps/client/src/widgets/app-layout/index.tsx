@@ -1,4 +1,4 @@
-import { Clock01Icon, CreditCardIcon, Settings02Icon, UserAdd01Icon } from "@hugeicons/core-free-icons";
+import { Clock01Icon, Coins01Icon, CreditCardIcon, Settings02Icon, UserAdd01Icon } from "@hugeicons/core-free-icons";
 import { navLinkClass } from "@loal/ui/app-shell";
 import { Logo } from "@loal/ui/logo";
 import { Icon } from "@loal/ui/shadcn";
@@ -9,6 +9,7 @@ import { LinkedPromoNotice } from "../../features/promo/linked-promo-notice";
 const nav = [
   { to: "/", label: "Карта", icon: CreditCardIcon },
   { to: "/history", label: "История", icon: Clock01Icon },
+  { to: "/spending", label: "Где я трачу", icon: Coins01Icon },
   { to: "/referrals", label: "Друзья", icon: UserAdd01Icon },
   { to: "/settings", label: "Настройки", icon: Settings02Icon },
 ];

@@ -10,6 +10,7 @@ import { PaymentReturnPage } from "../pages/payment-return";
 import { ReferralPage } from "../pages/referral";
 import { ReferralsPage } from "../pages/referrals";
 import { SettingsPage } from "../pages/settings";
+import { SpendingPage } from "../pages/spending";
 import { AppLayout } from "../widgets/app-layout";
 import { PageFrame } from "../widgets/page-frame";
 
@@ -42,6 +43,7 @@ export function AppRouter() {
       >
         <Route index element={<MyCardPage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="spending" element={<SpendingPage />} />
         <Route path="referrals" element={<ReferralsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         {/* Сюда OctōPAY возвращает после оплаты подписки (OCTOPAY_CLIENT_RETURN_URL) */}
