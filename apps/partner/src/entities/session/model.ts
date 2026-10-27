@@ -48,6 +48,8 @@ function useCurrentMerchantValue() {
       logout,
       memberships,
       membership,
+      /** Выбирал ли человек магазин на этом устройстве (для экрана выбора на входе). */
+      hasChosen: chosen != null && memberships.some((item) => item.merchantId === chosen),
       merchantId: membership?.merchantId ?? null,
       role: membership?.role ?? null,
       /**
@@ -64,7 +66,7 @@ function useCurrentMerchantValue() {
       label: session?.email ?? "",
       selectMerchant,
     }),
-    [session, status, logout, memberships, membership, selectMerchant],
+    [session, status, logout, memberships, membership, chosen, selectMerchant],
   );
 }
 

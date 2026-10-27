@@ -10,6 +10,7 @@ import { useTariff } from "../../entities/merchant/api";
 import { useSupportTickets } from "../../entities/support/api";
 import { useCurrentMerchant } from "../../entities/session/model";
 import { NotificationsBell } from "../notifications-bell";
+import { StoreChooser } from "../store-chooser";
 import { CASHIER_APP_URL } from "../../shared/config/env";
 import { isSettingsPath } from "../../shared/config/settings-sections";
 import { SettingsAside } from "./settings-aside";
@@ -32,7 +33,7 @@ const tillLabel = (abilities: { redeem: boolean; cashback: boolean }) =>
   abilities.redeem && abilities.cashback ? "Бонусы и кэшбэк" : abilities.cashback ? "Дать кэшбэк" : "Списать бонусы";
 
 export function AppLayout() {
-  const { label, logout, memberships, merchantId, selectMerchant, canRunBranch } = useCurrentMerchant();
+  const { label, logout, memberships, merchantId, selectMerchant, canRunBranch, hasChosen } = useCurrentMerchant();
   const { tariff, abilities } = useTariff(merchantId ?? "");
   const items = nav
     .filter((item) => !item.tariff || item.tariff === tariff)
@@ -50,6 +51,9 @@ export function AppLayout() {
   // Кассир работает в своём кабинете, cashier.loal.kg: здесь владелец и администратор филиала
   if (memberships.length > 0 && memberships.every((m) => m.role === "staff"))
     return <CashierElsewhere onLogout={logout} />;
+
+  // Несколько заведений на аккаунте — выбираем, с каким работать (выбор запоминается).
+  if (memberships.length > 1 && !hasChosen) return <StoreChooser />;
 
   return (
     <AppShell
@@ -86,7 +90,7 @@ export function AppLayout() {
               id={selectId}
               invalid={false}
               value={merchantId}
-              options={memberships.map((m) => ({ id: m.merchantId, label: m.merchantId }))}
+              options={memberships.map((m) => ({ id: m.merchantId, label: m.merchantName ?? m.merchantId }))}
               onChange={selectMerchant}
             />
           </div>

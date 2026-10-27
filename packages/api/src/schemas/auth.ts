@@ -26,6 +26,8 @@ export const merchantMemberRoleSchema = z.string();
 export const membershipSchema = z.looseObject({
   memberId: z.string(),
   merchantId: z.string(),
+  /** Название заведения — для выбора магазина на входе. Старый токен его не знает. */
+  merchantName: z.string().nullish(),
   role: merchantMemberRoleSchema,
   /**
    * Филиалы сотрудника: один человек может работать в нескольких филиалах одного магазина.

@@ -125,7 +125,11 @@ app → pages → widgets → features → entities → shared
   приглашения не нужно (приглашение — прежний путь). `409 MERCHANT_OWNER_UNAVAILABLE` — номер нельзя сделать владельцем,
   у поля. `DELETE` магазина — архив (`deletedAt`, `?includeDeleted=true`), восстановления нет, правки — `410 MERCHANT_DELETED`;
   агентство смотрит архив только на чтение; через 30 дней после удаления сервер обезличивает магазин (название остаётся);
-- один номер — одно живое заведение в любой роли (`409 PHONE_HAS_ACTIVE_MERCHANT` / `EMPLOYEE_ALREADY_ASSIGNED`), удаление
+- филиализация: владелец (`admin`) может владеть **несколькими** заведениями на один номер (миграция core `0063`,
+  индекс `merchant_members_one_active` теперь только для `staff`/`branch_admin`); при входе в кабинет партнёра выбирает
+  заведение (`StoreChooser`, выбор живёт на устройстве), новое открывает тем же номером через онбординг. Сотрудник
+  (`staff`/`branch_admin`) по-прежнему привязан к одному заведению (`409 EMPLOYEE_ALREADY_ASSIGNED`). Имя заведения теперь
+  в токене (`merchants[].merchantName`). Создание магазина на номер активного сотрудника — `409 PHONE_HAS_ACTIVE_MERCHANT`; удаление
   сразу освобождает номера. Состояние заведения — `lifecycle` (`lifecycleOf`, `MERCHANT_LIFECYCLE_LABELS`): `pending_review`
   подтверждают (activate) или отклоняют с причиной (`…/reject`, заявка без заведения — `partner-registrations/{id}/reject`);
   список `?includeApplications=true` даёт и заявки без заведения (`kind: "application"`, страницы нет). `DELETE ?octopay=keep|delete`
