@@ -105,6 +105,8 @@ export type HistoryPage = z.infer<typeof historyPageSchema>;
 export const spendingMerchantSchema = z.looseObject({
   merchantId: z.string(),
   merchantName: z.string().nullable(),
+  category: z.string().nullish(),
+  logoUrl: z.string().nullish(),
   spent: z.number(),
   visits: z.number(),
   lastAt: z.string(),
@@ -113,6 +115,8 @@ export type SpendingMerchant = z.infer<typeof spendingMerchantSchema>;
 
 export const spendingSchema = z.looseObject({
   total: z.number(),
+  subscriptionsPaid: z.number().nullish(),
+  surplus: z.number().nullish(),
   byMerchant: z.array(spendingMerchantSchema),
 });
 export type Spending = z.infer<typeof spendingSchema>;
