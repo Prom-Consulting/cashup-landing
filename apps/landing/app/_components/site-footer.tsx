@@ -29,7 +29,7 @@ const link = "font-medium underline-offset-4 hover:underline";
 
 export function SiteFooter() {
   return (
-    <footer id="contacts" className="overflow-hidden">
+    <footer id="contacts" className="shrink-0 overflow-hidden">
       <div className="mx-auto max-w-[1512px] px-5 sm:px-12">
         <div className="rounded-[32px] bg-white p-7 shadow-[0_2rem_4rem_rgb(22_21_21/0.05)] sm:rounded-[40px] sm:p-11">
           <div className="grid gap-10 md:grid-cols-2 md:gap-8 xl:grid-cols-[1.4fr_1fr_1fr_1fr_1.1fr]">
