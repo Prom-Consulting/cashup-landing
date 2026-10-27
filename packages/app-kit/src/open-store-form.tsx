@@ -11,6 +11,7 @@ import {
 } from "@loal/api";
 import { FocusFirstError, fieldError, zodValidate } from "@loal/forms";
 import { Button, Card, ChipSelect, Icon, Input, Label, NativeSelect, Textarea } from "@loal/ui/shadcn";
+import LocationPicker, { type MapMarker, type Point } from "@loal/ui/location-picker";
 import { Form, Formik } from "formik";
 import { useRef, useState } from "react";
 import { useApi } from "./session";
@@ -37,11 +38,19 @@ class SubmitError extends Error {}
  * сессии (session-proof), код из WhatsApp не нужен. Создаётся заявка (pending_review), которую
  * подтверждает агентство — после одобрения заведение появляется в «Моих заведениях».
  */
-export function OpenStoreForm({ onDone }: { onDone?: () => void }) {
+export function OpenStoreForm({
+  onDone,
+  existingPoints,
+}: {
+  onDone?: () => void;
+  /** Уже открытые заведения владельца — показываем на карте для контекста. */
+  existingPoints?: MapMarker[];
+}) {
   const api = useApi();
   const base = api.baseUrl.replace(/\/$/, "");
   const [tariff, setTariff] = useState<(typeof LOAL_TARIFFS)[number]>("even_more_clients");
   const [audiences, setAudiences] = useState<string[]>([]);
+  const [point, setPoint] = useState<Point | null>(null);
   const [logo, setLogo] = useState<File | null>(null);
   const [photos, setPhotos] = useState<File[]>([]);
   const [progress, setProgress] = useState("");
@@ -86,7 +95,7 @@ export function OpenStoreForm({ onDone }: { onDone?: () => void }) {
     } finally {
       setProgress("");
     }
-    const geo = coordsFrom2gis(values.twogisUrl);
+    const geo = point ?? coordsFrom2gis(values.twogisUrl);
     const storefront = {
       description: values.description.trim() || null,
       address: values.address.trim() || null,
@@ -150,6 +159,11 @@ export function OpenStoreForm({ onDone }: { onDone?: () => void }) {
       validate={zodValidate(openStoreFormSchema)}
       onSubmit={async (values, helpers) => {
         helpers.setStatus(undefined);
+        if (!point && !coordsFrom2gis(values.twogisUrl)) {
+          helpers.setStatus("Поставьте точку на карте или вставьте ссылку на заведение в 2ГИС.");
+          helpers.setSubmitting(false);
+          return;
+        }
         try {
           const { token: proof } = await authApi(api).partnerOnboardingSessionProof();
           await createStore(proof, values);
@@ -240,15 +254,37 @@ export function OpenStoreForm({ onDone }: { onDone?: () => void }) {
               )}
             </div>
 
-            <div className="grid gap-6 sm:grid-cols-2">
-              <TextField name="address" label="Адрес" form={form} placeholder="Улица и дом" />
-              <TextField
-                name="twogisUrl"
-                label="Карточка в 2ГИС"
-                form={form}
-                placeholder="https://2gis.kg/bishkek/firm/…"
-                hint="По ней заведение встанет точкой на карте каталога."
-              />
+            <TextField name="address" label="Адрес" form={form} placeholder="Улица и дом" />
+
+            <div>
+              <p className="text-base font-medium text-foreground">Точка на карте</p>
+              <p className="mt-1 mb-3 text-base text-muted-foreground">
+                Нажмите на карту, где находится заведение, или вставьте ссылку 2ГИС ниже.
+                {existingPoints && existingPoints.length > 0 && (
+                  <> Янтарные метки — ваши заведения.</>
+                )}
+              </p>
+              <LocationPicker value={point} onChange={setPoint} markers={existingPoints} />
+              <div className="mt-4">
+                <Label htmlFor="twogisUrl">Ссылка 2ГИС (необязательно)</Label>
+                <Input
+                  id="twogisUrl"
+                  name="twogisUrl"
+                  className="mt-2"
+                  placeholder="https://2gis.kg/bishkek/firm/…"
+                  value={form.values.twogisUrl}
+                  onChange={form.handleChange}
+                  onBlur={(e) => {
+                    form.handleBlur(e);
+                    const geo = coordsFrom2gis(form.values.twogisUrl);
+                    if (geo) setPoint(geo);
+                  }}
+                  invalid={Boolean(fieldError(form, "twogisUrl"))}
+                />
+                {fieldError(form, "twogisUrl") && (
+                  <p className="mt-2 text-base text-destructive">{fieldError(form, "twogisUrl")}</p>
+                )}
+              </div>
             </div>
 
             <div>

@@ -20,11 +20,9 @@ export const openStoreFormSchema = z.object({
   category: z.string().refine((value) => categoryIds.includes(value), "Выберите категорию"),
   description: z.string().trim().max(2000, "Не длиннее 2000 символов").default(""),
   address: z.string().trim().min(1, "Укажите адрес — улицу и дом").max(200, "Не длиннее 200 символов"),
-  twogisUrl: z
-    .string()
-    .trim()
-    .min(1, "Вставьте ссылку на заведение в 2ГИС")
-    .refine((value) => merchantProfileFormSchema.shape.twogisUrl.safeParse(value).success, "Проверьте ссылку 2ГИС"),
+  // Локацию можно задать точкой на карте или ссылкой 2ГИС — поэтому поле необязательное,
+  // а «хотя бы одно» проверяет сама форма (у карты нет поля Formik).
+  twogisUrl: merchantProfileFormSchema.shape.twogisUrl,
   instagramUrl: merchantProfileFormSchema.shape.instagramUrl,
   comment: z.string().trim().max(500, "Не длиннее 500 символов").default(""),
 });

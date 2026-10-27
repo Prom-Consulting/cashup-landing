@@ -1,11 +1,13 @@
 "use client";
 
-import { Map as MapLibreMap, Marker } from "maplibre-gl";
+import { LngLatBounds, Map as MapLibreMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
 import type { StyleSpecification } from "maplibre-gl";
 
 export type Point = { lat: number; lng: number };
+/** Чужая точка на карте — например, уже открытое заведение этого же владельца. */
+export type MapMarker = Point & { label?: string };
 
 /** Центр Бишкека — карта открывается здесь, пока точки нет. */
 export const CITY_CENTER: [number, number] = [74.6059, 42.8746];
@@ -41,14 +43,20 @@ export const mapStyle: StyleSpecification = {
 };
 
 
-/** Метка заведения — тот же огонёк, что на карте партнёров. */
-function pinElement() {
+/**
+ * Метка заведения — тот же огонёк, что на карте партнёров. `other` рисует уже открытое
+ * заведение владельца: янтарная, меньше, не перетаскивается (для контекста при выборе филиала).
+ */
+function pinElement(other = false) {
   const pin = document.createElement("div");
   pin.setAttribute("aria-hidden", "true");
+  const size = other ? 26 : 34;
   pin.style.cssText =
-    "width:34px;height:34px;border-radius:999px 999px 999px 0;transform:rotate(-45deg);" +
-    "background:linear-gradient(135deg,#FF4A3E,#FF5D34);border:3px solid #fff;" +
-    "box-shadow:0 8px 20px rgb(255 74 62 / .45);cursor:grab";
+    `width:${size}px;height:${size}px;border-radius:999px 999px 999px 0;transform:rotate(-45deg);` +
+    (other
+      ? "background:linear-gradient(135deg,#FFA33B,#FFCC91);box-shadow:0 6px 16px rgb(255 163 59 / .5);"
+      : "background:linear-gradient(135deg,#FF4A3E,#FF5D34);box-shadow:0 8px 20px rgb(255 74 62 / .45);cursor:grab;") +
+    "border:3px solid #fff;";
   return pin;
 }
 
@@ -63,16 +71,23 @@ export default function LocationPicker({
   value,
   onChange,
   disabled,
+  markers,
 }: {
   value: Point | null;
   onChange: (point: Point | null) => void;
   disabled?: boolean;
+  /** Уже открытые заведения владельца — показываем для контекста при выборе нового филиала. */
+  markers?: MapMarker[];
 }) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null);
   const marker = useRef<Marker | null>(null);
+  const others = useRef<Marker[]>([]);
+  const markersRef = useRef(markers);
+  markersRef.current = markers;
   const change = useRef(onChange);
   change.current = onChange;
+  const markersKey = (markers ?? []).map((m) => `${m.lat},${m.lng}`).join("|");
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState("");
   // Старый телефон или браузер без WebGL2: карта не создаётся, форма работает без неё
@@ -134,6 +149,36 @@ export default function LocationPicker({
     const far = Math.abs(center.lat - value.lat) > 0.01 || Math.abs(center.lng - value.lng) > 0.01;
     if (far) instance.easeTo({ center: [value.lng, value.lat], zoom: Math.max(instance.getZoom(), 15.5), duration: 700 });
   }, [value]);
+
+  // Чужие метки (заведения владельца): перерисовываем при изменении набора и, пока своя точка
+  // не выбрана, вписываем их в кадр — так видно, где уже есть заведения.
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance) return;
+    others.current.forEach((m) => m.remove());
+    const list = markersRef.current ?? [];
+    others.current = list.map((pt) => {
+      const element = pinElement(true);
+      if (pt.label) element.title = pt.label;
+      return new Marker({ element, draggable: false, anchor: "bottom-left", offset: [-2, 2] })
+        .setLngLat([pt.lng, pt.lat])
+        .addTo(instance);
+    });
+    if (!value && list.length) {
+      const fit = () => {
+        if (list.length === 1) instance.easeTo({ center: [list[0].lng, list[0].lat], zoom: 13, duration: 0 });
+        else {
+          const bounds = new LngLatBounds();
+          list.forEach((pt) => bounds.extend([pt.lng, pt.lat]));
+          instance.fitBounds(bounds, { padding: 60, maxZoom: 14, duration: 0 });
+        }
+      };
+      if (instance.loaded()) fit();
+      else instance.once("load", fit);
+    }
+    // value нарочно вне зависимостей: набор чужих меток не зависит от своей точки
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [markersKey]);
 
   const locate = () => {
     setGeoError("");

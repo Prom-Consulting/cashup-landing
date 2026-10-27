@@ -1,4 +1,6 @@
 import { RequireAuth } from "@loal/app-kit";
+import { Loading } from "@loal/ui/shadcn";
+import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router";
 import { BillingPage } from "../pages/billing";
 import { CheckoutPointsPage } from "../pages/checkout-points";
@@ -16,7 +18,8 @@ import { CashbackPage } from "../pages/cashback";
 import { SettingsPage } from "../pages/settings";
 import { StorefrontPage } from "../pages/storefront";
 import { StoresPage } from "../pages/stores";
-import { OpenStorePage } from "../pages/open-store";
+// Карта (maplibre) тяжёлая — грузим страницу открытия заведения отдельным чанком.
+const OpenStorePage = lazy(() => import("../pages/open-store").then((m) => ({ default: m.OpenStorePage })));
 import { SupportPage } from "../pages/support";
 import { BusinessReferralsPage } from "../pages/business-referrals";
 import { NotificationsPage } from "../pages/notifications";
@@ -76,7 +79,9 @@ export function AppRouter() {
           path="stores/new"
           element={
             <OwnerOnly title="Новое заведение">
-              <OpenStorePage />
+              <Suspense fallback={<Loading rows={6} />}>
+                <OpenStorePage />
+              </Suspense>
             </OwnerOnly>
           }
         />
