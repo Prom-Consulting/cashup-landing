@@ -170,7 +170,8 @@ app → pages → widgets → features → entities → shared
   Код — секретное поле, нигде не храним. Счёт выставлять можно только при `ready` (`isOctopayIntegrationReady`;
   старый ответ без полей готовности — «не готово»); причина — `invoiceNotReadyReason` строкой, подсказки по ней;
 - тарифы Loal (ТЗ №5, `loalTariff` у магазина, подписки, кассы и в каталоге; `LOAL_TARIFFS`, `LOAL_TARIFF_LABELS`):
-  `more_clients` «Больше клиентов» (300 сом) — бонусы только копят, `even_more_clients` «Ещё больше клиентов» (8 750) —
+  `more_clients` «Больше клиентов» (подписка бесплатна — `priceKgs: 0`; вместо неё разовый NFC-стикер, см. ниже) —
+  бонусы только копят, `even_more_clients` «Ещё больше клиентов» (8 750) —
   только тратят, `very_many_clients` «Очень много клиентов» (15 700) — и то и другое; все прежние магазины — на нём.
   Касса по тарифу (`tariffAbilities`) — одна страница `/redeem`: «Больше клиентов» — только «Дать кэшбэк» (`CashbackForm`,
   `POST /v1/cards/{serial}/scan-confirm { purchaseAmount }`, процент считает сервер), «Ещё больше» — только списание,
@@ -182,6 +183,14 @@ app → pages → widgets → features → entities → shared
   В каталоге `acceptsBonuses: false` — пометка «здесь только копят». Цены тарифов — экран «Тарифы»; `merchantAccessPriceKgs`
   в настройках платформы сервер отклоняет. Бесплатные места и обычная цена задаются в тарифах. При заполнении лимита платят все. Публичная цена — `/v1/public/tariffs`, без кеша.
   Старые адреса `/v1/cashback`, `launch-offer` и коды `cashback|redeem|full` больше не используются.
+- NFC-стикеры: у «Больше клиентов» подписка бесплатна, зато заведение один раз оплачивает NFC-стикер — по нему
+  клиенты узнают магазин, онлайн-магазину выдаётся цифровой. Цена — настройка платформы `nfcStickerPriceKgs`
+  (экран «Настройки» админки, по умолчанию 1000); `GET /v1/public/tariffs` отдаёт её у `more_clients` как `oneTimeStickerKgs`.
+  Заказ: `GET/PATCH /admin/v1/merchants/{id}/nfc-sticker` (владелец/агентство, создаётся лениво для `more_clients`;
+  `PATCH { kind }` — физический/цифровой пока не оплачен), оплата — `POST …/nfc-sticker/pay` (разовый счёт OctōPAY,
+  `purpose: nfc_sticker`, webhook ставит `paid`). Раздел партнёра «NFC-стикер» (`/nfc-sticker`, `OwnerOnly`). Супер-админ:
+  экран «NFC-стикеры» (`/admin/v1/nfc-sticker-orders?status=paid|all`) — список со ссылкой магазина и выгрузкой в xlsx
+  (генератор `apps/admin/src/shared/lib/xlsx.ts`, без зависимостей) на печать оптом.
   В меню партнёра — только «Обзор», касса, «Счёт клиенту» и «Настройки»; остальные разделы собраны в «Настройках»
   (`shared/config/settings-sections`) с собственным боковым меню (`SettingsAside`);
 - счёт клиенту — `POST …/client-payments { requestId, amount }`: телефона нет, его вводит плательщик на странице

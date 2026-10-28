@@ -38,6 +38,13 @@ const PRICE_FIELDS = [
     name: "cardSubscriptionPriceKgs",
     label: "Подписка клиента",
     hint: "Месяц с 15 000 бонусов. По ней считаются оплаты клиентов по телефону и по карте.",
+    oneTime: false,
+  },
+  {
+    name: "nfcStickerPriceKgs",
+    label: "NFC-стикер заведения",
+    hint: "Разовый платёж на тарифе «Больше клиентов». По стикеру клиенты узнают магазин.",
+    oneTime: true,
   },
 ] as const;
 
@@ -48,6 +55,7 @@ function PricesCard({ settings }: { settings: PlatformSettings }) {
   const [saved, setSaved] = useState(false);
   const initialValues: PlatformPricesInput = {
     cardSubscriptionPriceKgs: settings.cardSubscriptionPriceKgs ?? "",
+    nfcStickerPriceKgs: settings.nfcStickerPriceKgs ?? "",
   };
 
   return (
@@ -88,7 +96,7 @@ function PricesCard({ settings }: { settings: PlatformSettings }) {
                   <FormField
                     key={field.name}
                     label={field.label}
-                    hint={value > 0 ? `${field.hint} 3 месяца = ${money.format(value * 3)} сом.` : field.hint}
+                    hint={value > 0 && !field.oneTime ? `${field.hint} 3 месяца = ${money.format(value * 3)} сом.` : field.hint}
                     error={fieldError(form, field.name)}
                   >
                     {(parts) => (

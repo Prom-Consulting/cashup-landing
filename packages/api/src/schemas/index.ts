@@ -18,6 +18,7 @@ export * from "./cashback";
 export * from "./template";
 export * from "./categories";
 export * from "./open-store";
+export * from "./nfc-sticker";
 export { DEFAULT_PHONE_COUNTRY, toPhoneDigits } from "./phone";
 export * from "./cashier";
 export * from "./merchant-exit";

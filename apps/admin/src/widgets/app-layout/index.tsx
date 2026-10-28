@@ -1,6 +1,7 @@
 import {
   Coupon01Icon,
   DoorIcon,
+  NfcIcon,
   Tag01Icon,
   Wallet01Icon,
   Settings02Icon,
@@ -31,6 +32,7 @@ const nav: (NavItem & { icon: IconSvg })[] = [
   { to: "/exit-requests", label: "Выход партнёров", icon: DoorIcon },
   { to: "/business-passwords", label: "Пароли партнёров", icon: SquareLock02Icon },
   { to: "/tariffs", label: "Тарифы", icon: Tag01Icon },
+  { to: "/nfc-stickers", label: "NFC-стикеры", icon: NfcIcon },
   { to: "/settings", label: "Настройки", icon: Settings02Icon },
   { to: "/profile", label: "Профиль", icon: UserCircleIcon },
 ];

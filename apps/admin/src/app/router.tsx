@@ -18,6 +18,7 @@ import { MerchantsPage } from "../pages/merchants";
 import { TemplateEditorPage } from "../pages/template-editor";
 import { TemplatesPage } from "../pages/templates";
 import { TariffsPage } from "../pages/tariffs";
+import { NfcStickersPage } from "../pages/nfc-stickers";
 import { ExitRequestsPage } from "../pages/exit-requests";
 import { AppLayout } from "../widgets/app-layout";
 import { CardSuiteLayout } from "../widgets/card-suite";
@@ -50,6 +51,7 @@ export function AppRouter() {
         <Route path="templates/:templateId" element={<TemplateEditorPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="tariffs" element={<TariffsPage />} />
+        <Route path="nfc-stickers" element={<NfcStickersPage />} />
         <Route path="exit-requests" element={<ExitRequestsPage />} />
         <Route path="promo-codes" element={<PromoCodesPage />} />
         <Route path="leads" element={<LeadsPage />} />

@@ -287,6 +287,8 @@ export const platformSettingsSchema = z.looseObject({
   infoUrl: z.string().nullish(),
   /** Цена подписки клиента, целые сомы за месяц. Цены магазинов — /admin/v1/tariffs. */
   cardSubscriptionPriceKgs: z.number().nullish(),
+  /** Разовая цена NFC-стикера заведения (тариф «Больше клиентов»), целые сомы. */
+  nfcStickerPriceKgs: z.number().nullish(),
 });
 export type PlatformSettings = z.infer<typeof platformSettingsSchema>;
 
@@ -309,9 +311,11 @@ const priceKgs = z.coerce
 // Цен магазинов здесь нет: они в /admin/v1/tariffs, а поле merchantAccessPriceKgs сервер отклоняет (400)
 export const platformPricesInputSchema = z.object({
   cardSubscriptionPriceKgs: priceKgs,
+  nfcStickerPriceKgs: priceKgs,
 });
 export type PlatformPricesInput = {
   cardSubscriptionPriceKgs: number | string;
+  nfcStickerPriceKgs: number | string;
 };
 
 export const auditLogSchema = z.looseObject({

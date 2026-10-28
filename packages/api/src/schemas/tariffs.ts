@@ -18,6 +18,8 @@ export type MerchantTariffPlan = z.infer<typeof merchantTariffPlanSchema>;
 
 export const publicMerchantTariffSchema = merchantTariffPlanSchema.extend({
   code: z.enum(["more_clients", "even_more_clients", "very_many_clients"]),
+  /** Разовая цена NFC-стикера — только у «more_clients» (подписка бесплатна). */
+  oneTimeStickerKgs: z.number().int().nonnegative().optional(),
   regularPriceKgs: z.number().int().nonnegative(),
   freeMerchantLimit: z.number().int().nonnegative(),
   enrolledMerchants: z.number().int().nonnegative(),

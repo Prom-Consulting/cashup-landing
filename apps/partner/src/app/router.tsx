@@ -17,6 +17,7 @@ import { RedeemPage } from "../pages/redeem";
 import { CashbackPage } from "../pages/cashback";
 import { SettingsPage } from "../pages/settings";
 import { StorefrontPage } from "../pages/storefront";
+import { NfcStickerPage } from "../pages/nfc-sticker";
 import { StoresPage } from "../pages/stores";
 // Карта (maplibre) тяжёлая — грузим страницу открытия заведения отдельным чанком.
 const OpenStorePage = lazy(() => import("../pages/open-store").then((m) => ({ default: m.OpenStorePage })));
@@ -86,6 +87,14 @@ export function AppRouter() {
           }
         />
         <Route path="storefront" element={<StorefrontPage />} />
+        <Route
+          path="nfc-sticker"
+          element={
+            <OwnerOnly title="NFC-стикер">
+              <NfcStickerPage />
+            </OwnerOnly>
+          }
+        />
         <Route
           path="billing"
           element={

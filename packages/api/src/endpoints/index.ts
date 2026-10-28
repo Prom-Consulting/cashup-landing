@@ -21,3 +21,5 @@ export * from "./tariffs";
 export * from "./support";
 export * from "./business-passwords";
 export * from "./revenue";
+
+export * from "./nfc-sticker";
