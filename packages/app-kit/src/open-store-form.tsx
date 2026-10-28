@@ -7,6 +7,9 @@ import {
   authApi,
   coordsFrom2gis,
   openStoreFormSchema,
+  reverseGeocode,
+  searchAddress,
+  type AddressHit,
   type OpenStoreFormValues,
 } from "@loal/api";
 import { FocusFirstError, fieldError, zodValidate } from "@loal/forms";
@@ -51,6 +54,28 @@ export function OpenStoreForm({
   const [tariff, setTariff] = useState<(typeof LOAL_TARIFFS)[number]>("even_more_clients");
   const [audiences, setAudiences] = useState<string[]>([]);
   const [point, setPoint] = useState<Point | null>(null);
+  const [addrHits, setAddrHits] = useState<AddressHit[]>([]);
+  const [addrOpen, setAddrOpen] = useState(false);
+  const addrAbort = useRef<AbortController | null>(null);
+  const addrTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Подсказки адреса — с задержкой, чтобы не дёргать геокодер на каждую букву.
+  const queryAddress = (text: string) => {
+    if (addrTimer.current) clearTimeout(addrTimer.current);
+    addrAbort.current?.abort();
+    if (text.trim().length < 3) {
+      setAddrHits([]);
+      setAddrOpen(false);
+      return;
+    }
+    addrTimer.current = setTimeout(async () => {
+      const ctrl = new AbortController();
+      addrAbort.current = ctrl;
+      const hits = await searchAddress(text, ctrl.signal);
+      setAddrHits(hits);
+      setAddrOpen(hits.length > 0);
+    }, 450);
+  };
   const [logo, setLogo] = useState<File | null>(null);
   const [photos, setPhotos] = useState<File[]>([]);
   const [progress, setProgress] = useState("");
@@ -254,17 +279,76 @@ export function OpenStoreForm({
               )}
             </div>
 
-            <TextField name="address" label="Адрес" form={form} placeholder="Улица и дом" />
+            <div data-field="address" className="relative">
+              <Label htmlFor="address">Адрес</Label>
+              <Input
+                id="address"
+                name="address"
+                className="mt-2"
+                autoComplete="off"
+                placeholder="Начните вводить улицу и дом — подскажем"
+                value={form.values.address}
+                onChange={(e) => {
+                  form.handleChange(e);
+                  queryAddress(e.target.value);
+                }}
+                onFocus={() => {
+                  if (addrHits.length) setAddrOpen(true);
+                }}
+                onBlur={(e) => {
+                  form.handleBlur(e);
+                  setTimeout(() => setAddrOpen(false), 150);
+                }}
+                invalid={Boolean(fieldError(form, "address"))}
+              />
+              {addrOpen && (
+                <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_1rem_3rem_rgb(22_21_21/0.14)]">
+                  {addrHits.map((hit, i) => (
+                    <li key={`${hit.lat},${hit.lng},${i}`}>
+                      <button
+                        type="button"
+                        // не теряем фокус поля до клика — иначе onBlur закроет список раньше
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          void form.setFieldValue("address", hit.short);
+                          setPoint({ lat: hit.lat, lng: hit.lng });
+                          setAddrOpen(false);
+                        }}
+                        className="block w-full px-4 py-2.5 text-left hover:bg-muted"
+                      >
+                        <span className="block font-medium">{hit.short}</span>
+                        <span className="block truncate text-sm text-muted-foreground">{hit.full}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {fieldError(form, "address") && (
+                <p className="mt-2 text-base text-destructive">{fieldError(form, "address")}</p>
+              )}
+            </div>
 
             <div>
               <p className="text-base font-medium text-foreground">Точка на карте</p>
               <p className="mt-1 mb-3 text-base text-muted-foreground">
-                Нажмите на карту, где находится заведение, или вставьте ссылку 2ГИС ниже.
+                Нажмите на карту, где находится заведение, — адрес подставим сам.
                 {existingPoints && existingPoints.length > 0 && (
                   <> Янтарные метки — ваши заведения.</>
                 )}
               </p>
-              <LocationPicker value={point} onChange={setPoint} markers={existingPoints} />
+              <LocationPicker
+                value={point}
+                markers={existingPoints}
+                onChange={(p) => {
+                  setPoint(p);
+                  // Клик по карте — подставляем адрес, если его ещё не вводили вручную.
+                  if (p && !form.values.address.trim()) {
+                    void reverseGeocode(p.lat, p.lng).then((addr) => {
+                      if (addr) void form.setFieldValue("address", addr);
+                    });
+                  }
+                }}
+              />
               <div className="mt-4">
                 <Label htmlFor="twogisUrl">Ссылка 2ГИС (необязательно)</Label>
                 <Input
