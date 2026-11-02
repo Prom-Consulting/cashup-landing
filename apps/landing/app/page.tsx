@@ -15,7 +15,7 @@ import { SiteFooter } from "./_components/site-footer";
 import { SiteHeader } from "./_components/site-header";
 import type { PartnerCategoryId } from "@loal/api";
 import { PAGE_SEO, categoryPath, openGraph } from "./_data/seo";
-import { CLIENT_APP_URL, OCTOPAY_URL } from "./_data/site";
+import { CLIENT_APP_URL } from "./_data/site";
 
 // Подписку оформляют в кабинете клиента: там же выпускается карта
 const SUBSCRIBE_URL = CLIENT_APP_URL;
@@ -69,7 +69,7 @@ const included = [
 const faq = [
   {
     q: "Сколько стоит подписка?",
-    a: "990 сом за 30 дней. Оплата проходит через OctōPAY, продлить можно в личном кабинете — в том числе заранее.",
+    a: "990 сом за 30 дней. Продлить можно в личном кабинете — в том числе заранее.",
   },
   {
     q: "15 000 бонусов — это 15 000 сом?",
@@ -336,13 +336,6 @@ export default function Home() {
               >
                 Открыть каталог партнёров
               </Link>
-              <p className="mt-8 max-w-[440px] rounded-3xl bg-cream px-5 py-4 text-base leading-snug">
-                С меткой{" "}
-                <a href={OCTOPAY_URL} className="font-bold text-flame-ink underline underline-offset-4">
-                  OctōPAY
-                </a>{" "}
-                бонусы списываются сами, когда вы платите по QR.
-              </p>
             </div>
 
             <ul data-categories className="grid grid-cols-2 gap-4">
@@ -407,13 +400,7 @@ export default function Home() {
                   <span className="whitespace-nowrap">990 сом</span>
                   <span className="text-[0.36em] whitespace-nowrap text-slate">за 30 дней</span>
                 </p>
-                <p className="mt-5 text-lg text-slate sm:text-xl">
-                  Оплата через{" "}
-                  <a href={OCTOPAY_URL} className="text-flame-ink underline underline-offset-4 hover:no-underline">
-                    OctōPAY
-                  </a>
-                  , продление — в личном кабинете.
-                </p>
+                <p className="mt-5 text-lg text-slate sm:text-xl">Оплата и продление — в личном кабинете.</p>
                 <a
                   href={SUBSCRIBE_URL}
                   className={`${pill} mt-8 bg-flame font-bold text-[1.1875rem] text-white hover:bg-graphite`}

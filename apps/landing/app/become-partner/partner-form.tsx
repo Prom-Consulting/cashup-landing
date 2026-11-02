@@ -15,7 +15,7 @@ import { PARTNER_AUDIENCES, toPhoneDigits, coordsFrom2gis, merchantProfileFormSc
 import { categories } from "../_data/categories";
 import { businessPrice, type BusinessTariff } from "../_data/business-pricing";
 import { useBusinessPricing } from "../_components/business-pricing";
-import { API_URL, EMAIL, OCTOPAY_URL, PARTNER_APP_URL, PHONE, PHONE_HREF } from "../_data/site";
+import { API_URL, EMAIL, PARTNER_APP_URL, PHONE, PHONE_HREF } from "../_data/site";
 
 gsap.registerPlugin(useGSAP);
 
@@ -586,12 +586,6 @@ export function PartnerForm() {
                   }}
                   options={[...tariffs]}
                 />
-                <p className="text-base">
-                  Нужны только платежи без программы лояльности?{" "}
-                  <a href={OCTOPAY_URL} className="text-flame-ink underline underline-offset-4">
-                    Подключите OctōPAY
-                  </a>
-                </p>
               </div>
             )}
 
@@ -807,7 +801,7 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
           : "Подключаем ваш бизнес";
 
   const text =
-    sent.verificationStatus === "pending" ? "Кабинет создан. До проверки супер-админа заведение не показывается в каталоге LOAL и не принимает бонусы. Вы уже можете войти и проверить данные витрины. Подписка оплачивается отдельно: «Только лояльность» — в кабинете Loal, пакет — в OctōPAY." : sent.state === "ready"
+    sent.verificationStatus === "pending" ? "Кабинет создан. До проверки супер-админа заведение не показывается в каталоге LOAL и не принимает бонусы. Вы уже можете войти и проверить данные витрины. Подписка оплачивается в кабинете Loal." : sent.state === "ready"
       ? sent.plan === "octopay"
         ? "Аккаунт OctōPAY создан. Войдите по этому телефону и паролю, заданному в форме."
         : sent.plan === "bundle"

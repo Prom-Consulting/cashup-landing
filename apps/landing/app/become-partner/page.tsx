@@ -7,7 +7,7 @@ import { models } from "../_data/models";
 import { getBusinessPricing } from "../_data/business-pricing";
 import { BusinessPricingProvider } from "../_components/business-pricing";
 import { PAGE_SEO, openGraph } from "../_data/seo";
-import { CITY, EMAIL, OCTOPAY_URL, PARTNER_MAIL, PHONE, PHONE_HREF } from "../_data/site";
+import { CITY, EMAIL, PARTNER_MAIL, PHONE, PHONE_HREF } from "../_data/site";
 import { PartnerForm } from "./partner-form";
 import { TariffPrice } from "./tariff-price";
 
@@ -48,7 +48,7 @@ const gains = [
   },
   {
     title: "Место в каталоге",
-    text: "Профиль с логотипом, категорией и процентом на карте партнёров. С меткой OctōPAY — заметнее.",
+    text: "Профиль с логотипом, категорией и процентом на карте партнёров.",
   },
   {
     title: "Ничего не нужно ставить",
@@ -64,10 +64,6 @@ const faq = [
   {
     q: "Чем тарифы отличаются друг от друга?",
     a: "«Больше клиентов» — клиент получает у вас кэшбэк. «Ещё больше клиентов» — клиент оплачивает часть чека бонусами. «Очень много клиентов» — и то и другое, плюс выделение в каталоге и день повышенной видимости раз в неделю.",
-  },
-  {
-    q: "Нужен ли OctōPAY?",
-    a: "Приём платежей OctōPAY доступен всем заведениям Loal по желанию. Если нужны только платежи без программы лояльности, подключайтесь напрямую на octopay.click.",
   },
   {
     q: "Кто платит за бонусы клиента?",
@@ -173,25 +169,8 @@ export default async function BecomePartnerPage() {
                 </article>
               ))}
             </div>
-            <div className="mt-10">
-              <div className="flex flex-col justify-between gap-5 rounded-[28px] border-2 border-paper/20 p-6 sm:flex-row sm:items-center sm:p-8">
-                <div>
-                  <h3 className="text-xl font-bold">Только OctōPAY</h3>
-                  <p className="mt-1 opacity-80">Нужны только платежи без программы лояльности.</p>
-                </div>
-                <a
-                  href={OCTOPAY_URL}
-                  className="shrink-0 rounded-full bg-paper px-6 py-3 text-center font-bold text-graphite"
-                >
-                  Перейти на octopay.click
-                </a>
-              </div>
-            </div>
             <p className="mt-8 max-w-[64ch] text-sm opacity-75">
-              Подписка оплачивается в кабинете Loal через{" "}
-              <a href={OCTOPAY_URL} className="underline underline-offset-4 hover:no-underline">
-                OctōPAY
-              </a>. Приём платежей OctōPAY доступен на всех тарифах по желанию.
+              Подписка оплачивается в кабинете Loal.
             </p>
           </div>
         </section>

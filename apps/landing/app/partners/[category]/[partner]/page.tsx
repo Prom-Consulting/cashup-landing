@@ -159,12 +159,6 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
                 <PercentBadge partner={partner} className="w-fit" />
               )}
 
-              {partner.tariff === "octopay" && partner.acceptsBonuses !== false && (
-                <p className="rounded-2xl bg-paper px-4 py-3 text-base leading-snug">
-                  Здесь можно платить через OctōPAY: на странице оплаты вы сами решаете, сколько бонусов потратить.
-                </p>
-              )}
-
               {partner.description && <p className="text-lg leading-relaxed whitespace-pre-line">{partner.description}</p>}
 
               {partner.address && (
@@ -217,7 +211,7 @@ export default async function PartnerPage({ params }: PageProps<"/partners/[cate
             <ol className="mt-5 grid gap-4 sm:grid-cols-3">
               {[
                 "Оформите подписку Loal — карта появится в Apple Wallet или Google Wallet.",
-                "На кассе покажите QR-код карты или оплатите по ссылке OctōPAY, если заведение её даёт.",
+                "На кассе покажите QR-код карты.",
                 partner.maxCoveragePercent
                   ? `Бонусами закроется до ${partner.maxCoveragePercent}% покупки, остальное — деньгами.`
                   : "Бонусами закроется часть покупки — процент задаёт заведение.",

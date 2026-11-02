@@ -10,7 +10,6 @@ import {
   LEGAL_ADDRESS,
   LEGAL_INN,
   LEGAL_NAME,
-  OCTOPAY_URL,
   PHONE,
   PHONE_HREF,
   PROM_URL,
@@ -54,7 +53,7 @@ const principles = [
   },
   {
     title: "Без лишнего железа",
-    text: "Кассиру хватает телефона: QR карты и сумма. С OctōPAY покупатель платит сам — бонусами, банком или и тем и другим.",
+    text: "Кассиру хватает телефона: QR карты и сумма.",
   },
 ];
 
@@ -64,12 +63,6 @@ const team = [
     text: "Разрабатывает и сопровождает Loal: сайт, кабинеты покупателя, заведения и кассира, выпуск карт в Wallet.",
     href: PROM_URL,
     label: "promconsulting.org",
-  },
-  {
-    title: "OctōPAY",
-    text: "Платёжный партнёр: через OctōPAY проходят оплата подписки, счета клиентам и самостоятельная оплата по QR и NFC.",
-    href: OCTOPAY_URL,
-    label: "octopay.click",
   },
 ];
 
