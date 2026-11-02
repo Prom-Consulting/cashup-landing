@@ -118,8 +118,7 @@ export function PercentBadge({ partner, className = "" }: { partner: PublicPartn
   );
 }
 
-const subtitle = (partner: PublicPartner) =>
-  [partner.category, partner.tariff === "octopay" ? "оплата в OctōPAY" : null].filter(Boolean).join(" · ") || "Бишкек";
+const subtitle = (partner: PublicPartner) => partner.category || "Бишкек";
 
 /**
  * Видео в карточке каталога — живое превью: ролик тихо играет, пока карточка на экране, и встаёт

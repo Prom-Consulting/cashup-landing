@@ -468,8 +468,6 @@ export function PartnersPanel({
                         <span className="block truncate text-sm text-slate">
                           {[
                             partner.category,
-                            // OctōPAY + Loal: бонусы тратятся прямо при оплате по ссылке
-                            partner.tariff === "octopay" ? "оплата бонусами в OctōPAY" : null,
                             onMap ? null : "без точки на карте",
                           ]
                             .filter(Boolean)

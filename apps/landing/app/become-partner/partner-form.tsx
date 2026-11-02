@@ -122,7 +122,7 @@ async function call(path: string, body?: unknown, token?: string) {
     if (code === "APPLICATION_IN_PROGRESS")
       throw new FormError("По этому номеру уже обрабатывается заявка с другими данными. Дождитесь решения — статус заявки ниже.");
     if (code === "APPLICATION_EXISTS")
-      throw new FormError("На этот номер уже есть заявка на OctōPAY. Проверьте её статус или напишите нам.");
+      throw new FormError("На этот номер уже есть заявка на подключение. Проверьте её статус или напишите нам.");
     throw new FormError("На этот номер уже есть заявка или аккаунт. Проверьте статус заявки или напишите нам.");
   }
   if (response.status === 429) throw new FormError("Слишком много попыток. Подождите минуту и попробуйте снова.");
@@ -318,7 +318,7 @@ export function PartnerForm() {
   };
 
   const validatePassword = () => {
-    if (password.length < 8 || new TextEncoder().encode(password).length > 72) throw new FormError("Пароль OctoPay: от 8 символов, не более 72 байт.");
+    if (password.length < 8 || new TextEncoder().encode(password).length > 72) throw new FormError("Пароль: от 8 символов, не более 72 байт.");
     if (password !== passwordConfirm) throw new FormError("Пароли не совпадают.");
   };
   const acceptResult = (result: Registration) => { setSent(result); setPassword(""); setPasswordConfirm(""); };
@@ -499,9 +499,9 @@ export function PartnerForm() {
             acceptResult(result);
             if (result.state === "action_required") throw new FormError("Подключение не завершено. Попробуйте ещё раз через минуту или обратитесь в поддержку.");
           }); }}>
-            <p>{sent.state === "action_required" ? "Задайте новый пароль OctoPay. После подтверждения номера он заменит старый пароль существующего аккаунта. Аккаунт и карта LOAL сохранятся." : "Для входа в OctoPay задайте пароль."}</p>
+            <p>{sent.state === "action_required" ? "Задайте новый пароль. После подтверждения номера он заменит старый пароль существующего аккаунта. Аккаунт и карта LOAL сохранятся." : "Задайте пароль для входа."}</p>
             <PasswordFields password={password} confirm={passwordConfirm} setPassword={setPassword} setConfirm={setPasswordConfirm} disabled={sending} />
-            <Button type="submit" disabled={sending}>{sending ? "Подключаем…" : sent.state === "action_required" ? "Повторить подключение" : "Сохранить пароль OctoPay"}</Button>
+            <Button type="submit" disabled={sending}>{sending ? "Подключаем…" : sent.state === "action_required" ? "Повторить подключение" : "Сохранить пароль"}</Button>
           </form>}
         </>
       ) : step === "code" ? (
@@ -803,14 +803,14 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
   const text =
     sent.verificationStatus === "pending" ? "Кабинет создан. До проверки супер-админа заведение не показывается в каталоге LOAL и не принимает бонусы. Вы уже можете войти и проверить данные витрины. Подписка оплачивается в кабинете Loal." : sent.state === "ready"
       ? sent.plan === "octopay"
-        ? "Аккаунт OctōPAY создан. Войдите по этому телефону и паролю, заданному в форме."
+        ? "Аккаунт создан. Войдите по этому телефону и паролю, заданному в форме."
         : sent.plan === "bundle"
-          ? "Кабинеты Loal и OctōPAY созданы и связаны. В LOAL вход по телефону и коду WhatsApp, в OctoPay — по телефону и вашему паролю."
+          ? "Кабинет Loal создан. Войдите по телефону и коду из WhatsApp."
           : "Кабинет Loal готов. Войдите по этому телефону и коду из WhatsApp."
       : sent.state === "pending_payment"
         ? "Оплата откроется в новой вкладке. Эта страница сама узнает, когда платёж пройдёт, — закрывать её не нужно."
         : sent.state === "action_required"
-          ? sent.requiresOctopayPassword ? "Заявка сохранена. Укажите новый пароль OctoPay ниже — он заменит старый пароль аккаунта на подтверждённом номере. Если подключение не удаётся — свяжитесь с нами." : "Заявка сохранена, но автоматически подключить не получилось. Напишите или позвоните нам — закончим вручную."
+          ? sent.requiresOctopayPassword ? "Заявка сохранена. Укажите новый пароль ниже — он заменит старый пароль аккаунта на подтверждённом номере. Если подключение не удаётся — свяжитесь с нами." : "Заявка сохранена, но автоматически подключить не получилось. Напишите или позвоните нам — закончим вручную."
           : "Заявка сохранена. Страница обновится сама, когда всё будет готово.";
 
   return (
@@ -858,14 +858,6 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
             Войти в Loal
           </a>
         )}
-        {sent.state === "ready" && sent.octopayUrl && !sent.requiresOctopayPassword && (
-          <a
-            href="https://octopay.click/auth/business"
-            className="rounded-full bg-graphite px-7 py-4 text-lg font-bold text-white transition-opacity hover:opacity-85"
-          >
-            Войти в OctōPAY
-          </a>
-        )}
         {sent.state === "action_required" && (
           <a href={PHONE_HREF} className="rounded-full bg-graphite px-7 py-4 text-lg font-bold text-white">
             Позвонить {PHONE}
@@ -885,8 +877,8 @@ function Status({ sent, failed, phone }: { sent: Registration; failed: string | 
             : sent.plan === "loyalty"
               ? "Оплатите подписку в кабинете Loal, чтобы принимать бонусы после проверки заведения."
               : sent.plan === "bundle"
-                ? "Подписку пакета оплачивают в OctōPAY. Для приёма платежей подключите банковский счёт в кабинете OctōPAY."
-                : "Абонентской платы нет — только комиссия с платежей. Чтобы принимать оплату, подключите банковский счёт в кабинете OctōPAY."}
+                ? "Подписку оплачивают в кабинете. Для приёма платежей подключите банковский счёт."
+                : "Абонентской платы нет — только комиссия с платежей. Чтобы принимать оплату, подключите банковский счёт."}
         </p>
       )}
       {sent.state === "pending_payment" && (
@@ -962,8 +954,8 @@ function PasswordFields({ password, confirm, setPassword, setConfirm, disabled }
   return (
     <section className="space-y-4 rounded-2xl border border-current/10 p-5" aria-labelledby="octopay-password-heading">
       <div>
-        <h2 id="octopay-password-heading" className="text-xl font-semibold">Пароль для OctōPAY</h2>
-        <p className="mt-1 text-sm opacity-75">Уже есть OctōPAY на этот номер? После подтверждения номера этот пароль заменит старый. В Loal вход останется по коду из WhatsApp.</p>
+        <h2 id="octopay-password-heading" className="text-xl font-semibold">Пароль для входа</h2>
+        <p className="mt-1 text-sm opacity-75">Уже есть аккаунт оплаты на этот номер? После подтверждения номера этот пароль заменит старый. В Loal вход останется по коду из WhatsApp.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Пароль">
