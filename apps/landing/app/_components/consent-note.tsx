@@ -12,15 +12,15 @@ export function ConsentNote({ action, className = "" }: { action: string; classN
   return (
     <p className={`max-w-[52ch] text-sm leading-relaxed text-slate ${className}`}>
       Нажимая «{action}», вы принимаете{" "}
-      <Link href={legalPath("user-agreement")} className={doc}>
+      <Link href={legalPath("user-agreement")} target="_blank" rel="noreferrer" className={doc}>
         Пользовательское соглашение
       </Link>{" "}
       и{" "}
-      <Link href={legalPath("privacy")} className={doc}>
+      <Link href={legalPath("privacy")} target="_blank" rel="noreferrer" className={doc}>
         Политику конфиденциальности
       </Link>{" "}
       и даёте{" "}
-      <Link href={legalPath("data-consent")} className={doc}>
+      <Link href={legalPath("data-consent")} target="_blank" rel="noreferrer" className={doc}>
         Согласие на обработку персональных данных
       </Link>
       .

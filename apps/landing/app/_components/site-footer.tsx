@@ -8,7 +8,6 @@ import {
   EMAIL,
   LEGAL_INN,
   LEGAL_NAME,
-  OCTOPAY_URL,
   PARTNER_APP_URL,
   PHONE,
   PHONE_HREF,
@@ -32,7 +31,7 @@ export function SiteFooter() {
     <footer id="contacts" className="shrink-0 overflow-hidden">
       <div className="mx-auto max-w-[1512px] px-5 sm:px-12">
         <div className="rounded-[32px] bg-white p-7 shadow-[0_2rem_4rem_rgb(22_21_21/0.05)] sm:rounded-[40px] sm:p-11">
-          <div className="grid gap-10 md:grid-cols-2 md:gap-8 xl:grid-cols-[1.4fr_1fr_1fr_1fr_1.1fr]">
+          <div className="grid gap-10 md:grid-cols-2 md:gap-8 xl:grid-cols-[1.4fr_1fr_1fr_1.1fr]">
             <div className="max-w-[539px]">
               <Logo size="lg" descriptor="Бонусы по подписке" />
               <p className="mt-5 text-lg leading-snug text-slate sm:text-xl">
@@ -71,14 +70,6 @@ export function SiteFooter() {
                   </a>
                 </li>
               </ul>
-            </div>
-
-            <div>
-              <p className="text-base text-slate">Экосистема</p>
-              <a href={OCTOPAY_URL} className={`mt-4 block text-lg hover:text-flame sm:text-xl ${link}`}>
-                OctōPAY
-              </a>
-              <p className="mt-1 text-base text-slate">платежи по QR</p>
             </div>
 
             <address className="not-italic">
